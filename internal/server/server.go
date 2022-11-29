@@ -54,6 +54,8 @@ type Options struct {
 
 	GoogleClientID     string
 	GoogleClientSecret string
+	// LoginRedirect that users will be sent to after logging in with Google
+	LoginRedirect string
 
 	DBEncryptionKey         string
 	DBEncryptionKeyProvider string

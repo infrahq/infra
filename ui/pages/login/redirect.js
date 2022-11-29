@@ -13,14 +13,14 @@ export default function Redirect() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    // if it takes over 3 seconds to get the redirect values, something went wrong
+    setTimeout(() => {
+      setError(
+        'login failed: unable to redirect to finish login, check that you allow cookies'
+      )
+    }, 3000)
+
     async function finish({ code, state }) {
-      const cookies = new Cookies()
-      const redirect = cookies.get('finishLogin') // the org to redirect to is stored in this cookie
-      if (!redirect) {
-        setError(
-          'login failed: unable to redirect to finish login, check that you allow cookies'
-        )
-      }
       // build the callback URL to finish the login at the org
       const callbackURL =
         window.location.protocol +
@@ -40,8 +40,10 @@ export default function Redirect() {
       router.replace(callbackURL)
     }
 
-    if (code && state) {
-      finish({ code, state })
+    const cookies = new Cookies()
+    const redirect = cookies.get('finishLogin') // the org to redirect to is stored in this cookie
+    if (code && state && redirect) {
+      finish({ code, state, redirect })
     }
   }, [code, state, router])
 

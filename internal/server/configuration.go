@@ -11,5 +11,6 @@ func (a *API) GetServerConfiguration(c *gin.Context, _ *api.EmptyRequest) (*api.
 	return &api.ServerConfiguration{
 		IsEmailConfigured: email.IsConfigured(),
 		BaseDomain:        a.server.options.BaseDomain,
+		LoginRedirect:     a.server.options.LoginRedirect,
 	}, nil
 }
