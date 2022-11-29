@@ -74,13 +74,12 @@ func printTable(data interface{}, out io.Writer) {
 }
 
 // Creates a new API Client from the current config
-// Deprecated: use readConfig and ClientConfig.APIClient
 func defaultAPIClient() (*api.Client, error) {
-	config, err := readConfig()
+	config, err := currentHostConfig()
 	if err != nil {
 		return nil, err
 	}
-	return config.APIClient()
+	return apiClientFromHostConfig(config)
 }
 
 func apiClientFromHostConfig(config *ClientHostConfig) (*api.Client, error) {

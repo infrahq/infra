@@ -155,11 +155,7 @@ func setupDestinationSSHConfig(ctx context.Context, cli *CLI, destination *api.D
 	infraSSHDir := filepath.Join(homeDir, ".ssh/infra")
 	_ = os.MkdirAll(infraSSHDir, 0700)
 
-	cfg, err := readConfig()
-	if err != nil {
-		return err
-	}
-	client, err := cfg.APIClient()
+	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}
@@ -299,7 +295,6 @@ func updateUserSSHConfig(cli *CLI) error {
 	}
 	cli.Output(`
 Your SSH config at %v has been updated to connect to Infra SSH destinations.
-connecting to Infra SSH destinations.
 `,
 		filename)
 	return nil
