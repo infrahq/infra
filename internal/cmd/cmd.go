@@ -62,7 +62,7 @@ func defaultClientOpts() (*APIClientOpts, error) {
 	return apiClientFromHostConfig(config)
 }
 
-func apiClientFromHostConfig(config *ClientHostConfig) (*api.Client, error) {
+func apiClientFromHostConfig(config *ClientHostConfig) (*APIClientOpts, error) {
 	server := config.Host
 	var accessKey string
 	if !config.isExpired() {
