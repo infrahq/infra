@@ -199,8 +199,6 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 	promRegistry.MustRegister(responseDuration)
 
 	client := options.APIClient()
-	// Use the uniqueID header instead of the Name header
-	client.Headers = http.Header{"Infra-Destination": {checkSum}}
 	client.OnUnauthorized = func() {
 		logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
 		cancel()
