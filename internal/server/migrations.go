@@ -92,6 +92,62 @@ func (a *API) addResponseRewrites() {
 			AccessKey:         newResponse.AccessKey,
 		}
 	})
+
+	type grantsV0_18_1 struct {
+		ID        uid.ID   `json:"id"`
+		Created   api.Time `json:"created"`
+		CreatedBy uid.ID   `json:"created_by"`
+		Updated   api.Time `json:"updated"`
+		User      uid.ID   `json:"user,omitempty"`
+		Group     uid.ID   `json:"group,omitempty"`
+		Privilege string   `json:"privilege"`
+		Resource  string   `json:"resource"`
+	}
+	addResponseRewrite(a, http.MethodGet, "/api/grants", "0.18.1", func(newResponse *api.ListResponse[api.Grant]) *api.ListResponse[grantsV0_18_1] {
+		return api.NewListResponse(newResponse.Items, newResponse.PaginationResponse, func(newResponseItem api.Grant) grantsV0_18_1 {
+			return grantsV0_18_1{
+				ID:        newResponseItem.ID,
+				Created:   newResponseItem.Created,
+				CreatedBy: newResponseItem.CreatedBy,
+				Updated:   newResponseItem.Updated,
+				User:      newResponseItem.User,
+				Group:     newResponseItem.Group,
+				Privilege: newResponseItem.Privilege,
+				Resource:  newResponseItem.Resource,
+			}
+		})
+	})
+	addResponseRewrite(a, http.MethodGet, "/api/grants/:id", "0.18.1", func(newResponse *api.Grant) *grantsV0_18_1 {
+		return &grantsV0_18_1{
+			ID:        newResponse.ID,
+			Created:   newResponse.Created,
+			CreatedBy: newResponse.CreatedBy,
+			Updated:   newResponse.Updated,
+			User:      newResponse.User,
+			Group:     newResponse.Group,
+			Privilege: newResponse.Privilege,
+			Resource:  newResponse.Resource,
+		}
+	})
+	type createGrantsV0_18_1 struct {
+		*grantsV0_18_1 `json:",inline"`
+		WasCreated     bool `json:"wasCreated"`
+	}
+	addResponseRewrite(a, http.MethodPost, "/api/grants", "0.18.1", func(newResponse *api.CreateGrantResponse) *createGrantsV0_18_1 {
+		return &createGrantsV0_18_1{
+			grantsV0_18_1: &grantsV0_18_1{
+				ID:        newResponse.ID,
+				Created:   newResponse.Created,
+				CreatedBy: newResponse.CreatedBy,
+				Updated:   newResponse.Updated,
+				User:      newResponse.User,
+				Group:     newResponse.Group,
+				Privilege: newResponse.Privilege,
+				Resource:  newResponse.Resource,
+			},
+			WasCreated: newResponse.WasCreated,
+		}
+	})
 	// all response migrations go here
 }
 

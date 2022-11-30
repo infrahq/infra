@@ -56,7 +56,7 @@
             "format": "date-time",
             "type": "string"
           },
-          "created_by": {
+          "createdBy": {
             "description": "id of the user that created the grant",
             "example": "4yJ3n3D8E2",
             "format": "uid",
@@ -335,7 +335,7 @@
             "format": "date-time",
             "type": "string"
           },
-          "created_by": {
+          "createdBy": {
             "description": "id of the user that created the grant",
             "example": "4yJ3n3D8E2",
             "format": "uid",
@@ -431,7 +431,7 @@
                   "format": "date-time",
                   "type": "string"
                 },
-                "created_by": {
+                "createdBy": {
                   "description": "id of the user that created the grant",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
