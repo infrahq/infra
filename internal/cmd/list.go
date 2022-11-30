@@ -18,12 +18,6 @@ func newListCmd(cli *CLI) *cobra.Command {
 		Short:   "List accessible destinations",
 		Args:    NoArgs,
 		GroupID: groupCore,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return list(cli)
 		},
@@ -31,7 +25,7 @@ func newListCmd(cli *CLI) *cobra.Command {
 }
 
 func list(cli *CLI) error {
-	client, err := defaultAPIClient()
+	client, err := cli.apiClient()
 	if err != nil {
 		return err
 	}

@@ -331,8 +331,19 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 		TrustedCertificate: options.TrustedCertificate,
 		SkipTLSVerify:      options.SkipTLSVerify,
 	}
+	client, err := NewAPIClient(&APIClientOpts{
+		Host:      options.Server,
+		Transport: httpTransportForHostConfig(cfg),
+	},
+	)
+	if err != nil {
+		return loginClient{}, err
+	}
+	if err := cli.serverCompatible(client); err != nil {
+		return loginClient{}, err
+	}
 	c := loginClient{
-		APIClient:          apiClient(options.Server, "", httpTransportForHostConfig(cfg)),
+		APIClient:          client,
 		TrustedCertificate: options.TrustedCertificate,
 	}
 	if options.SkipTLSVerify {
@@ -375,7 +386,14 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 				RootCAs:    pool,
 			},
 		}
-		c.APIClient = apiClient(options.Server, "", transport)
+		client, err := NewAPIClient(&APIClientOpts{
+			Host:      options.Server,
+			Transport: transport,
+		})
+		if err != nil {
+			return c, err
+		}
+		c.APIClient = client
 		c.TrustedCertificate = string(certs.PEMEncodeCertificate(uaErr.Cert.Raw))
 	}
 	return c, nil

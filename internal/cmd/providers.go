@@ -22,12 +22,6 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 		Short:   "Manage identity providers",
 		Aliases: []string{"provider"},
 		GroupID: groupManagement,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 	}
 
 	cmd.AddCommand(newProvidersListCmd(cli))
@@ -127,7 +121,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 		Short:   "List connected identity providers",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -229,7 +223,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 				return err
 			}
 
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -293,7 +287,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 }
 
 func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
-	client, err := defaultAPIClient()
+	client, err := cli.apiClient()
 	if err != nil {
 		return err
 	}
@@ -393,7 +387,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 		Example: "$ infra providers remove okta",
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}

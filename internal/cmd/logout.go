@@ -65,7 +65,16 @@ $ infra logout --all --clear`,
 
 func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
 	ctx := context.TODO()
-	client := apiClient(hostConfig.Host, hostConfig.AccessKey, httpTransportForHostConfig(hostConfig))
+	opts := &APIClientOpts{
+		Host:      hostConfig.Host,
+		AccessKey: hostConfig.AccessKey,
+		Transport: httpTransportForHostConfig(hostConfig),
+	}
+	client, err := NewAPIClient(opts)
+	if err != nil {
+		logging.Debugf("err: %s", err)
+		return false
+	}
 
 	defer func() {
 		hostConfig.AccessKey = ""

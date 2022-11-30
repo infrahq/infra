@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/cobra"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
 
@@ -170,7 +171,7 @@ func TestInvalidSessions(t *testing.T) {
 		assert.NilError(t, err)
 
 		err = Run(context.Background(), "destinations", "list")
-		assert.ErrorContains(t, err, "Session expired")
+		assert.ErrorContains(t, err, "Access key is expired, please `infra login` again")
 	})
 
 	t.Run("Logged out session", func(t *testing.T) {
@@ -182,7 +183,7 @@ func TestInvalidSessions(t *testing.T) {
 		assert.NilError(t, err)
 
 		err = Run(context.Background(), "destinations", "list")
-		assert.ErrorContains(t, err, "Not logged in")
+		assert.ErrorContains(t, err, "Missing access key, must `infra login` or set INFRA_ACCESS_KEY in your environment")
 	})
 }
 
@@ -195,4 +196,29 @@ func TestRootCmd_UsageTemplate(t *testing.T) {
 	assert.NilError(t, cmd.Usage())
 
 	golden.Assert(t, buf.String(), "expected-usage")
+}
+
+// TestCmdDoesNotUsePersistentPreRun because if any subcommand sets a
+// PersistentPreRun it will override the one set by the root command.
+func TestCmdDoesNotUsePersistentPreRun(t *testing.T) {
+	ctx := context.Background()
+	cli := newCLI(ctx)
+	cmd := NewRootCmd(cli)
+
+	walkCommands(cmd, func(child *cobra.Command) {
+		if child.PersistentPreRun != nil || child.PersistentPreRunE != nil {
+			t.Errorf("command %q should not use PersistentPreRun", child.CommandPath())
+		}
+	})
+}
+
+// walkCommands walks the Command in depth first order, and calls fn for
+// every child command in the tree.
+func walkCommands(cmd *cobra.Command, fn func(child *cobra.Command)) {
+	for _, child := range cmd.Commands() {
+		fn(child)
+		if len(child.Commands()) > 0 {
+			walkCommands(child, fn)
+		}
+	}
 }
