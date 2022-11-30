@@ -1229,6 +1229,9 @@
           },
           "isSignupEnabled": {
             "type": "boolean"
+          },
+          "loginRedirect": {
+            "type": "string"
           }
         }
       },
