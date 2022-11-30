@@ -64,7 +64,7 @@ retry:
 }
 
 // GetDeviceFlowStatus is an API handler for checking the status of a device
-// flow login. The response status can be pending, rejected, expired, or confirmed.
+// flow login. The response status can be pending, expired, or confirmed.
 func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusRequest) (*api.DeviceFlowStatusResponse, error) {
 	rctx := getRequestContext(c)
 	db := rctx.DBTxn
@@ -79,14 +79,14 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 
 	if dfar.ExpiresAt.Before(time.Now()) {
 		return &api.DeviceFlowStatusResponse{
-			Status:     "expired",
+			Status:     api.DeviceFlowStatusExpired,
 			DeviceCode: dfar.DeviceCode,
 		}, nil
 	}
 
 	if !dfar.Approved() {
 		return &api.DeviceFlowStatusResponse{
-			Status:     "pending",
+			Status:     api.DeviceFlowStatusPending,
 			DeviceCode: dfar.DeviceCode,
 		}, nil
 	}
@@ -149,7 +149,7 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 	}
 
 	return &api.DeviceFlowStatusResponse{
-		Status:     "confirmed",
+		Status:     api.DeviceFlowStatusPending,
 		DeviceCode: dfar.DeviceCode,
 		LoginResponse: &api.LoginResponse{
 			UserID:           accessKey.IssuedFor,

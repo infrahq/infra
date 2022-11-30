@@ -245,13 +245,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 }
 
 func equalHosts(x, y string) bool {
-	if x == y {
-		return true
-	}
-	if strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://") {
-		return true
-	}
-	return false
+	return strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://")
 }
 
 // Updates all configs with the current logged in session
@@ -481,13 +475,11 @@ func deviceFlowLogin(ctx context.Context, client *api.Client, cli *CLI) (*api.Lo
 				return nil, err
 			}
 			switch pollResp.Status {
-			case "rejected":
-				return nil, Error{Message: "device approval request rejected"}
-			case "expired":
+			case api.DeviceFlowStatusExpired:
 				return nil, Error{Message: "device approval request expired"}
-			case "confirmed":
-				return pollResp.LoginResponse, nil // success!
-			case "pending": // wait more
+			case api.DeviceFlowStatusConfirmed:
+				return pollResp.LoginResponse, nil
+			case api.DeviceFlowStatusPending:
 			default:
 				logging.Warnf("unexpected response status: " + pollResp.Status)
 			}

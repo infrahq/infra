@@ -89,12 +89,14 @@ func GetDeviceFlowAuthRequest(tx ReadTxn, opts GetDeviceFlowAuthRequestOptions) 
 }
 
 func DeleteExpiredDeviceFlowAuthRequests(tx WriteTxn) error {
-	query := querybuilder.New("UPDATE device_flow_auth_requests")
-	query.B("SET deleted_at = ?", time.Now().UTC())
-	query.B("WHERE expires_at <= ?", time.Now().UTC().Add(-1*time.Hour)) // leave buffer so keys aren't immediately deleted on expiry.
-
-	_, err := tx.Exec(query.String(), query.Args...)
-	return err
+	stmt := `
+		DELETE from device_flow_auth_requests
+		WHERE
+			deleted_at IS NOT NULL
+			OR expires_at < ?
+	`
+	_, err := tx.Exec(stmt, time.Now())
+	return handleError(err)
 }
 
 func DeleteDeviceFlowAuthRequest(tx WriteTxn, dfarID uid.ID) error {
