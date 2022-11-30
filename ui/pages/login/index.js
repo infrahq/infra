@@ -14,7 +14,7 @@ import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
 
 function oidcLogin(
-  { baseDomain, loginRedirect, id, clientID, authURL, scopes },
+  { baseDomain, loginDomain, id, clientID, authURL, scopes },
   next
 ) {
   window.localStorage.setItem('providerID', id)
@@ -42,7 +42,8 @@ function oidcLogin(
       domain: `.${baseDomain}`,
       sameSite: 'lax',
     })
-    redirectURL = window.location.protocol + '//' + loginRedirect // go to the social login redirect specified by the server
+    redirectURL =
+      window.location.protocol + '//' + loginDomain + '/login/redirect' // go to the social login redirect specified by the server
   }
   window.localStorage.setItem('redirectURL', redirectURL)
 
@@ -51,7 +52,7 @@ function oidcLogin(
   )}&state=${state}`
 }
 
-function Providers({ baseDomain, loginRedirect, providers }) {
+function Providers({ baseDomain, loginDomain, providers }) {
   const router = useRouter()
   const { next } = router.query
   return (
@@ -72,7 +73,7 @@ function Providers({ baseDomain, loginRedirect, providers }) {
                 >
                   <button
                     onClick={() =>
-                      oidcLogin({ baseDomain, loginRedirect, ...p }, next)
+                      oidcLogin({ baseDomain, loginDomain, ...p }, next)
                     }
                     className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   >
@@ -116,7 +117,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [updatePasswordForUser, setUpdatePasswordForUser] = useState('')
-  const { isEmailConfigured, baseDomain, loginRedirect } = useServerConfig()
+  const { isEmailConfigured, baseDomain, loginDomain } = useServerConfig()
   const { login } = useUser()
 
   async function onSubmit(e) {
@@ -175,7 +176,7 @@ export default function Login() {
             <>
               <Providers
                 baseDomain={baseDomain}
-                loginRedirect={loginRedirect}
+                loginDomain={loginDomain}
                 providers={providers || []}
               />
               <div className='relative mt-6 mb-2 w-full'>

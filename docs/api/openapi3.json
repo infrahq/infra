@@ -1230,7 +1230,7 @@
           "isSignupEnabled": {
             "type": "boolean"
           },
-          "loginRedirect": {
+          "loginDomain": {
             "type": "string"
           }
         }

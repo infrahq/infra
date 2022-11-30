@@ -142,7 +142,7 @@ dbPassword: env:POSTGRES_DB_PASSWORD
 dbParameters: sslmode=require
 
 baseDomain: foo.example.com
-loginRedirect: foo.example.com/login/redirect
+loginDomainPrefix: login
 googleClientID: aaa
 googleClientSecret: bbb
 
@@ -225,7 +225,7 @@ api:
 					DBName:                  "infradbname",
 
 					BaseDomain:         "foo.example.com",
-					LoginRedirect:      "foo.example.com/login/redirect",
+					LoginDomainPrefix:  "login",
 					GoogleClientID:     "aaa",
 					GoogleClientSecret: "bbb",
 
