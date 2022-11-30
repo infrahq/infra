@@ -113,7 +113,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", "0.18.2")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -422,7 +422,7 @@ func TestAPI_ListGrants(t *testing.T) {
 						"totalCount": 1,
 						"items": [{
 							"id": "<any-valid-uid>",
-							"created_by": "%[1]v",
+							"createdBy": "%[1]v",
 							"privilege": "custom1",
 							"resource": "res1",
 							"user": "%[2]v",
@@ -501,6 +501,40 @@ func TestAPI_ListGrants(t *testing.T) {
 				}
 				assert.DeepEqual(t, grants, expected, cmpAPIGrantShallow)
 				assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10004")
+			},
+		},
+		"migration from <= 0.18.1": {
+			urlPath: "/api/grants?user=" + idInGroup.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Infra-Version", "0.15.0")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+					{
+						"count": 1,
+						"limit": 100,
+						"page": 1,
+						"totalPages": 1,
+						"totalCount": 1,
+						"items": [{
+							"id": "<any-valid-uid>",
+							"created_by": "%[1]v",
+							"privilege": "custom1",
+							"resource": "res1",
+							"user": "%[2]v",
+							"created": "%[3]v",
+							"updated": "%[3]v"
+						}]
+					}`,
+					admin.ID,
+					idInGroup.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 			},
 		},
 	}
@@ -938,7 +972,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
 		req := httptest.NewRequest(http.MethodPost, "/api/grants", body)
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", "0.18.2")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -1000,7 +1034,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 				{
 					"id": "<any-valid-uid>",
-					"created_by": "%[1]v",
+					"createdBy": "%[1]v",
 					"privilege": "%[2]v",
 					"resource": "some-cluster",
 					"user": "%[3]v",
@@ -1045,7 +1079,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 				{
 					"id": "<any-valid-uid>",
-					"created_by": "%[1]v",
+					"createdBy": "%[1]v",
 					"privilege": "%[2]v",
 					"resource": "infra",
 					"user": "%[3]v",
@@ -1055,6 +1089,39 @@ func TestAPI_CreateGrant(t *testing.T) {
 				}`,
 					supportAdmin.ID,
 					models.InfraSupportAdminRole,
+					someUser.ID.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"migration from <= 0.18.1": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Infra-Version", "0.15.0")
+			},
+			body: api.GrantRequest{
+				User:      someUser.ID,
+				Privilege: models.InfraAdminRole,
+				Resource:  "some-other-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated)
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+				{
+					"id": "<any-valid-uid>",
+					"created_by": "%[1]v",
+					"privilege": "%[2]v",
+					"resource": "some-other-cluster",
+					"user": "%[3]v",
+					"created": "%[4]v",
+					"updated": "%[4]v",
+					"wasCreated": true
+				}`,
+					accessKey.IssuedFor,
+					models.InfraAdminRole,
 					someUser.ID.String(),
 					time.Now().UTC().Format(time.RFC3339),
 				))

@@ -13,7 +13,7 @@ type Grant struct {
 	ID uid.ID `json:"id" note:"ID of grant created" example:"3w9XyTrkzk"`
 
 	Created   Time   `json:"created"`
-	CreatedBy uid.ID `json:"created_by" note:"id of the user that created the grant"`
+	CreatedBy uid.ID `json:"createdBy" note:"id of the user that created the grant"`
 	Updated   Time   `json:"updated"`
 
 	User      uid.ID `json:"user,omitempty" note:"UserID for a user being granted access" example:"6hNnjfjVcc"`
