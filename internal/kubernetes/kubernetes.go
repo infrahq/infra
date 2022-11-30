@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -32,32 +33,18 @@ type Kubernetes struct {
 	Config *rest.Config
 }
 
-func NewKubernetes(authToken, addr, ca string) (*Kubernetes, error) {
-	if authToken != "" && addr != "" && ca != "" {
-		k := &Kubernetes{Config: &rest.Config{}}
-		k.Config.Host = addr
-		k.Config.TLSClientConfig.CAData = []byte(ca)
-		k.Config.BearerToken = authToken
-		return k, nil
-	}
+func NewKubernetes() (*Kubernetes, error) {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	loadingRules.WarnIfAllMissing = false
 
-	config, err := rest.InClusterConfig()
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+	config, err := kubeConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	if err := rest.LoadTLSFiles(config); err != nil {
 		return nil, fmt.Errorf("load TLS files: %w", err)
-	}
-
-	if authToken != "" {
-		config.BearerToken = authToken
-	}
-	if addr != "" {
-		config.Host = addr
-	}
-	if ca != "" {
-		config.CAData = []byte(ca)
 	}
 
 	k := &Kubernetes{Config: config}

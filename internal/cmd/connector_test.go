@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path"
 	"reflect"
 	"sort"
 	"strings"
@@ -27,6 +28,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
@@ -73,6 +76,15 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
 
+	kubeconfig := path.Join(dir, "kubeconfig")
+	os.Setenv("KUBECONFIG", kubeconfig)
+	err = clientcmd.WriteToFile(api.Config{
+		Clusters:       map[string]*api.Cluster{"test": {Server: kubeSrv.URL, CertificateAuthorityData: certs.PEMEncodeCertificate(kubeSrv.Certificate().Raw)}},
+		Contexts:       map[string]*api.Context{"test": {Cluster: "test", AuthInfo: "test"}},
+		AuthInfos:      map[string]*api.AuthInfo{"test": {Token: "auth-token"}},
+		CurrentContext: "test",
+	}, kubeconfig)
+
 	opts := connector.Options{
 		Server: connector.ServerOptions{
 			URL:                urlFromAddr(t, srv.Addrs.HTTPS),
@@ -84,11 +96,6 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 		CACert:       types.StringOrFile(readFile(t, "testdata/pki/connector.crt")),
 		CAKey:        types.StringOrFile(readFile(t, "testdata/pki/connector.key")),
 		EndpointAddr: types.HostPort{Host: "127.0.0.1", Port: 55555},
-		Kubernetes: connector.KubernetesOptions{
-			AuthToken: "auth-token",
-			Addr:      kubeSrv.URL,
-			CA:        types.StringOrFile(certs.PEMEncodeCertificate(kubeSrv.Certificate().Raw)),
-		},
 		Addr: connector.ListenerOptions{
 			HTTP:    "127.0.0.1:0",
 			HTTPS:   "127.0.0.1:0",
