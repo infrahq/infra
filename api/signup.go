@@ -14,7 +14,9 @@ type SignupResponse struct {
 }
 
 type SignupOrg struct {
-	Name      string `json:"name"`
+	UserName  string `json:"userName"`
+	Password  string `json:"password"`
+	OrgName   string `json:"orgName"`
 	Subdomain string `json:"subDomain"`
 }
 
@@ -23,7 +25,7 @@ type reservedSubdomainData struct {
 	RequiresApproval []string `yaml:"requires-approval"`
 }
 
-var reservedSubdomains []string
+var ReservedSubdomains []string
 
 //go:embed restricted_subdomains.yaml
 var reservedSubdomainsYaml []byte
@@ -33,13 +35,23 @@ func init() {
 	if err := yaml.Unmarshal(reservedSubdomainsYaml, &reserved); err != nil {
 		panic(err)
 	}
-	reservedSubdomains = append(reservedSubdomains, reserved.Reject...)
-	reservedSubdomains = append(reservedSubdomains, reserved.RequiresApproval...)
+	ReservedSubdomains = append(ReservedSubdomains, reserved.Reject...)
+	ReservedSubdomains = append(ReservedSubdomains, reserved.RequiresApproval...)
 }
 
 func (r SignupOrg) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.Required("name", r.Name),
+		validate.Required("userName", r.UserName),
+		validate.Email("userName", r.UserName),
+		validate.Required("password", r.Password),
+		// check the admin user's password requirements against our basic password requirements
+		validate.StringRule{
+			Name:      "password",
+			Value:     r.Password,
+			MinLength: 8,
+			MaxLength: 253,
+		},
+		validate.Required("orgName", r.OrgName),
 		validate.Required("subDomain", r.Subdomain),
 		validate.StringRule{
 			Name:      "subDomain",
@@ -58,27 +70,32 @@ func (r SignupOrg) ValidationRules() []validate.ValidationRule {
 				validate.Numbers,
 			},
 		},
-		validate.ReservedStrings("subDomain", r.Subdomain, reservedSubdomains),
+		validate.ReservedStrings("subDomain", r.Subdomain, ReservedSubdomains),
+	}
+}
+
+type SocialSignup struct {
+	Code        string `json:"code"`
+	RedirectURL string `json:"redirectURL"`
+}
+
+func (r SocialSignup) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("code", r.Code),
+		validate.Required("redirectURL", r.RedirectURL),
 	}
 }
 
 type SignupRequest struct {
-	Name     string    `json:"name"`
-	Password string    `json:"password"`
-	Org      SignupOrg `json:"org"`
+	Social *SocialSignup `json:"social"`
+	Org    *SignupOrg    `json:"org"`
 }
 
 func (r SignupRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.Required("name", r.Name),
-		validate.Email("name", r.Name),
-		validate.Required("password", r.Password),
-		// check the admin user's password requirements against our basic password requirements
-		validate.StringRule{
-			Name:      "password",
-			Value:     r.Password,
-			MinLength: 8,
-			MaxLength: 253,
-		},
+		validate.RequireOneOf(
+			validate.Field{Name: "social", Value: r.Social},
+			validate.Field{Name: "org", Value: r.Org},
+		),
 	}
 }

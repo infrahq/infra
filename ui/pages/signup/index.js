@@ -4,6 +4,7 @@ import { useServerConfig } from '../../lib/serverconfig'
 import { saveToVisitedOrgs } from '../../lib/login'
 
 import Login from '../../components/layouts/login'
+import Providers, { oidcSignup } from '../../components/providers'
 
 export default function Signup() {
   const [name, setName] = useState('')
@@ -15,7 +16,7 @@ export default function Signup() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
 
-  const { baseDomain } = useServerConfig()
+  const { baseDomain, google } = useServerConfig()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -70,6 +71,26 @@ export default function Signup() {
   return (
     <div className='flex w-full flex-col items-center px-10 py-4'>
       <h1 className='mt-4 text-2xl font-bold leading-snug'>Sign up</h1>
+      {google !== undefined && (
+        <>
+          <Providers
+            providers={[google]}
+            authnFunc={oidcSignup}
+            buttonPrompt={'Sign up with'}
+          />
+          <div className='relative mt-6 mb-2 w-full'>
+            <div
+              className='absolute inset-0 flex items-center'
+              aria-hidden='true'
+            >
+              <div className='w-full border-t border-gray-200' />
+            </div>
+            <div className='relative flex justify-center text-sm'>
+              <span className='bg-white px-2 text-2xs text-gray-400'>OR</span>
+            </div>
+          </div>
+        </>
+      )}
       <h2 className='my-2 text-center text-sm text-gray-500'>
         Get started by creating your account
       </h2>

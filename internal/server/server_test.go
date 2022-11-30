@@ -362,10 +362,10 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	// run signup for "admin@email.com"
 	signupReq := api.SignupRequest{
-		Name:     email,
-		Password: passwd,
-		Org: api.SignupOrg{
-			Name:      "infrahq",
+		Org: &api.SignupOrg{
+			UserName:  email,
+			Password:  passwd,
+			OrgName:   "infrahq",
 			Subdomain: "myorg1243",
 		},
 	}

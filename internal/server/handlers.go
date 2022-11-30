@@ -218,7 +218,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		providerClient, err := a.providerClient(c, provider, r.OIDC.RedirectURL)
 		if err != nil {
-			return nil, fmt.Errorf("update provider client: %w", err)
+			return nil, fmt.Errorf("login provider client: %w", err)
 		}
 
 		loginMethod, err = authn.NewOIDCAuthentication(
