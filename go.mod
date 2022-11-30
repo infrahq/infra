@@ -35,7 +35,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/coreos/go-oidc/v3 v3.4.0
 	github.com/creack/pty v1.1.18
-	github.com/getkin/kin-openapi v0.109.0
+	github.com/getkin/kin-openapi v0.110.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-redis/redis_rate/v9 v9.1.2
 	github.com/google/go-cmp v0.5.9
