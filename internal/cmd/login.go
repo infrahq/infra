@@ -39,8 +39,6 @@ type loginCmdOptions struct {
 	InjectUserSSHConfig bool
 }
 
-const DeviceFlowMinVersion = "0.16.0"
-
 func newLoginCmd(cli *CLI) *cobra.Command {
 	var options loginCmdOptions
 
@@ -175,30 +173,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 
 			return err
 		}
-
-		if loginRes.PasswordUpdateRequired {
-			fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password.\n")
-
-		PROMPTLOGIN:
-			password, err := promptSetPassword(cli, options.Password)
-			if err != nil {
-				return err
-			}
-
-			logging.Debugf("call server: update user %s", loginRes.UserID)
-			if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{
-				ID:          loginRes.UserID,
-				Password:    password,
-				OldPassword: options.Password,
-			}); err != nil {
-				if passwordError(cli, err) {
-					goto PROMPTLOGIN
-				}
-				return err
-			}
-
-			fmt.Fprintf(os.Stderr, "  Updated password\n")
-		}
 	default:
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login requires setting either the INFRA_ACCESS_KEY or both the INFRA_USER and INFRA_PASSWORD environment variables"}
@@ -213,7 +187,75 @@ func login(cli *CLI, options loginCmdOptions) error {
 	// Update the API client with the new access key from login
 	lc.APIClient.AccessKey = loginRes.AccessKey
 
-	// Update the local infra config
+	if loginRes.PasswordUpdateRequired {
+		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password.\n")
+
+		for {
+			password, err := promptSetPassword(cli, options.Password)
+			if err != nil {
+				return err
+			}
+
+			logging.Debugf("call server: update user %s", loginRes.UserID)
+			if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{
+				ID:          loginRes.UserID,
+				Password:    password,
+				OldPassword: options.Password,
+			}); err != nil {
+				if passwordError(cli, err) {
+					continue
+				}
+				return err
+			}
+
+			fmt.Fprintf(os.Stderr, "  Updated password\n")
+			break
+		}
+	}
+
+	if err := updateInfraConfig(lc, loginRes); err != nil {
+		return err
+	}
+
+	if err := updateKubeConfig(lc.APIClient, loginRes.UserID); err != nil {
+		return err
+	}
+
+	backgroundAgentRunning, err := configAgentRunning()
+	if err != nil {
+		// do not block login, just proceed, potentially without the agent
+		logging.Errorf("unable to check background agent: %v", err)
+	}
+
+	if !backgroundAgentRunning && !options.NoAgent {
+		// the agent is started in a separate command so that it continues after the login command has finished
+		if err := execAgent(); err != nil {
+			// user still has a valid session, so do not fail
+			logging.Errorf("Unable to start agent, destinations will not be updated automatically: %v", err)
+		}
+	}
+
+	fmt.Fprintf(cli.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
+
+	if options.InjectUserSSHConfig {
+		return updateUserSSHConfig(cli)
+	}
+
+	return nil
+}
+
+func equalHosts(x, y string) bool {
+	if x == y {
+		return true
+	}
+	if strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://") {
+		return true
+	}
+	return false
+}
+
+// Updates all configs with the current logged in session
+func updateInfraConfig(lc loginClient, loginRes *api.LoginResponse) error {
 	clientHostConfig := ClientHostConfig{
 		Current:   true,
 		UserID:    loginRes.UserID,
@@ -241,36 +283,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		return err
 	}
 
-	if err := updateKubeConfig(lc.APIClient, loginRes.UserID); err != nil {
-		return err
-	}
-
-	backgroundAgentRunning, err := configAgentRunning()
-	if err != nil {
-		// do not block login, just proceed, potentially without the agent
-		logging.Errorf("unable to check background agent: %v", err)
-	}
-
-	if !backgroundAgentRunning && !options.NoAgent {
-		// the agent is started in a separate command so that it continues after the login command has finished
-		if err := execAgent(); err != nil {
-			// user still has a valid session, so do not fail
-			logging.Errorf("Unable to start agent, destinations will not be updated automatically: %v", err)
-		}
-	}
-
-	fmt.Fprintf(cli.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 	return nil
-}
-
-func equalHosts(x, y string) bool {
-	if x == y {
-		return true
-	}
-	if strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://") {
-		return true
-	}
-	return false
 }
 
 type loginClient struct {
