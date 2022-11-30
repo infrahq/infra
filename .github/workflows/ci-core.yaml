@@ -62,10 +62,14 @@ jobs:
           go-version: "1.19"
           cache: true
       - run: go mod download -x
-      - run: go install gotest.tools/gotestsum@v1.8.0
+      - run: go install gotest.tools/gotestsum@v1.8.2
+
+      - name: Conditionally enable -race
+        if: ${{ github.ref_name == 'main' || contains(github.event.pull_request.labels.*.name, 'action/race') }}
+        run: echo "GO_TEST_RACE=-race" >> $GITHUB_ENV
 
       - name: go test
-        run: ~/go/bin/gotestsum -ftestname -- -race ./...
+        run: ~/go/bin/gotestsum -ftestname -- ${GO_TEST_RACE:-}  ./...
         env:
           POSTGRESQL_CONNECTION: "host=localhost port=5432 user=postgres dbname=postgres password=password123"
 
