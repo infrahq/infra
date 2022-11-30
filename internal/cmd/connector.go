@@ -68,11 +68,6 @@ func newConnectorCmd() *cobra.Command {
 	cmd.Flags().String("ca-cert", "", "Path to CA certificate file")
 	cmd.Flags().String("ca-key", "", "Path to CA key file")
 	cmd.Flags().Bool("server-skip-tls-verify", false, "Skip verifying server TLS certificates")
-	cmd.Flags().String("endpoint-addr-host", "", "Connector proxy host")
-	cmd.Flags().String("endpoint-addr-port", "", "Connector proxy port")
-	cmd.Flags().String("addr-http", "", "HTTP address to bind to")
-	cmd.Flags().String("addr-https", "", "HTTPS address to bind to")
-	cmd.Flags().String("addr-metrics", "", "HTTP address to bind to for metrics")
 
 	return cmd
 }
