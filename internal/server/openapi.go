@@ -534,10 +534,12 @@ func removeString(seq []string, name string) []string {
 
 func getFieldName(f reflect.StructField, parent reflect.Type) string {
 	if name, ok := f.Tag.Lookup("form"); ok {
+		validateFieldName(name)
 		return name
 	}
 
 	if name, ok := f.Tag.Lookup("uri"); ok {
+		validateFieldName(name)
 		return name
 	}
 
@@ -548,8 +550,21 @@ func getFieldName(f reflect.StructField, parent reflect.Type) string {
 		if name == "-" {
 			return ""
 		}
+		validateFieldName(name)
 		return name
 	}
 
 	panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, parent.Name()))
+}
+
+func validateFieldName(name string) {
+	// temporary allow list
+	switch name {
+	case "unique_id":
+		return
+	}
+
+	if strings.Contains(name, "_") || strings.Contains(name, "-") {
+		panic(fmt.Sprintf("Use camelCase for field name %v", name))
+	}
 }
