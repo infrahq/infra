@@ -1051,6 +1051,59 @@ func TestAPI_CreateGrant(t *testing.T) {
 				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 			},
 		},
+		"success w/ username": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.GrantRequest{
+				UserName:  someUser.Name,
+				Privilege: models.InfraAdminRole,
+				Resource:  "some-big-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated)
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+				{
+					"id": "<any-valid-uid>",
+					"createdBy": "%[1]v",
+					"privilege": "%[2]v",
+					"resource": "some-big-cluster",
+					"user": "%[3]v",
+					"created": "%[4]v",
+					"updated": "%[4]v",
+					"wasCreated": true
+				}`,
+					accessKey.IssuedFor,
+					models.InfraAdminRole,
+					someUser.ID.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"failure w/ username": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.GrantRequest{
+				UserName:  "someone@random.org",
+				Privilege: models.InfraAdminRole,
+				Resource:  "random-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
+
+				expected := jsonUnmarshal(t, `
+				{
+					"code": 400,
+					"message": "bad request: couldn't find userName 'someone@random.org'"
+				}`)
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
 		"admin can not grant infra support admin role": {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))

@@ -83,22 +83,12 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 }
 
 func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
-	var subject uid.PolymorphicID
-
-	switch {
-	case r.User != 0:
-		subject = uid.NewIdentityPolymorphicID(r.User)
-	case r.Group != 0:
-		subject = uid.NewGroupPolymorphicID(r.Group)
+	grant, err := getGrantFromGrantRequest(c, *r)
+	if err != nil {
+		return nil, err
 	}
 
-	grant := &models.Grant{
-		Subject:   subject,
-		Resource:  r.Resource,
-		Privilege: r.Privilege,
-	}
-
-	err := access.CreateGrant(c, grant)
+	err = access.CreateGrant(c, grant)
 	var ucerr data.UniqueConstraintError
 
 	if errors.As(err, &ucerr) {
