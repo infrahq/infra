@@ -46,8 +46,6 @@ type Options struct {
 	// This value is sent to the infra API server to update the
 	// Destination.Connection.URL.
 	EndpointAddr types.HostPort
-
-	Kubernetes KubernetesOptions
 }
 
 type ServerOptions struct {
@@ -61,22 +59,6 @@ type ListenerOptions struct {
 	HTTP    string
 	HTTPS   string
 	Metrics string
-}
-
-type KubernetesOptions struct {
-	// AuthToken may be used to override the token used to authenticate with the
-	// kubernetes API server. When the connector is run in-cluster, the
-	// service account associated with the pod will be used by default.
-	// When run outside of cluster there is no default, and this value must
-	// be set to a token that has permission to impersonate users in the cluster.
-	AuthToken types.StringOrFile
-
-	// Addr is the host:port used to connect to the kubernetes API server. The
-	// default value is looked up from the in-cluster config.
-	Addr string
-	// CA is the CA certificate used by the kubernetes API server. The default
-	// value is looked up from the in-cluster config.
-	CA types.StringOrFile
 }
 
 // connector stores all the dependencies for the connector operations.
@@ -112,10 +94,7 @@ type kubeClient interface {
 }
 
 func Run(ctx context.Context, options Options) error {
-	k8s, err := kubernetes.NewKubernetes(
-		options.Kubernetes.AuthToken.String(),
-		options.Kubernetes.Addr,
-		options.Kubernetes.CA.String())
+	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
@@ -124,12 +103,7 @@ func Run(ctx context.Context, options Options) error {
 	logging.L.Debug().Str("uniqueID", checkSum).Msg("Cluster uniqueID")
 
 	if options.Name == "" {
-		autoname, err := k8s.Name(checkSum)
-		if err != nil {
-			logging.Errorf("k8s name error: %s", err)
-			return err
-		}
-		options.Name = autoname
+		options.Name = checkSum
 	}
 
 	certCache := NewCertCache([]byte(options.CACert), []byte(options.CAKey))
