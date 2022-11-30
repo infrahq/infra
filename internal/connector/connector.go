@@ -61,22 +61,6 @@ type ListenerOptions struct {
 	Metrics string
 }
 
-type KubernetesOptions struct {
-	// AuthToken may be used to override the token used to authenticate with the
-	// kubernetes API server. When the connector is run in-cluster, the
-	// service account associated with the pod will be used by default.
-	// When run outside of cluster there is no default, and this value must
-	// be set to a token that has permission to impersonate users in the cluster.
-	AuthToken types.StringOrFile
-
-	// Addr is the host:port used to connect to the kubernetes API server. The
-	// default value is looked up from the in-cluster config.
-	Addr string
-	// CA is the CA certificate used by the kubernetes API server. The default
-	// value is looked up from the in-cluster config.
-	CA types.StringOrFile
-}
-
 // connector stores all the dependencies for the connector operations.
 type connector struct {
 	k8s         kubeClient
