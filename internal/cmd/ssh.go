@@ -72,7 +72,11 @@ func (e exitError) Error() string {
 func runSSHHosts(cli *CLI, hostname, port string) error {
 	ctx := context.Background()
 
-	client, err := defaultAPIClient()
+	opts, err := defaultClientOpts()
+	if err != nil {
+		return err
+	}
+	client, err := NewAPIClient(opts)
 	if err != nil {
 		return err
 	}
@@ -118,7 +122,7 @@ func splitHostPortSSH(hostname string) (host, port string) {
 
 func writeInfraKnownHosts(infraSSHDir string, dest *api.Destination) error {
 	filename := filepath.Join(infraSSHDir, "known_hosts")
-	fh, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	fh, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -153,9 +157,13 @@ func setupDestinationSSHConfig(ctx context.Context, cli *CLI, destination *api.D
 		return fmt.Errorf("user home directory: %w", err)
 	}
 	infraSSHDir := filepath.Join(homeDir, ".ssh/infra")
-	_ = os.MkdirAll(infraSSHDir, 0700)
+	_ = os.MkdirAll(infraSSHDir, 0o700)
 
-	client, err := defaultAPIClient()
+	opts, err := defaultClientOpts()
+	if err != nil {
+		return err
+	}
+	client, err := NewAPIClient(opts)
 	if err != nil {
 		return err
 	}
@@ -195,7 +203,7 @@ func provisionSSHKey(ctx context.Context, cli *CLI, client *api.Client, infraSSH
 		return fmt.Errorf("generate key pair: %w", err)
 	}
 
-	fh, err := os.OpenFile(keyFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0600)
+	fh, err := os.OpenFile(keyFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0o600)
 	if err != nil {
 		return err
 	}
@@ -216,7 +224,7 @@ func provisionSSHKey(ctx context.Context, cli *CLI, client *api.Client, infraSSH
 	}
 
 	pubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
-	if err := os.WriteFile(keyFilename+".pub", pubKeyBytes, 0600); err != nil {
+	if err := os.WriteFile(keyFilename+".pub", pubKeyBytes, 0o600); err != nil {
 		return err
 	}
 
@@ -247,7 +255,7 @@ func updateUserSSHConfig(cli *CLI) error {
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		// file is missing, we'll create it later
-		_ = os.MkdirAll(userSSHDir, 0700)
+		_ = os.MkdirAll(userSSHDir, 0o700)
 	case err != nil:
 		return fmt.Errorf("open ssh config: %w", err)
 	default:
@@ -359,7 +367,7 @@ func hasInfraMatchLine(sshConfig io.Reader) bool {
 
 func writeDestinationSSHConfig(infraSSHDir string, destination *api.Destination, user *api.User) error {
 	filename := filepath.Join(infraSSHDir, "config")
-	fh, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	fh, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}

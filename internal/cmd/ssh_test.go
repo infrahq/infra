@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 	"gotest.tools/v3/assert"
@@ -43,11 +42,10 @@ func TestSSHHostsCmd(t *testing.T) {
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
 
-	client, err := apiClientFromHostConfig(&ClientHostConfig{
-		AccessKey:          "0000000001.adminadminadminadmin1234",
-		Expires:            api.Time(time.Now().Add(time.Hour)),
-		Host:               srv.Addrs.HTTPS.String(),
-		TrustedCertificate: string(opts.TLS.Certificate),
+	client, err := NewAPIClient(&APIClientOpts{
+		AccessKey: "0000000001.adminadminadminadmin1234",
+		Host:      srv.Addrs.HTTPS.String(),
+		Transport: httpTransportForHostConfig(&ClientHostConfig{TrustedCertificate: string(opts.TLS.Certificate)}),
 	})
 	assert.NilError(t, err)
 
@@ -80,9 +78,9 @@ func TestSSHHostsCmd(t *testing.T) {
 		// the infra dir is not relevant to this test
 		fs.WithDir(".infra", fs.MatchExtraFiles),
 		fs.WithDir(".ssh",
-			fs.WithMode(0700),
+			fs.WithMode(0o700),
 			fs.WithDir("infra",
-				fs.WithMode(0700),
+				fs.WithMode(0o700),
 				fs.WithFile("config", `
 
 # This file is managed by Infra. Do not edit!
@@ -95,16 +93,16 @@ Match 127.12.12.1
     Port 22
 
 `,
-					fs.WithMode(0600)),
+					fs.WithMode(0o600)),
 				fs.WithFile("key", "",
-					fs.WithMode(0600),
+					fs.WithMode(0o600),
 					fs.MatchAnyFileContent),
 				fs.WithFile("key.pub", "",
-					fs.WithMode(0600),
+					fs.WithMode(0o600),
 					fs.MatchAnyFileContent),
 				fs.WithFile("known_hosts",
 					"127.12.12.1 "+hostKey,
-					fs.WithMode(0600)),
+					fs.WithMode(0o600)),
 			),
 		),
 	)
@@ -169,12 +167,12 @@ func TestUpdateUserSSHConfig(t *testing.T) {
 
 		fi, err := fh.Stat()
 		assert.NilError(t, err)
-		assert.Equal(t, fi.Mode(), os.FileMode(0600))
+		assert.Equal(t, fi.Mode(), os.FileMode(0o600))
 
 		tc.expected(t, fh)
 	}
 
-	var contentWithMatchLine = `
+	contentWithMatchLine := `
 
 Host somethingelse
 
@@ -188,12 +186,12 @@ Match exec "infra ssh hosts %h"
 Host more below
 `
 
-	var contentNoMatchLine = `
+	contentNoMatchLine := `
 Host bastion
 	Username shared
 `
 
-	var expectedInfraSSHConfig = `
+	expectedInfraSSHConfig := `
 
 Match exec "infra ssh hosts %h %p"
     Include ~/.ssh/infra/config
@@ -213,8 +211,8 @@ Match exec "infra ssh hosts %h %p"
 		{
 			name: "file exists with match line",
 			setup: func(t *testing.T, filename string) {
-				assert.NilError(t, os.MkdirAll(filepath.Dir(filename), 0700))
-				err := os.WriteFile(filename, []byte(contentWithMatchLine), 0600)
+				assert.NilError(t, os.MkdirAll(filepath.Dir(filename), 0o700))
+				err := os.WriteFile(filename, []byte(contentWithMatchLine), 0o600)
 				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, fh *os.File) {
@@ -226,8 +224,8 @@ Match exec "infra ssh hosts %h %p"
 		{
 			name: "file exists with no match line",
 			setup: func(t *testing.T, filename string) {
-				assert.NilError(t, os.MkdirAll(filepath.Dir(filename), 0700))
-				err := os.WriteFile(filename, []byte(contentNoMatchLine), 0600)
+				assert.NilError(t, os.MkdirAll(filepath.Dir(filename), 0o700))
+				err := os.WriteFile(filename, []byte(contentNoMatchLine), 0o600)
 				assert.NilError(t, err)
 			},
 			expectCLIOutput: true,
