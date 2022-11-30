@@ -8,15 +8,8 @@ import (
 )
 
 func main() {
-	f, err := os.Create("./docs/cli.md")
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-	defer f.Close()
-
-	rootCmd := cmd.NewRootCmd(nil)
-	err = GenMarkdownFile(rootCmd, f)
+	rootCmd := cmd.NewRootCmd(&cmd.CLI{})
+	err := GenMarkdownFile(rootCmd, os.Stdout)
 	if err != nil {
 		log.Println(err.Error())
 		return
