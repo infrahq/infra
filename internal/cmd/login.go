@@ -28,15 +28,16 @@ import (
 )
 
 type loginCmdOptions struct {
-	Server             string
-	AccessKey          string
-	SkipTLSVerify      bool
-	TrustedCertificate string
-	TrustedFingerprint string
-	NonInteractive     bool
-	NoAgent            bool
-	User               string
-	Password           string
+	Server              string
+	AccessKey           string
+	SkipTLSVerify       bool
+	TrustedCertificate  string
+	TrustedFingerprint  string
+	NonInteractive      bool
+	NoAgent             bool
+	User                string
+	Password            string
+	InjectUserSSHConfig bool
 }
 
 const DeviceFlowMinVersion = "0.16.0"
@@ -96,6 +97,8 @@ infra login`,
 	cmd.Flags().Var((*types.StringOrFile)(&options.TrustedCertificate), "tls-trusted-cert", "TLS certificate or CA used by the server")
 	cmd.Flags().StringVar(&options.TrustedFingerprint, "tls-trusted-fingerprint", "", "SHA256 fingerprint of the server TLS certificate")
 	cmd.Flags().BoolVar(&options.NoAgent, "no-agent", false, "Skip starting the Infra agent in the background")
+	cmd.Flags().BoolVar(&options.InjectUserSSHConfig, "enable-ssh", false, "Update ~/.ssh/config after login to use infra for ssh (technical preview)")
+	cmd.Flags().Lookup("enable-ssh").Hidden = true
 	addNonInteractiveFlag(cmd.Flags(), &options.NonInteractive)
 	return cmd
 }
@@ -171,7 +174,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 
 		loginReq.AccessKey = resp.AccessKey
-		err = updateInfraConfig(lc, loginReq, resp)
+		err = updateInfraConfig(lc, resp)
 		if err != nil {
 			return err
 		}
@@ -180,7 +183,10 @@ func login(cli *CLI, options loginCmdOptions) error {
 	if err := loginToInfra(cli, lc, loginReq, options.NoAgent); err != nil {
 		return err
 	}
-	return updateUserSSHConfig(cli)
+	if options.InjectUserSSHConfig {
+		return updateUserSSHConfig(cli)
+	}
+	return nil
 }
 
 func checkDeviceFlowCompatibility(ctx context.Context, api *api.Client) error {
@@ -260,7 +266,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		fmt.Fprintf(os.Stderr, "  Updated password\n")
 	}
 
-	if err := updateInfraConfig(lc, loginReq, loginRes); err != nil {
+	if err := updateInfraConfig(lc, loginRes); err != nil {
 		return err
 	}
 
@@ -287,7 +293,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 }
 
 // Updates all configs with the current logged in session
-func updateInfraConfig(lc loginClient, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
+func updateInfraConfig(lc loginClient, loginRes *api.LoginResponse) error {
 	clientHostConfig := ClientHostConfig{
 		Current:   true,
 		UserID:    loginRes.UserID,

@@ -303,6 +303,12 @@ func updateUserSSHConfig(cli *CLI) error {
 	}
 	cli.Output(`
 Your SSH config at %v has been updated to connect to Infra SSH destinations.
+This is a one time change. You do not need to use --enable-ssh again, and you
+will not see this message again unless you remove your SSH config.
+
+SSH destinations are in technical preview. If you have any problems or suggestions
+we would love your feedback!
+
 `,
 		filename)
 	return nil
