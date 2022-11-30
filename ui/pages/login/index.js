@@ -13,7 +13,10 @@ import { saveToVisitedOrgs, currentBaseDomain } from '../../lib/login'
 import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
 
-function oidcLogin({ baseDomain, loginRedirect, id, clientID, authURL, scopes }, next) {
+function oidcLogin(
+  { baseDomain, loginRedirect, id, clientID, authURL, scopes },
+  next
+) {
   window.localStorage.setItem('providerID', id)
   if (next) {
     window.localStorage.setItem('next', next)
@@ -68,7 +71,9 @@ function Providers({ baseDomain, loginRedirect, providers }) {
                   placement='top'
                 >
                   <button
-                    onClick={() => oidcLogin({ baseDomain, loginRedirect, ...p }, next)}
+                    onClick={() =>
+                      oidcLogin({ baseDomain, loginRedirect, ...p }, next)
+                    }
                     className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   >
                     <img
@@ -168,7 +173,11 @@ export default function Login() {
           </h2>
           {providers?.length > 0 && (
             <>
-              <Providers baseDomain={baseDomain} loginRedirect={loginRedirect} providers={providers || []} />
+              <Providers
+                baseDomain={baseDomain}
+                loginRedirect={loginRedirect}
+                providers={providers || []}
+              />
               <div className='relative mt-6 mb-2 w-full'>
                 <div
                   className='absolute inset-0 flex items-center'
