@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,31 +27,41 @@ func TestDeviceFlow(t *testing.T) {
 		Name:   "foo",
 		Domain: "foo.example.com",
 	}
+
 	err := data.CreateOrganization(srv.db, org)
 	assert.NilError(t, err)
+
 	user := &models.Identity{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 		Name:               "joe@example.com",
 	}
+
 	err = data.CreateIdentity(srv.db, user)
 	assert.NilError(t, err)
 
+	expires := time.Now().Add(10 * time.Minute)
 	accessKey := &models.AccessKey{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 		Name:               "Foo key",
 		IssuedFor:          user.ID,
 		IssuedForName:      user.Name,
 		ProviderID:         data.InfraProvider(srv.db).ID,
-		ExpiresAt:          time.Now().Add(10 * time.Minute),
+		ExpiresAt:          expires,
 		Scopes:             models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
+
 	_, err = data.CreateAccessKey(srv.db, accessKey)
 	assert.NilError(t, err)
+
 	key := accessKey.Token()
 
-	doPost := func(t *testing.T, accessKey, path string, reqObj any, respObj any) *httptest.ResponseRecorder {
+	request := func(t *testing.T, method, uri, accessKey string, reqObj any, respObj any) *httptest.ResponseRecorder {
 		t.Helper()
-		req := httptest.NewRequest(http.MethodPost, path, jsonBody(t, reqObj))
+		var body io.Reader
+		if reqObj != nil {
+			body = jsonBody(t, reqObj)
+		}
+		req := httptest.NewRequest(method, uri, body)
 		req.Header.Set("Infra-Version", apiVersionLatest)
 		if len(accessKey) > 0 {
 			req.Header.Set("Authorization", "Bearer "+accessKey)
@@ -67,48 +78,50 @@ func TestDeviceFlow(t *testing.T) {
 
 	// start flow
 	dfResp := &api.DeviceFlowResponse{}
-	resp := doPost(t, "", "http://"+org.Domain+"/api/device", api.EmptyRequest{}, dfResp)
+	resp := request(t, "POST", "http://"+org.Domain+"/api/device", "", api.EmptyRequest{}, dfResp)
 	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
 	// get flow status pending
 	statusResp := &api.DeviceFlowStatusResponse{}
-	resp = doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
+	resp = request(t, "POST", "http://"+org.Domain+"/api/device/status", "", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
 	}, statusResp)
 	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
-	assert.Equal(t, statusResp.Status, "pending")
+	assert.Equal(t, statusResp.Status, api.DeviceFlowStatusPending)
 
 	// approve
-	resp = doPost(t, key, "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
+	resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", key, api.ApproveDeviceFlowRequest{
 		UserCode: dfResp.UserCode,
 	}, nil)
 	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
 	// get flow status with key
-	resp = doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
+	resp = request(t, "POST", "http://"+org.Domain+"/api/device/status", "", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
 	}, statusResp)
 	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
-	expected := &api.DeviceFlowStatusResponse{
-		Status:     "confirmed",
-		DeviceCode: dfResp.DeviceCode,
-		LoginResponse: &api.LoginResponse{
-			UserID:           user.ID,
-			Name:             user.Name,
-			AccessKey:        "<any-string>",
-			Expires:          api.Time(accessKey.ExpiresAt),
-			OrganizationName: org.Name,
-		},
+	var cookie string
+	for _, c := range resp.Result().Cookies() {
+		if c.Name == "auth" {
+			cookie = c.Value
+		}
 	}
-	cmpDeviceFlowStatusResponse := gocmp.Options{
-		gocmp.FilterPath(
-			opt.PathField(api.LoginResponse{}, "AccessKey"), cmpAnyString),
-		cmpApiTimeWithThreshold(2 * time.Second),
-	}
-	assert.DeepEqual(t, expected, statusResp, cmpDeviceFlowStatusResponse)
+	assert.Equal(t, cookie, statusResp.LoginResponse.AccessKey)
+	assert.Equal(t, statusResp.Status, api.DeviceFlowStatusConfirmed)
+	assert.Equal(t, statusResp.DeviceCode, dfResp.DeviceCode)
+	assert.Equal(t, statusResp.LoginResponse.Name, user.Name)
+	assert.Equal(t, statusResp.LoginResponse.UserID, user.ID)
+	assert.Equal(t, statusResp.LoginResponse.OrganizationName, org.Name)
+	assert.Assert(t, statusResp.LoginResponse.Expires.Time().Equal(expires.Truncate(time.Second)))
 
+	// Verify access key is valid
+	var loginuser api.User
+	resp = request(t, "GET", "http://"+org.Domain+"/api/users/self", statusResp.LoginResponse.AccessKey, nil, &loginuser)
+	assert.Equal(t, loginuser.Name, user.Name)
+
+	// valid access key
 	newKey := statusResp.LoginResponse.AccessKey
 	assert.Assert(t, len(newKey) > 0)
 	assert.Assert(t, strings.Contains(newKey, "."))
@@ -131,12 +144,12 @@ func TestDeviceFlow(t *testing.T) {
 		assert.NilError(t, err)
 		assert.NilError(t, tx.Commit())
 
-		resp = doPost(t, otherKey.Token(), "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
+		resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", otherKey.Token(), api.ApproveDeviceFlowRequest{
 			UserCode: dfResp.UserCode,
 		}, nil)
 		assert.Assert(t, resp.Result().StatusCode == 404, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
-		resp = doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
+		resp = request(t, "POST", "http://"+org.Domain+"/api/device/status", "", api.DeviceFlowStatusRequest{
 			DeviceCode: dfResp.DeviceCode,
 		}, statusResp)
 		assert.Assert(t, resp.Result().StatusCode == 404, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))

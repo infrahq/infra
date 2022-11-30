@@ -149,7 +149,7 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 	}
 
 	return &api.DeviceFlowStatusResponse{
-		Status:     api.DeviceFlowStatusPending,
+		Status:     api.DeviceFlowStatusConfirmed,
 		DeviceCode: dfar.DeviceCode,
 		LoginResponse: &api.LoginResponse{
 			UserID:           accessKey.IssuedFor,
