@@ -142,6 +142,9 @@ dbPassword: env:POSTGRES_DB_PASSWORD
 dbParameters: sslmode=require
 
 baseDomain: foo.example.com
+loginDomainPrefix: login
+googleClientID: aaa
+googleClientSecret: bbb
 
 tls:
   ca: testdata/ca.crt
@@ -221,7 +224,10 @@ api:
 					DBUsername:              "infra",
 					DBName:                  "infradbname",
 
-					BaseDomain: "foo.example.com",
+					BaseDomain:         "foo.example.com",
+					LoginDomainPrefix:  "login",
+					GoogleClientID:     "aaa",
+					GoogleClientSecret: "bbb",
 
 					Addr: server.ListenerOptions{
 						HTTP:    "1.2.3.4:23",

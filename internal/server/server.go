@@ -74,6 +74,8 @@ type Options struct {
 	// BaseDomain of the server, which is appended to the organization slug to
 	// create a unique hostname for each organization.
 	BaseDomain string
+	// LoginDomainPrefix that users will be sent to after logging in with Google
+	LoginDomainPrefix string
 
 	Keys    []KeyProvider
 	Secrets []SecretProvider

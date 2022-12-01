@@ -13,7 +13,10 @@ import { saveToVisitedOrgs, currentBaseDomain } from '../../lib/login'
 import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
 
-function oidcLogin({ baseDomain, id, clientID, authURL, scopes }, next) {
+function oidcLogin(
+  { baseDomain, loginDomain, id, clientID, authURL, scopes },
+  next
+) {
   window.localStorage.setItem('providerID', id)
   if (next) {
     window.localStorage.setItem('next', next)
@@ -39,8 +42,7 @@ function oidcLogin({ baseDomain, id, clientID, authURL, scopes }, next) {
       domain: `.${baseDomain}`,
       sameSite: 'lax',
     })
-    redirectURL =
-      window.location.protocol + '//' + baseDomain + '/login/redirect'
+    redirectURL = window.location.protocol + '//' + loginDomain + '/redirect' // go to the social login redirect specified by the server
   }
   window.localStorage.setItem('redirectURL', redirectURL)
 
@@ -49,7 +51,7 @@ function oidcLogin({ baseDomain, id, clientID, authURL, scopes }, next) {
   )}&state=${state}`
 }
 
-function Providers({ baseDomain, providers }) {
+function Providers({ baseDomain, loginDomain, providers }) {
   const router = useRouter()
   const { next } = router.query
   return (
@@ -69,7 +71,9 @@ function Providers({ baseDomain, providers }) {
                   placement='top'
                 >
                   <button
-                    onClick={() => oidcLogin({ baseDomain, ...p }, next)}
+                    onClick={() =>
+                      oidcLogin({ baseDomain, loginDomain, ...p }, next)
+                    }
                     className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   >
                     <img
@@ -112,7 +116,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [updatePasswordForUser, setUpdatePasswordForUser] = useState('')
-  const { isEmailConfigured, baseDomain } = useServerConfig()
+  const { isEmailConfigured, baseDomain, loginDomain } = useServerConfig()
   const { login } = useUser()
 
   async function onSubmit(e) {
@@ -169,7 +173,11 @@ export default function Login() {
           </h2>
           {providers?.length > 0 && (
             <>
-              <Providers baseDomain={baseDomain} providers={providers || []} />
+              <Providers
+                baseDomain={baseDomain}
+                loginDomain={loginDomain}
+                providers={providers || []}
+              />
               <div className='relative mt-6 mb-2 w-full'>
                 <div
                   className='absolute inset-0 flex items-center'
