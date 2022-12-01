@@ -29,7 +29,6 @@ export default function Redirect() {
 
     const cookies = new Cookies()
     const redirect = cookies.get('finishLogin') // the org to redirect to is stored in this cookie
-    console.log(redirect)
     if (!redirect) {
       setError(
         'login failed: unable to redirect to finish login, check that you allow cookies'
