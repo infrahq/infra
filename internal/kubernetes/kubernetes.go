@@ -4,17 +4,25 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"strings"
+	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/jessevdk/go-flags"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -24,18 +32,32 @@ type Kubernetes struct {
 	Config *rest.Config
 }
 
-func NewKubernetes() (*Kubernetes, error) {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	loadingRules.WarnIfAllMissing = false
+func NewKubernetes(authToken, addr, ca string) (*Kubernetes, error) {
+	if authToken != "" && addr != "" && ca != "" {
+		k := &Kubernetes{Config: &rest.Config{}}
+		k.Config.Host = addr
+		k.Config.TLSClientConfig.CAData = []byte(ca)
+		k.Config.BearerToken = authToken
+		return k, nil
+	}
 
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-	config, err := kubeConfig.ClientConfig()
+	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	if err := rest.LoadTLSFiles(config); err != nil {
 		return nil, fmt.Errorf("load TLS files: %w", err)
+	}
+
+	if authToken != "" {
+		config.BearerToken = authToken
+	}
+	if addr != "" {
+		config.Host = addr
+	}
+	if ca != "" {
+		config.CAData = []byte(ca)
 	}
 
 	k := &Kubernetes{Config: config}
@@ -251,6 +273,198 @@ func (k *Kubernetes) Namespaces() ([]string, error) {
 	return results, nil
 }
 
+func (k *Kubernetes) ec2ClusterName() (string, error) {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/latest/dynamic/instance-identity/document", nil)
+	if err != nil {
+		return "", err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New("received non-OK code from metadata service")
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var identity struct {
+		Region     string
+		InstanceID string
+	}
+
+	err = json.Unmarshal(body, &identity)
+	if err != nil {
+		return "", err
+	}
+
+	awsSess, err := session.NewSession(&aws.Config{Region: aws.String(identity.Region)})
+	if err != nil {
+		return "", err
+	}
+
+	connection := ec2.New(awsSess)
+	name := "instance-id"
+	value := identity.InstanceID
+
+	describeInstancesOutput, err := connection.DescribeInstances(&ec2.DescribeInstancesInput{Filters: []*ec2.Filter{{Name: &name, Values: []*string{&value}}}})
+	if err != nil {
+		return "", err
+	}
+
+	reservations := describeInstancesOutput.Reservations
+	if len(reservations) == 0 {
+		return "", errors.New("could not fetch ec2 instance reservations")
+	}
+
+	ec2Instances := reservations[0].Instances
+	if len(ec2Instances) == 0 {
+		return "", errors.New("could not fetch ec2 instances")
+	}
+
+	instance := ec2Instances[0]
+
+	tags := []string{}
+	for _, tag := range instance.Tags {
+		tags = append(tags, fmt.Sprintf("%s:%s", *tag.Key, *tag.Value))
+	}
+
+	var clusterName string
+
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, "kubernetes.io/cluster/") { // tag key format: kubernetes.io/cluster/clustername"
+			key := strings.Split(tag, ":")[0]
+			clusterName = strings.Split(key, "/")[2] // rely on ec2 tag format to extract clustername
+
+			break
+		}
+	}
+
+	if clusterName == "" {
+		return "", errors.New("unable to parse cluster name from EC2 tags")
+	}
+
+	return clusterName, nil
+}
+
+func (k *Kubernetes) gkeClusterName() (string, error) {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/computeMetadata/v1/instance/attributes/cluster-name", nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("Metadata-Flavor", "Google")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New("received non-OK code from metadata service")
+	}
+
+	name, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(name), nil
+}
+
+func (k *Kubernetes) aksClusterName() (string, error) {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2017-08-01&format=text", nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("Metadata", "true")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New("received non-OK code from metadata service")
+	}
+
+	all, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("error while reading response from azure metadata endpoint: %w", err)
+	}
+
+	splitAll := strings.Split(string(all), "_")
+	if len(splitAll) < 4 || strings.ToLower(splitAll[0]) != "mc" {
+		return "", fmt.Errorf("cannot parse the clustername from resource group name: %s", all)
+	}
+
+	return splitAll[len(splitAll)-2], nil
+}
+
+func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return "", err
+	}
+
+	k8sAppPods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "k8s-app=kube-controller-manager",
+	})
+	if err != nil {
+		return "", err
+	}
+
+	componentPods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "component=kube-controller-manager",
+	})
+	if err != nil {
+		return "", err
+	}
+
+	pods := k8sAppPods.Items
+	pods = append(pods, componentPods.Items...)
+
+	if len(pods) == 0 {
+		return "", errors.New("no kube-controller-manager pods to inspect")
+	}
+
+	pod := pods[0]
+
+	specContainers := pod.Spec.Containers
+
+	if len(specContainers) == 0 {
+		return "", errors.New("no containers in kube-controller-manager podspec")
+	}
+
+	container := specContainers[0]
+
+	var opts struct {
+		ClusterName string `long:"cluster-name"`
+	}
+
+	p := flags.NewParser(&opts, flags.IgnoreUnknown)
+
+	_, err = p.ParseArgs(container.Args)
+	if err != nil {
+		return "", err
+	}
+
+	if opts.ClusterName == "" {
+		return "", errors.New("empty cluster-name argument in kube-controller-manager pod spec")
+	}
+
+	return opts.ClusterName, nil
+}
+
 // Checksum returns a sha256 hash of the PEM encoded CA certificate used for
 // TLS by this kubernetes cluster.
 func (k *Kubernetes) Checksum() string {
@@ -258,6 +472,34 @@ func (k *Kubernetes) Checksum() string {
 	h.Write(k.Config.CAData)
 	hash := h.Sum(nil)
 	return hex.EncodeToString(hash)
+}
+
+func (k *Kubernetes) Name(chksm string) (string, error) {
+	name := chksm[:12]
+
+	// 169.254.169.254 is an address used by cloud platforms for instance metadata
+	if _, err := net.DialTimeout("tcp", "169.254.169.254:80", 1*time.Second); err == nil {
+		if name, err := k.ec2ClusterName(); err == nil {
+			return name, nil
+		}
+
+		if name, err := k.gkeClusterName(); err == nil {
+			return name, nil
+		}
+
+		if name, err := k.aksClusterName(); err == nil {
+			return name, nil
+		}
+	}
+
+	if name, err := k.kubeControllerManagerClusterName(); err == nil {
+		return name, nil
+	}
+
+	// truncated checksum will be used as default name if one could not be found
+	logging.Debugf("could not fetch cluster name, resorting to hashed cluster CA")
+
+	return name, nil
 }
 
 const podLabelsFilePath = "/etc/podinfo/labels"
