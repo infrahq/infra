@@ -940,6 +940,21 @@ func TestAPI_CreateGrant(t *testing.T) {
 	err = data.CreateIdentity(srv.DB(), &someUser)
 	assert.NilError(t, err)
 
+	createGroup := func(t *testing.T, name string, users ...uid.ID) uid.ID {
+		t.Helper()
+		group := &models.Group{Name: name}
+
+		err := data.CreateGroup(srv.DB(), group)
+		assert.NilError(t, err)
+
+		err = data.AddUsersToGroup(srv.DB(), group.ID, users)
+		assert.NilError(t, err)
+
+		return group.ID
+	}
+
+	someGroup := createGroup(t, "awesome-group", someUser.ID)
+
 	supportAdmin := models.Identity{Name: "support-admin@example.com"}
 	err = data.CreateIdentity(srv.DB(), &supportAdmin)
 	assert.NilError(t, err)
@@ -1047,6 +1062,112 @@ func TestAPI_CreateGrant(t *testing.T) {
 					someUser.ID.String(),
 					time.Now().UTC().Format(time.RFC3339),
 				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"success w/ username": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.GrantRequest{
+				UserName:  someUser.Name,
+				Privilege: models.InfraAdminRole,
+				Resource:  "some-big-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated)
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+				{
+					"id": "<any-valid-uid>",
+					"createdBy": "%[1]v",
+					"privilege": "%[2]v",
+					"resource": "some-big-cluster",
+					"user": "%[3]v",
+					"created": "%[4]v",
+					"updated": "%[4]v",
+					"wasCreated": true
+				}`,
+					accessKey.IssuedFor,
+					models.InfraAdminRole,
+					someUser.ID.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"failure w/ username": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.GrantRequest{
+				UserName:  "someone@random.org",
+				Privilege: models.InfraAdminRole,
+				Resource:  "random-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
+
+				expected := jsonUnmarshal(t, `
+				{
+					"code": 400,
+					"message": "bad request: couldn't find userName 'someone@random.org'"
+				}`)
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"success w/ groupname": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.GrantRequest{
+				GroupName: "awesome-group",
+				Privilege: models.InfraViewRole,
+				Resource:  "some-resource",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated)
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+				{
+					"id": "<any-valid-uid>",
+					"createdBy": "%[1]v",
+					"privilege": "%[2]v",
+					"resource": "some-resource",
+					"group": "%[3]v",
+					"created": "%[4]v",
+					"updated": "%[4]v",
+					"wasCreated": true
+				}`,
+					accessKey.IssuedFor,
+					models.InfraViewRole,
+					someGroup.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"failure w/ groupname": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.GrantRequest{
+				GroupName: "fake-group",
+				Privilege: models.InfraAdminRole,
+				Resource:  "random-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
+
+				expected := jsonUnmarshal(t, `
+				{
+					"code": 400,
+					"message": "bad request: couldn't find groupName 'fake-group'"
+				}`)
 				actual := jsonUnmarshal(t, resp.Body.String())
 				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 			},
@@ -1451,7 +1572,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 				grantToAdd := models.Grant{
-					Subject:   uid.NewIdentityPolymorphicID(group.ID),
+					Subject:   uid.NewGroupPolymorphicID(group.ID),
 					Privilege: models.InfraAdminRole,
 					Resource:  "another-cluster3",
 				}
