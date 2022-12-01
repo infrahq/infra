@@ -63,6 +63,8 @@ func (r CreateDestinationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validateDestinationName(r.Name),
 		validate.Required("name", r.Name),
+		validate.ReservedStrings("name", r.Name, []string{"infra"}),
+
 		// Allow "" for versions 0.16.1 and prior
 		// TODO: make this required in the future
 		validate.Enum("kind", r.Kind, []string{"kubernetes", "ssh", ""}),

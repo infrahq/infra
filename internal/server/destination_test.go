@@ -102,6 +102,30 @@ func TestAPI_CreateDestination(t *testing.T) {
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
+		{
+			name: "failed with reserved names",
+			setup: func(t *testing.T) api.CreateDestinationRequest {
+				return api.CreateDestinationRequest{
+					Name: "infra",
+					Connection: api.DestinationConnection{
+						URL: "cluster.production.example",
+						CA:  "the-ca",
+					},
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "name", Errors: []string{"infra is reserved and can not be used"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
 	}
 
 	for _, tc := range testCases {
