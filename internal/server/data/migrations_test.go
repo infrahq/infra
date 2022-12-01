@@ -531,7 +531,7 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 			expected: func(t *testing.T, tx WriteTxn) {
 				stmt := `SELECT id, name, domain FROM organizations`
 				org := &models.Organization{}
-				err := tx.QueryRow(stmt).Scan(&org.ID, &org.Name, (*nullString)(&org.Domain))
+				err := tx.QueryRow(stmt).Scan(&org.ID, &org.Name, (*optionalString)(&org.Domain))
 				assert.NilError(t, err)
 
 				expected := &models.Organization{
@@ -1101,13 +1101,4 @@ func writeSchema(t *testing.T, raw string) {
 	// nolint:gosec
 	err = os.WriteFile("schema.sql", out.Bytes(), 0o644)
 	assert.NilError(t, err)
-}
-
-type nullString string
-
-func (n *nullString) Scan(value any) error {
-	ns := &sql.NullString{}
-	err := ns.Scan(value)
-	*n = nullString(ns.String)
-	return err
 }

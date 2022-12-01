@@ -74,6 +74,23 @@ func TestCreateDestination(t *testing.T) {
 			expected := UniqueConstraintError{Table: "destinations", Column: "uniqueID"}
 			assert.DeepEqual(t, ucErr, expected)
 		})
+		t.Run("multiple missing uniqueID", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			destination := &models.Destination{
+				Name: "kubernetes",
+				Kind: "kubernetes",
+			}
+			err := CreateDestination(tx, destination)
+			assert.NilError(t, err)
+
+			second := &models.Destination{
+				Name: "dev",
+				Kind: "kubernetes",
+			}
+			err = CreateDestination(tx, second)
+			assert.NilError(t, err)
+		})
 	})
 }
 
@@ -125,6 +142,28 @@ func TestUpdateDestination(t *testing.T) {
 				Version:            "0.100.2",
 			}
 			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
+		t.Run("multiple missing uniqueID", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			destination := &models.Destination{
+				Name: "kubernetes",
+				Kind: "kubernetes",
+			}
+			err := CreateDestination(tx, destination)
+			assert.NilError(t, err)
+
+			second := &models.Destination{
+				Name:     "dev",
+				Kind:     "kubernetes",
+				UniqueID: "something",
+			}
+			err = CreateDestination(tx, second)
+			assert.NilError(t, err)
+
+			second.UniqueID = ""
+			err = UpdateDestination(tx, second)
+			assert.NilError(t, err)
 		})
 	})
 }
