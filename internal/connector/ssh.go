@@ -17,6 +17,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/linux"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
@@ -205,9 +206,20 @@ func updateLocalUsers(ctx context.Context, client apiClient, opts SSHOptions, gr
 		delete(byUserID, infraUID)
 	}
 
+	var errs []error
+	// attempt to kill any active sessions first, so that processes have time to
+	// exit before we try to remove the user.
+	for _, user := range toDelete {
+		if err := linux.KillUserProcesses(user); err != nil {
+			errs = append(errs, fmt.Errorf("kill user session %v: %w", user.Username, err))
+			continue
+		}
+	}
+	// now attempt to remove the user. If this fails it will be attempted again
 	for _, user := range toDelete {
 		if err := linux.RemoveUser(user); err != nil {
-			return fmt.Errorf("remove user: %w", err)
+			errs = append(errs, fmt.Errorf("remove user %v: %w", user.Username, err))
+			continue
 		}
 		logging.L.Info().Str("username", user.Username).Msg("removed user")
 	}
@@ -224,11 +236,15 @@ func updateLocalUsers(ctx context.Context, client apiClient, opts SSHOptions, gr
 		}
 
 		if err := linux.AddUser(user, opts.Group); err != nil {
-			return fmt.Errorf("create user: %w", err)
+			errs = append(errs, fmt.Errorf("create user %v: %w", user.SSHLoginName, err))
+			continue
 		}
 		logging.L.Info().Str("username", user.SSHLoginName).Msg("created user")
 	}
 
+	if len(errs) > 0 {
+		return cliopts.MultiError(errs)
+	}
 	return nil
 }
 

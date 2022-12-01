@@ -2,6 +2,7 @@ package linux
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -73,17 +74,27 @@ func AddUser(user *api.User, group string) error {
 	return cmd.Run()
 }
 
-func RemoveUser(user LocalUser) error {
+func KillUserProcesses(user LocalUser) error {
 	//nolint:gosec
-	cmd := exec.Command("pkill", "--uid", user.Username)
+	cmd := exec.Command("pkill", "--signal", "KILL", "--uid", user.Username)
 	cmd.Stdout = logging.L
 	cmd.Stderr = logging.L
-	if err := cmd.Run(); err != nil {
+	err := cmd.Run()
+
+	var exitError *exec.ExitError
+	switch {
+	// if no processes are running, pkill exits with 1
+	case errors.As(err, &exitError) && exitError.ExitCode() == 1:
+		return nil
+	case err != nil:
 		return fmt.Errorf("kill processes: %w", err)
 	}
+	return nil
+}
 
+func RemoveUser(user LocalUser) error {
 	//nolint:gosec
-	cmd = exec.Command("userdel", "--remove", user.Username)
+	cmd := exec.Command("userdel", "--remove", user.Username)
 	cmd.Stdout = logging.L
 	cmd.Stderr = logging.L
 	if err := cmd.Run(); err != nil {

@@ -1,5 +1,5 @@
 root:x:0:0:root:/root:/bin/ash
 adm:x:3:4::/var/adm:/sbin/nologin
+failremove:x:1004:1004:Zs,managed by infra:/home/failremove:/bin/bash
 one111:x:1001:1001:ka,managed by infra:/home/one111:/bin/bash
 three333:x:1003:1003:Zt,managed by infra:/home/three333:/bin/bash
-four444:x:1004:1004:Zs,managed by infra:/home/four444:/bin/bash
