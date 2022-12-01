@@ -161,7 +161,6 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 }
 
 func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
-	// TODO (jmorganca): add rate limiting to this endpoint
 	rctx := getRequestContext(c)
 	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: strings.Replace(req.UserCode, "-", "", 1)})
 	if err != nil {
