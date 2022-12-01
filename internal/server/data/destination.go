@@ -20,11 +20,11 @@ func (d destinationsTable) Columns() []string {
 }
 
 func (d destinationsTable) Values() []any {
-	return []any{d.ConnectionCA, d.ConnectionURL, d.CreatedAt, d.DeletedAt, d.ID, d.Kind, d.LastSeenAt, d.Name, d.OrganizationID, d.Resources, d.Roles, d.UniqueID, d.UpdatedAt, d.Version}
+	return []any{d.ConnectionCA, d.ConnectionURL, d.CreatedAt, d.DeletedAt, d.ID, d.Kind, d.LastSeenAt, d.Name, d.OrganizationID, d.Resources, d.Roles, (optionalString)(d.UniqueID), d.UpdatedAt, d.Version}
 }
 
 func (d *destinationsTable) ScanFields() []any {
-	return []any{&d.ConnectionCA, &d.ConnectionURL, &d.CreatedAt, &d.DeletedAt, &d.ID, &d.Kind, &d.LastSeenAt, &d.Name, &d.OrganizationID, &d.Resources, &d.Roles, &d.UniqueID, &d.UpdatedAt, &d.Version}
+	return []any{&d.ConnectionCA, &d.ConnectionURL, &d.CreatedAt, &d.DeletedAt, &d.ID, &d.Kind, &d.LastSeenAt, &d.Name, &d.OrganizationID, &d.Resources, &d.Roles, (*optionalString)(&d.UniqueID), &d.UpdatedAt, &d.Version}
 }
 
 func validateDestination(dest *models.Destination) error {
