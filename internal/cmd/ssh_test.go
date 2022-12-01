@@ -85,7 +85,7 @@ func TestSSHHostsCmd(t *testing.T) {
 
 # This file is managed by Infra. Do not edit!
 
-Match 127.12.12.1
+Host 127.12.12.1
     IdentityFile ~/.ssh/infra/key
     IdentitiesOnly yes
     UserKnownHostsFile ~/.ssh/infra/known_hosts
