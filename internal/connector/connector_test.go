@@ -49,7 +49,8 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 		opts := Options{
 			Server: ServerOptions{SkipTLSVerify: true, AccessKey: "the-access-key"},
 		}
-		authn := newAuthenticator("https://127.0.0.1:12345", opts)
+		assert.NilError(t, opts.Server.URL.Set("https://127.0.0.1:12345"))
+		authn := newAuthenticator(opts)
 		authn.client = tc.fakeClient
 
 		actual, err := authn.Authenticate(req)
@@ -253,7 +254,7 @@ func TestCertCache_Certificate(t *testing.T) {
 	})
 }
 
-func TestSyncGrantsToKubeBindings(t *testing.T) {
+func TestSyncGrantsToDestination_KubeBindings(t *testing.T) {
 	type testCase struct {
 		name                     string
 		fakeAPI                  *fakeAPIClient
@@ -274,7 +275,10 @@ func TestSyncGrantsToKubeBindings(t *testing.T) {
 			destination: &api.Destination{Name: "the-dest"},
 		}
 
-		err := syncGrantsToKubeBindings(ctx, con, waiter)
+		fn := func(ctx context.Context, grants []api.Grant) error {
+			return updateRoles(ctx, con.client, con.k8s, grants)
+		}
+		err := syncGrantsToDestination(ctx, con, waiter, fn)
 		assert.ErrorIs(t, err, errDone)
 
 		assert.Equal(t, len(waiter.resets), tc.successCount)
@@ -364,6 +368,8 @@ type fakeAPIClient struct {
 	listGrantsResult  *api.ListResponse[api.Grant]
 	listGrantsError   error
 	listGrantsIndexes []int64
+
+	users map[uid.ID]api.User
 }
 
 func (f *fakeAPIClient) ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
@@ -376,6 +382,9 @@ func (f *fakeAPIClient) GetGroup(ctx context.Context, id uid.ID) (*api.Group, er
 }
 
 func (f *fakeAPIClient) GetUser(ctx context.Context, id uid.ID) (*api.User, error) {
+	if user, ok := f.users[id]; ok {
+		return &user, nil
+	}
 	return &api.User{Name: "theuser@example.com"}, nil
 }
 

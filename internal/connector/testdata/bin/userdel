@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+set -eu
+(echo -n "userdel "; printf "'%s' " "$@"; echo) >> ${TEST_CONNECTOR_USER_LOG_FILE}

@@ -31,11 +31,11 @@ type httpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func newAuthenticator(url string, options Options) *authenticator {
+func newAuthenticator(options Options) *authenticator {
 	transport := httpTransportFromOptions(options.Server)
 	return &authenticator{
 		client:          &http.Client{Transport: transport},
-		baseURL:         url,
+		baseURL:         options.Server.URL.String(),
 		serverAccessKey: options.Server.AccessKey.String(),
 	}
 }

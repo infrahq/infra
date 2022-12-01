@@ -29,6 +29,8 @@ issues:
       text: "tx\\.Rollback"
     - linters: [noctx]
       path: "_test\\.go"
+    - linters: [errcheck]
+      text: "syslog\\."
 
 linters:
   enable:

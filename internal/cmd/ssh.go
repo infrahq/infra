@@ -32,7 +32,6 @@ func newSSHCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.AddCommand(newSSHHostsCmd(cli))
-
 	return cmd
 }
 

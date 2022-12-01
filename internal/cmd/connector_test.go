@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -37,7 +38,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func TestConnector_Run(t *testing.T) {
+func TestConnector_Run_Kubernetes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for short run")
 	}
@@ -74,11 +75,12 @@ func TestConnector_Run(t *testing.T) {
 
 	opts := connector.Options{
 		Server: connector.ServerOptions{
-			URL:                srv.Addrs.HTTPS.String(),
+			URL:                urlFromAddr(t, srv.Addrs.HTTPS),
 			AccessKey:          "0000000002.connectorconnectorconnec",
 			TrustedCertificate: serverOpts.TLS.Certificate,
 		},
 		Name:         "testing",
+		Kind:         "kubernetes",
 		CACert:       types.StringOrFile(readFile(t, "testdata/pki/connector.crt")),
 		CAKey:        types.StringOrFile(readFile(t, "testdata/pki/connector.key")),
 		EndpointAddr: types.HostPort{Host: "127.0.0.1", Port: 55555},
@@ -183,6 +185,13 @@ func TestConnector_Run(t *testing.T) {
 	assert.DeepEqual(t, fakeKube.writes, expectedWrites, cmpKubeRequest)
 
 	// TODO: check proxy is listening
+}
+
+func urlFromAddr(t *testing.T, addr net.Addr) types.URL {
+	t.Helper()
+	var u types.URL
+	assert.NilError(t, u.Set(addr.String()))
+	return u
 }
 
 var cmpDestinationModel = cmp.Options{
@@ -378,6 +387,7 @@ server:
   skipTLSVerify: true
   trustedCertificate: ca.pem
 name: the-name
+kind: ssh
 caCert: /path/to/cert
 caKey: /path/to/key
 addr:
@@ -388,13 +398,14 @@ addr:
 			expected: func() connector.Options {
 				return connector.Options{
 					Name: "the-name",
+					Kind: "ssh",
 					Addr: connector.ListenerOptions{
 						HTTP:    "localhost:84",
 						HTTPS:   "localhost:414",
 						Metrics: "127.0.0.1:8000",
 					},
 					Server: connector.ServerOptions{
-						URL:                "the-server",
+						URL:                types.URL{Scheme: "http", Host: "the-server"},
 						AccessKey:          "/var/run/secrets/key",
 						SkipTLSVerify:      true,
 						TrustedCertificate: "ca.pem",
