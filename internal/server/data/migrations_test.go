@@ -905,6 +905,12 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.Equal(t, user.OrganizationID, uid.ID(22))
 			},
 		},
+		{
+			label: testCaseLine(makeIdxEmailsProvidersUnique().ID),
+			expected: func(t *testing.T, db WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

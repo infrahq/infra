@@ -347,7 +347,7 @@ CREATE INDEX idx_device_flow_auth_requests_expires_at ON device_flow_auth_reques
 
 CREATE UNIQUE INDEX idx_dfar_user_code ON device_flow_auth_requests USING btree (user_code) WHERE (deleted_at IS NULL);
 
-CREATE UNIQUE INDEX idx_emails_providers ON provider_users USING btree (email, provider_id);
+CREATE UNIQUE INDEX idx_emails_providers_identities ON provider_users USING btree (email, provider_id, identity_id);
 
 CREATE UNIQUE INDEX idx_encryption_keys_key_id ON encryption_keys USING btree (key_id);
 

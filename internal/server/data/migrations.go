@@ -80,6 +80,7 @@ func migrations() []*migrator.Migration {
 		updateAccessKeysTimeoutColumn(),
 		addUserPubicKeysTable(),
 		addUserSSHLoginName(),
+		makeIdxEmailsProvidersUnique(),
 		// next one here
 	}
 }
@@ -1035,6 +1036,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_user_ssh_login_name ON identities
 				}
 			}
 			return nil
+		},
+	}
+}
+
+func makeIdxEmailsProvidersUnique() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-12-01T11:36",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+				DROP INDEX IF EXISTS idx_emails_providers;
+				CREATE UNIQUE INDEX IF NOT EXISTS idx_emails_providers_identities ON provider_users (email, provider_id, identity_id)`
+			_, err := tx.Exec(stmt)
+			return err
 		},
 	}
 }
