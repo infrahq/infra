@@ -42,8 +42,7 @@ function oidcLogin(
       domain: `.${baseDomain}`,
       sameSite: 'lax',
     })
-    redirectURL =
-      window.location.protocol + '//' + loginDomain + '/login/redirect' // go to the social login redirect specified by the server
+    redirectURL = window.location.protocol + '//' + loginDomain + '/redirect' // go to the social login redirect specified by the server
   }
   window.localStorage.setItem('redirectURL', redirectURL)
 
