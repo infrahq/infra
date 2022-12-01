@@ -60,10 +60,8 @@ type Options struct {
 	EndpointAddr types.HostPort
 
 	// Kubernetes specific options below here
-
-	CACert     types.StringOrFile
-	CAKey      types.StringOrFile
-	Kubernetes KubernetesOptions
+	CACert types.StringOrFile
+	CAKey  types.StringOrFile
 }
 
 type ServerOptions struct {
@@ -93,22 +91,6 @@ type ListenerOptions struct {
 	HTTP    string
 	HTTPS   string
 	Metrics string
-}
-
-type KubernetesOptions struct {
-	// AuthToken may be used to override the token used to authenticate with the
-	// kubernetes API server. When the connector is run in-cluster, the
-	// service account associated with the pod will be used by default.
-	// When run outside of cluster there is no default, and this value must
-	// be set to a token that has permission to impersonate users in the cluster.
-	AuthToken types.StringOrFile
-
-	// Addr is the host:port used to connect to the kubernetes API server. The
-	// default value is looked up from the in-cluster config.
-	Addr string
-	// CA is the CA certificate used by the kubernetes API server. The default
-	// value is looked up from the in-cluster config.
-	CA types.StringOrFile
 }
 
 // connector stores all the dependencies for the connector operations.
@@ -144,10 +126,7 @@ type kubeClient interface {
 }
 
 func runKubernetesConnector(ctx context.Context, options Options) error {
-	k8s, err := kubernetes.NewKubernetes(
-		options.Kubernetes.AuthToken.String(),
-		options.Kubernetes.Addr,
-		options.Kubernetes.CA.String())
+	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
