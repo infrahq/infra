@@ -188,7 +188,7 @@ func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant
 			}
 			return nil, err
 		}
-		subject = uid.NewIdentityPolymorphicID(group.ID)
+		subject = uid.NewGroupPolymorphicID(group.ID)
 	case r.User != 0:
 		subject = uid.NewIdentityPolymorphicID(r.User)
 	case r.Group != 0:
