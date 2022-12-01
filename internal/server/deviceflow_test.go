@@ -39,7 +39,7 @@ func TestDeviceFlow(t *testing.T) {
 	err = data.CreateIdentity(srv.db, user)
 	assert.NilError(t, err)
 
-	expires := time.Now().Add(10 * time.Minute)
+	expires := time.Now().Add(10 * time.Minute).UTC().Truncate(time.Second)
 	accessKey := &models.AccessKey{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 		Name:               "Foo key",
@@ -114,7 +114,7 @@ func TestDeviceFlow(t *testing.T) {
 	assert.Equal(t, statusResp.LoginResponse.Name, user.Name)
 	assert.Equal(t, statusResp.LoginResponse.UserID, user.ID)
 	assert.Equal(t, statusResp.LoginResponse.OrganizationName, org.Name)
-	assert.Assert(t, statusResp.LoginResponse.Expires.Time().Equal(expires.Truncate(time.Second)))
+	assert.Assert(t, statusResp.LoginResponse.Expires.Time().Equal(expires))
 
 	// Verify access key is valid
 	var loginuser api.User
