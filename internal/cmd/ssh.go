@@ -327,7 +327,7 @@ const infraDestinationSSHConfig = `
 
 # This file is managed by Infra. Do not edit!
 
-Match {{ .Hostname }}
+Host {{ .Hostname }}
     IdentityFile ~/.ssh/infra/key
     IdentitiesOnly yes
     UserKnownHostsFile ~/.ssh/infra/known_hosts
