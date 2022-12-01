@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Cookies from 'universal-cookie'
 
-import { currentBaseDomain } from './../../lib/login'
 import LoginLayout from '../../components/layouts/login'
 import Loader from '../../components/loader'
 
