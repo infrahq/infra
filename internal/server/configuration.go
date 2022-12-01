@@ -15,7 +15,7 @@ func (a *API) GetServerConfiguration(c *gin.Context, _ *api.EmptyRequest) (*api.
 		BaseDomain:        a.server.options.BaseDomain,
 		LoginDomain:       a.server.options.BaseDomain, // default to the standard base domain
 	}
-	if conf.LoginDomain != "" {
+	if a.server.options.LoginDomainPrefix != "" {
 		conf.LoginDomain = fmt.Sprintf("%s.%s", a.server.options.LoginDomainPrefix, a.server.options.BaseDomain)
 	}
 	return conf, nil
