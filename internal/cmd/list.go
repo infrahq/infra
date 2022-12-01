@@ -30,7 +30,7 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	user, destinations, grants, err := getUserDestinationGrants(client, "kubernetes")
+	user, destinations, grants, err := getUserDestinationGrants(client, "")
 	if err != nil {
 		return err
 	}

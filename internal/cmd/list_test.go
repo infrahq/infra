@@ -54,6 +54,7 @@ func TestListCmd(t *testing.T) {
 	_, err = c.CreateDestination(ctx, &api.CreateDestinationRequest{
 		UniqueID: "space",
 		Name:     "space",
+		Kind:     "kubernetes",
 		Connection: api.DestinationConnection{
 			URL: "http://localhost:10123/",
 			CA:  destinationCA,
@@ -64,6 +65,7 @@ func TestListCmd(t *testing.T) {
 	_, err = c.CreateDestination(ctx, &api.CreateDestinationRequest{
 		UniqueID: "moon",
 		Name:     "moon",
+		Kind:     "ssh",
 		Connection: api.DestinationConnection{
 			URL: "http://localhost:10124/",
 			CA:  destinationCA,
