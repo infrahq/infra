@@ -33,7 +33,7 @@ retry:
 		return nil, err
 	}
 
-	err = access.CreateDeviceFlowAuthRequest(rctx, &models.DeviceFlowAuthRequest{
+	err = data.CreateDeviceFlowAuthRequest(rctx.DBTxn, &models.DeviceFlowAuthRequest{
 		UserCode:   userCode,
 		DeviceCode: deviceCode,
 		ExpiresAt:  time.Now().Add(DeviceCodeExpirySeconds * time.Second),
@@ -67,9 +67,8 @@ retry:
 // flow login. The response status can be pending, expired, or confirmed.
 func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusRequest) (*api.DeviceFlowStatusResponse, error) {
 	rctx := getRequestContext(c)
-	db := rctx.DBTxn
 
-	dfar, err := data.GetDeviceFlowAuthRequest(db, data.GetDeviceFlowAuthRequestOptions{ByDeviceCode: req.DeviceCode})
+	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByDeviceCode: req.DeviceCode})
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			return nil, err
@@ -91,7 +90,7 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 		}, nil
 	}
 
-	user, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: dfar.UserID})
+	user, err := data.GetIdentity(rctx.DBTxn, data.GetIdentityOptions{ByID: dfar.UserID})
 	if err != nil {
 		return nil, fmt.Errorf("%w: retrieving approval user: %v", internal.ErrUnauthorized, err)
 	}
@@ -111,13 +110,13 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 		Scopes:              models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
 
-	bearer, err := data.CreateAccessKey(db, accessKey)
+	bearer, err := data.CreateAccessKey(rctx.DBTxn, accessKey)
 	if err != nil {
 		return nil, fmt.Errorf("%w: creating new access key: %v", internal.ErrUnauthorized, err)
 	}
 
 	user.LastSeenAt = time.Now().UTC()
-	if err := data.UpdateIdentity(db, user); err != nil {
+	if err := data.UpdateIdentity(rctx.DBTxn, user); err != nil {
 		return nil, fmt.Errorf("%w: update user last seen: %v", internal.ErrUnauthorized, err)
 	}
 
@@ -164,7 +163,7 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
 	// TODO (jmorganca): add rate limiting to this endpoint
 	rctx := getRequestContext(c)
-	dfar, err := access.FindDeviceFlowAuthRequestForApproval(rctx, strings.Replace(req.UserCode, "-", "", 1))
+	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: strings.Replace(req.UserCode, "-", "", 1)})
 	if err != nil {
 		return nil, err
 	}
