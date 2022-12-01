@@ -16,14 +16,14 @@ func (r GetUserRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type User struct {
-	ID            uid.ID          `json:"id" note:"User ID"`
-	Created       Time            `json:"created"`
-	Updated       Time            `json:"updated"`
-	LastSeenAt    Time            `json:"lastSeenAt"`
+	ID            uid.ID          `json:"id" note:"User ID" example:"4ACFkc434M"`
+	Created       Time            `json:"created" note:"Date the user was created"`
+	Updated       Time            `json:"updated" note:"Date the user was updated"`
+	LastSeenAt    Time            `json:"lastSeenAt" note:"Date the user was last seen"`
 	Name          string          `json:"name" note:"Name of the user" example:"bob@example.com"`
 	ProviderNames []string        `json:"providerNames,omitempty" note:"List of providers this user belongs to" example:"['okta']"`
 	PublicKeys    []UserPublicKey `json:"publicKeys,omitempty" note:"List of the users public keys"`
-	SSHLoginName  string          `json:"sshLoginName" note:"Username for SSH destinations"`
+	SSHLoginName  string          `json:"sshLoginName" note:"Username for SSH destinations" example:"bob"`
 }
 
 type ListUsersRequest struct {
@@ -43,7 +43,7 @@ func (r ListUsersRequest) ValidationRules() []validate.ValidationRule {
 
 // CreateUserRequest is only for creating users with the Infra provider
 type CreateUserRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" note:"Email address of the new user" example:"bob@example.com"`
 }
 
 func (r CreateUserRequest) ValidationRules() []validate.ValidationRule {
@@ -54,15 +54,15 @@ func (r CreateUserRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type CreateUserResponse struct {
-	ID              uid.ID `json:"id"`
-	Name            string `json:"name"`
-	OneTimePassword string `json:"oneTimePassword,omitempty"`
+	ID              uid.ID `json:"id" note:"User ID"`
+	Name            string `json:"name" note:"Email address of the user" example:"bob@example.com"`
+	OneTimePassword string `json:"oneTimePassword,omitempty" note:"One-time password (only returned when self-hosted)" example:"password"`
 }
 
 type UpdateUserRequest struct {
 	ID          uid.ID `uri:"id" json:"-"`
-	OldPassword string `json:"oldPassword"`
-	Password    string `json:"password"`
+	OldPassword string `json:"oldPassword" note:"Old password for the user. Only required when the access key used is not owned by an Infra admin" example:"oldpassword"`
+	Password    string `json:"password" note:"New one-time password for the user" example:"newpassword"`
 }
 
 func (r UpdateUserRequest) ValidationRules() []validate.ValidationRule {

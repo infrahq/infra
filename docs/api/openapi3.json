@@ -123,15 +123,20 @@
       "CreateUserResponse": {
         "properties": {
           "id": {
+            "description": "User ID",
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "name": {
+            "description": "Email address of the user",
+            "example": "bob@example.com",
             "type": "string"
           },
           "oneTimePassword": {
+            "description": "One-time password (only returned when self-hosted)",
+            "example": "password",
             "type": "string"
           }
         }
@@ -161,8 +166,8 @@
             "type": "object"
           },
           "created": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
+            "description": "Time destination was created",
+            "example": "2022-11-10T23:35:22Z",
             "format": "date-time",
             "type": "string"
           },
@@ -215,8 +220,8 @@
             "type": "string"
           },
           "updated": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
+            "description": "Time destination was updated",
+            "example": "2022-12-01T19:48:55Z",
             "format": "date-time",
             "type": "string"
           },
@@ -384,13 +389,14 @@
       "Group": {
         "properties": {
           "created": {
-            "description": "formatted as an RFC3339 date-time",
+            "description": "Date the group was created",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "id": {
-            "example": "4yJ3n3D8E2",
+            "description": "Group ID",
+            "example": "gauEdoYCEU",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
@@ -407,7 +413,7 @@
             "type": "integer"
           },
           "updated": {
-            "description": "formatted as an RFC3339 date-time",
+            "description": "Date the group was updated",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -637,8 +643,8 @@
                   "type": "object"
                 },
                 "created": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
+                  "description": "Time destination was created",
+                  "example": "2022-11-10T23:35:22Z",
                   "format": "date-time",
                   "type": "string"
                 },
@@ -691,8 +697,8 @@
                   "type": "string"
                 },
                 "updated": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
+                  "description": "Time destination was updated",
+                  "example": "2022-12-01T19:48:55Z",
                   "format": "date-time",
                   "type": "string"
                 },
@@ -743,13 +749,14 @@
             "items": {
               "properties": {
                 "created": {
-                  "description": "formatted as an RFC3339 date-time",
+                  "description": "Date the group was created",
                   "example": "2022-03-14T09:48:00Z",
                   "format": "date-time",
                   "type": "string"
                 },
                 "id": {
-                  "example": "4yJ3n3D8E2",
+                  "description": "Group ID",
+                  "example": "gauEdoYCEU",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
@@ -766,7 +773,7 @@
                   "type": "integer"
                 },
                 "updated": {
-                  "description": "formatted as an RFC3339 date-time",
+                  "description": "Date the group was updated",
                   "example": "2022-03-14T09:48:00Z",
                   "format": "date-time",
                   "type": "string"
@@ -986,20 +993,20 @@
             "items": {
               "properties": {
                 "created": {
-                  "description": "formatted as an RFC3339 date-time",
+                  "description": "Date the user was created",
                   "example": "2022-03-14T09:48:00Z",
                   "format": "date-time",
                   "type": "string"
                 },
                 "id": {
                   "description": "User ID",
-                  "example": "4yJ3n3D8E2",
+                  "example": "4ACFkc434M",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
                 "lastSeenAt": {
-                  "description": "formatted as an RFC3339 date-time",
+                  "description": "Date the user was last seen",
                   "example": "2022-03-14T09:48:00Z",
                   "format": "date-time",
                   "type": "string"
@@ -1056,10 +1063,11 @@
                 },
                 "sshLoginName": {
                   "description": "Username for SSH destinations",
+                  "example": "bob",
                   "type": "string"
                 },
                 "updated": {
-                  "description": "formatted as an RFC3339 date-time",
+                  "description": "Date the user was updated",
                   "example": "2022-03-14T09:48:00Z",
                   "format": "date-time",
                   "type": "string"
@@ -1264,20 +1272,20 @@
       "User": {
         "properties": {
           "created": {
-            "description": "formatted as an RFC3339 date-time",
+            "description": "Date the user was created",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
           },
           "id": {
             "description": "User ID",
-            "example": "4yJ3n3D8E2",
+            "example": "4ACFkc434M",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "lastSeenAt": {
-            "description": "formatted as an RFC3339 date-time",
+            "description": "Date the user was last seen",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -1334,10 +1342,11 @@
           },
           "sshLoginName": {
             "description": "Username for SSH destinations",
+            "example": "bob",
             "type": "string"
           },
           "updated": {
-            "description": "formatted as an RFC3339 date-time",
+            "description": "Date the user was updated",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
@@ -2086,6 +2095,7 @@
               "schema": {
                 "properties": {
                   "connection": {
+                    "description": "Object that includes the URL and CA for the destination",
                     "properties": {
                       "ca": {
                         "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
@@ -2102,14 +2112,18 @@
                     "type": "object"
                   },
                   "kind": {
+                    "description": "Kind of destination. eg. kubernetes or ssh or postgres",
                     "enum": [
                       "kubernetes",
                       "ssh",
                       ""
                     ],
+                    "example": "kubernetes",
                     "type": "string"
                   },
                   "name": {
+                    "description": "Name of the destination",
+                    "example": "production-cluster",
                     "format": "[a-zA-Z0-9\\-_]",
                     "maxLength": 256,
                     "minLength": 2,
@@ -2128,9 +2142,12 @@
                     "type": "array"
                   },
                   "uniqueID": {
+                    "description": "Unique ID used to identify this specific destination",
+                    "example": "94c2c570a20311180ec325fd56",
                     "type": "string"
                   },
                   "version": {
+                    "description": "Application version of the connector for this destination",
                     "type": "string"
                   }
                 },
@@ -2448,11 +2465,14 @@
             }
           },
           {
+            "description": "ID of the destination",
+            "example": "7a1b26b33F",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "example": "4yJ3n3D8E2",
+              "description": "ID of the destination",
+              "example": "7a1b26b33F",
               "format": "uid",
               "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
               "type": "string"
@@ -2465,6 +2485,7 @@
               "schema": {
                 "properties": {
                   "connection": {
+                    "description": "Object that includes the URL and CA for the destination",
                     "properties": {
                       "ca": {
                         "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
@@ -2481,6 +2502,8 @@
                     "type": "object"
                   },
                   "name": {
+                    "description": "Name of the destination",
+                    "example": "production-cluster",
                     "format": "[a-zA-Z0-9\\-_]",
                     "maxLength": 256,
                     "minLength": 2,
@@ -2499,9 +2522,12 @@
                     "type": "array"
                   },
                   "uniqueID": {
+                    "description": "Unique ID generated by the connector",
+                    "example": "94c2c570a20311180ec325fd56",
                     "type": "string"
                   },
                   "version": {
+                    "description": "Application version of the connector for this destination",
                     "type": "string"
                   }
                 },
@@ -4002,6 +4028,8 @@
               "schema": {
                 "properties": {
                   "name": {
+                    "description": "Name of the group",
+                    "example": "development",
                     "type": "string"
                   }
                 },
@@ -4338,8 +4366,11 @@
               "schema": {
                 "properties": {
                   "usersToAdd": {
+                    "description": "List of user IDs to add to the group",
+                    "example": "[6dYiUyYgKa,6hPY5vqB2R]",
                     "items": {
-                      "example": "4yJ3n3D8E2",
+                      "description": "List of user IDs to add to the group",
+                      "example": "[6dYiUyYgKa,6hPY5vqB2R]",
                       "format": "uid",
                       "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                       "type": "string"
@@ -6734,6 +6765,8 @@
               "schema": {
                 "properties": {
                   "name": {
+                    "description": "Email address of the new user",
+                    "example": "bob@example.com",
                     "format": "email",
                     "type": "string"
                   }
@@ -7190,9 +7223,13 @@
               "schema": {
                 "properties": {
                   "oldPassword": {
+                    "description": "Old password for the user. Only required when the access key used is not owned by an Infra admin",
+                    "example": "oldpassword",
                     "type": "string"
                   },
                   "password": {
+                    "description": "New one-time password for the user",
+                    "example": "newpassword",
                     "type": "string"
                   }
                 },
