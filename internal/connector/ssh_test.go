@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -46,13 +47,13 @@ func TestUpdateLocalUsers(t *testing.T) {
 	actual, err := os.ReadFile(logFile)
 	assert.NilError(t, err)
 
-	expected := `pkill '--signal' 'KILL' '--uid' 'three333' 
-pkill '--signal' 'KILL' '--uid' 'four444' 
-userdel '--remove' 'three333' 
-userdel '--remove' 'four444' 
-useradd '--comment' 'Ej,managed by infra' '-m' '-p' '-g' 'infra-users' '*' 'two222' 
+	expected := `pkill '--signal' 'KILL' '--uid' 'three333'
+pkill '--signal' 'KILL' '--uid' 'four444'
+userdel '--remove' 'three333'
+userdel '--remove' 'four444'
+useradd '--comment' 'Ej,managed by infra' '-m' '-p' '*' '-g' 'infra-users' 'two222'
 `
-	assert.Equal(t, expected, string(actual))
+	assert.Equal(t, expected, strings.ReplaceAll(string(actual), " \n", "\n"))
 }
 
 func TestUpdateLocalUsers_RemoveFailed(t *testing.T) {
@@ -86,13 +87,13 @@ func TestUpdateLocalUsers_RemoveFailed(t *testing.T) {
 	actual, err := os.ReadFile(logFile)
 	assert.NilError(t, err)
 
-	expected := `pkill '--signal' 'KILL' '--uid' 'failremove' 
-pkill '--signal' 'KILL' '--uid' 'three333' 
-userdel '--remove' 'failremove' 
-userdel '--remove' 'three333' 
-useradd '--comment' 'Ej,managed by infra' '-m' '-p' '-g' 'infra-users' '*' 'two222' 
+	expected := `pkill '--signal' 'KILL' '--uid' 'failremove'
+pkill '--signal' 'KILL' '--uid' 'three333'
+userdel '--remove' 'failremove'
+userdel '--remove' 'three333'
+useradd '--comment' 'Ej,managed by infra' '-m' '-p' '*' '-g' 'infra-users' 'two222'
 `
-	assert.Equal(t, expected, string(actual))
+	assert.Equal(t, expected, strings.ReplaceAll(string(actual), " \n", "\n"))
 }
 
 func TestReadSSHHostKeys(t *testing.T) {
