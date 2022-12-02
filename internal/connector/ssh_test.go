@@ -46,7 +46,49 @@ func TestUpdateLocalUsers(t *testing.T) {
 	actual, err := os.ReadFile(logFile)
 	assert.NilError(t, err)
 
-	expected := `pkill '--uid' 'three333' 
+	expected := `pkill '--signal' 'KILL' '--uid' 'three333' 
+pkill '--signal' 'KILL' '--uid' 'four444' 
+userdel '--remove' 'three333' 
+userdel '--remove' 'four444' 
+useradd '--comment' 'Ej,managed by infra' '-m' '-p' '-g' 'infra-users' '*' 'two222' 
+`
+	assert.Equal(t, expected, string(actual))
+}
+
+func TestUpdateLocalUsers_RemoveFailed(t *testing.T) {
+	logDir := t.TempDir()
+	logFile := filepath.Join(logDir, "users.log")
+	cwd, _ := os.Getwd()
+	t.Setenv("PATH", filepath.Join(cwd, "testdata/bin")+":"+os.Getenv("PATH"))
+	t.Setenv("TEST_CONNECTOR_USER_LOG_FILE", logFile)
+
+	etcPasswdFilename = "testdata/localusers-etcpasswd-remove-failed"
+	t.Cleanup(func() {
+		etcPasswdFilename = "/etc/passwd"
+	})
+
+	ctx := context.Background()
+	fakeClient := &fakeAPIClient{
+		users: map[uid.ID]api.User{
+			1111: {ID: 1111, Name: "one@example.com", SSHLoginName: "one111"},
+			2222: {ID: 2222, Name: "two@example.com", SSHLoginName: "two222"},
+		},
+	}
+	grants := []api.Grant{
+		{ID: 123, User: 1111, Privilege: "connect"},
+		{ID: 124, User: 2222, Privilege: "connect"},
+	}
+
+	opts := SSHOptions{Group: "infra-users"}
+	err := updateLocalUsers(ctx, fakeClient, opts, grants)
+	assert.ErrorContains(t, err, "remove user failremove: userdel: exit status 8")
+
+	actual, err := os.ReadFile(logFile)
+	assert.NilError(t, err)
+
+	expected := `pkill '--signal' 'KILL' '--uid' 'failremove' 
+pkill '--signal' 'KILL' '--uid' 'three333' 
+userdel '--remove' 'failremove' 
 userdel '--remove' 'three333' 
 useradd '--comment' 'Ej,managed by infra' '-m' '-p' '-g' 'infra-users' '*' 'two222' 
 `
