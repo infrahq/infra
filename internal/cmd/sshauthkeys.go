@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	logsyslog "log/syslog"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -60,11 +59,10 @@ func newSSHDAuthKeysCmd(cli *CLI) *cobra.Command {
 
 func setupLogger(cli *CLI) zerolog.Logger {
 	out := []io.Writer{cli.Stderr}
-	// TODO: log to stderr if this fails?
-	syslog, _ := logsyslog.New(logsyslog.LOG_AUTH|logsyslog.LOG_WARNING, "infra-ssh")
-	if syslog != nil {
-		out = append(out, zerolog.SyslogLevelWriter(syslog))
+	if syslog := newSyslogLogger(); syslog != nil {
+		out = append(out, syslog)
 	}
+
 	return zerolog.New(zerolog.MultiLevelWriter(out...))
 }
 
