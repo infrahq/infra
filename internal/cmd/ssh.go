@@ -346,7 +346,6 @@ func hasInfraMatchLine(sshConfig io.Reader) bool {
 		return false
 	}
 
-	// TODO: test many match lines that don't match
 	lineScan := bufio.NewScanner(sshConfig)
 	for lineScan.Scan() {
 		fields := strings.Fields(lineScan.Text())
