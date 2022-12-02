@@ -61,7 +61,7 @@ type CreateUserResponse struct {
 
 type UpdateUserRequest struct {
 	ID          uid.ID `uri:"id" json:"-"`
-	OldPassword string `json:"oldPassword" note:"Old password for the user. Only required when the access key used is not owned by an Infra admin" example:"oldpassword"`
+	OldPassword string `json:"oldPassword" note:"Old password for the user. Only required when the access key making this request is not owned by an Infra admin" example:"oldpassword"`
 	Password    string `json:"password" note:"New one-time password for the user" example:"newpassword"`
 }
 
