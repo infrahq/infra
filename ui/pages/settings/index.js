@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-
 import useSWR from 'swr'
 import moment from 'moment'
 import {
@@ -30,8 +29,6 @@ function PersonalKeys() {
     user ? `/api/access-keys?limit=1000&userID=${user.id}` : null
   )
 
-  const [error, setError] = useState('')
-
   return (
     <>
       <header className='my-6 flex flex-col justify-between space-y-4 md:flex-row md:space-y-0 md:space-x-4'>
@@ -58,7 +55,7 @@ function PersonalKeys() {
             ?.filter(k => k.issuedForName !== CONNECTOR_USER)
             // Hide login session keys
             .filter(k => !k.scopes?.includes(CREATE_ACCESS_KEY_SCOPE))}
-          empty='No access keys'
+          empty='No personal keys'
           columns={[
             {
               cell: function Cell(info) {
@@ -198,7 +195,7 @@ function ConnectorKeys() {
     <>
       <header className='my-6 flex flex-col justify-between space-y-4 md:flex-row md:space-y-0 md:space-x-4'>
         <div>
-          <h2 className='mb-0.5 font-display text-lg font-medium'>
+          <h2 className='mb-0.5 flex items-center font-display text-lg font-medium'>
             Connector Keys
           </h2>
           <h3 className='text-sm text-gray-500'>
@@ -216,7 +213,7 @@ function ConnectorKeys() {
       <div className='mt-3 flex min-h-0 flex-1 flex-col'>
         <Table
           data={accessKeys}
-          empty='No access keys'
+          empty='No connector keys'
           columns={[
             {
               cell: function Cell(info) {
