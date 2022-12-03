@@ -40,9 +40,20 @@ func TestDeviceFlow(t *testing.T) {
 	assert.NilError(t, err)
 
 	expires := time.Now().Add(10 * time.Minute).UTC().Truncate(time.Second)
-	accessKey := &models.AccessKey{
+
+	scoped := &models.AccessKey{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-		Name:               "Foo key",
+		Name:               "Scoped",
+		IssuedFor:          user.ID,
+		IssuedForName:      user.Name,
+		ProviderID:         data.InfraProvider(srv.db).ID,
+		ExpiresAt:          expires,
+		Scopes:             models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey, models.ScopeAllowApproveDeviceFlowRequest},
+	}
+
+	notscoped := &models.AccessKey{
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+		Name:               "Not scoped",
 		IssuedFor:          user.ID,
 		IssuedForName:      user.Name,
 		ProviderID:         data.InfraProvider(srv.db).ID,
@@ -50,10 +61,14 @@ func TestDeviceFlow(t *testing.T) {
 		Scopes:             models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
 
-	_, err = data.CreateAccessKey(srv.db, accessKey)
+	_, err = data.CreateAccessKey(srv.db, scoped)
 	assert.NilError(t, err)
 
-	key := accessKey.Token()
+	_, err = data.CreateAccessKey(srv.db, notscoped)
+	assert.NilError(t, err)
+
+	key := scoped.Token()
+	keyNotscoped := notscoped.Token()
 
 	request := func(t *testing.T, method, uri, accessKey string, reqObj any, respObj any) *httptest.ResponseRecorder {
 		t.Helper()
@@ -90,7 +105,13 @@ func TestDeviceFlow(t *testing.T) {
 
 	assert.Equal(t, statusResp.Status, api.DeviceFlowStatusPending)
 
-	// approve
+	// approve with no scope
+	resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", keyNotscoped, api.ApproveDeviceFlowRequest{
+		UserCode: dfResp.UserCode,
+	}, nil)
+	assert.Assert(t, resp.Result().StatusCode == http.StatusUnauthorized, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
+
+	// approve with scopes
 	resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", key, api.ApproveDeviceFlowRequest{
 		UserCode: dfResp.UserCode,
 	}, nil)
@@ -101,14 +122,6 @@ func TestDeviceFlow(t *testing.T) {
 		DeviceCode: dfResp.DeviceCode,
 	}, statusResp)
 	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
-
-	var cookie string
-	for _, c := range resp.Result().Cookies() {
-		if c.Name == "auth" {
-			cookie = c.Value
-		}
-	}
-	assert.Equal(t, cookie, statusResp.LoginResponse.AccessKey)
 	assert.Equal(t, statusResp.Status, api.DeviceFlowStatusConfirmed)
 	assert.Equal(t, statusResp.DeviceCode, dfResp.DeviceCode)
 	assert.Equal(t, statusResp.LoginResponse.Name, user.Name)
@@ -140,7 +153,10 @@ func TestDeviceFlow(t *testing.T) {
 			IssuedForName: otherUser.Name,
 			ProviderID:    data.InfraProvider(tx).ID,
 			ExpiresAt:     time.Now().Add(10 * time.Minute),
-			Scopes:        models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
+			Scopes: models.CommaSeparatedStrings{
+				models.ScopeAllowCreateAccessKey,
+				models.ScopeAllowApproveDeviceFlowRequest,
+			},
 		}
 		_, err = data.CreateAccessKey(tx, otherKey)
 		assert.NilError(t, err)
