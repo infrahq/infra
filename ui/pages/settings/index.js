@@ -720,7 +720,8 @@ function Providers() {
 
 export default function Settings() {
   const router = useRouter()
-  const { isAdmin } = useUser()
+  const { user, isAdmin } = useUser()
+  const hasInfraProvider = user?.providerNames?.includes('infra')
 
   const tabs = [
     {
@@ -728,11 +729,15 @@ export default function Settings() {
       title: 'Access Keys',
       render: <AccessKeys />,
     },
-    {
-      name: 'password',
-      title: 'Reset Password',
-      render: <Password />,
-    },
+    ...(hasInfraProvider
+      ? [
+          {
+            name: 'password',
+            title: 'Reset Password',
+            render: <Password />,
+          },
+        ]
+      : []),
     ...(isAdmin
       ? [
           {
