@@ -95,7 +95,7 @@ export default function DestinationsAdd() {
       body: JSON.stringify({
         userID: id,
         name: keyName,
-        expiry: '87660h',
+        expiry: '8760h',
         inactivityTimeout: '720h',
       }),
     })

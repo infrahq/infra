@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import React, { useState } from 'react'
 
-import DashboardNoSidebarLayout from '../../components/layouts/dashboard-no-sidebar'
+import Dashboard from '../../components/layouts/dashboard'
 
 export default function Device() {
   const router = useRouter()
@@ -153,6 +153,4 @@ export default function Device() {
   )
 }
 
-Device.layout = page => (
-  <DashboardNoSidebarLayout>{page}</DashboardNoSidebarLayout>
-)
+Device.layout = page => <Dashboard>{page}</Dashboard>

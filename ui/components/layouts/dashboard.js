@@ -1,8 +1,7 @@
-import { Fragment, useState, forwardRef } from 'react'
+import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-
-import { Dialog, Transition, Menu } from '@headlessui/react'
+import { Dialog, Transition } from '@headlessui/react'
 import {
   CpuChipIcon,
   UserGroupIcon,
@@ -10,18 +9,11 @@ import {
   Cog8ToothIcon,
   XMarkIcon,
   Bars3Icon,
+  UserCircleIcon,
+  ArrowLeftOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
-
-const NavLink = forwardRef(function NavLinkFunc(props, ref) {
-  let { href, children, ...rest } = props
-  return (
-    <Link ref={ref} {...rest} href={href}>
-      {children}
-    </Link>
-  )
-})
 
 function SidebarNav({ children, open, setOpen }) {
   return (
@@ -123,14 +115,6 @@ export default function Dashboard({ children }) {
     },
   ]
 
-  const subNavigation = [
-    {
-      name: 'Account',
-      href: '/account',
-      show: user?.providerNames?.includes('infra'),
-    },
-  ]
-
   for (const n of [...navigation]) {
     if (router.pathname.startsWith(n.href) && n.admin && !isAdmin) {
       router.replace('/')
@@ -177,6 +161,30 @@ export default function Dashboard({ children }) {
               ))}
           </nav>
         </div>
+        <div className='space-y-1 px-2'>
+          <div className='flex space-x-3'>
+            <div>
+              <UserCircleIcon className='h-[18px] w-[18px] text-blue-500' />
+            </div>
+            <div>
+              <p className='truncate text-xs font-semibold leading-none text-gray-900'>
+                {user?.name}
+              </p>
+              <p className='truncate text-[12px] text-gray-600'>{org?.name}</p>
+            </div>
+          </div>
+          <button
+            type='button'
+            onClick={() => logout()}
+            className='flex w-full cursor-pointer items-center text-[12px] font-medium text-gray-500/75 hover:text-gray-500'
+          >
+            <ArrowLeftOnRectangleIcon
+              className='mr-3 h-[18px] w-[18px]'
+              aria-hidden='true'
+            />
+            Log out
+          </button>
+        </div>
       </>
     )
   }
@@ -194,81 +202,18 @@ export default function Dashboard({ children }) {
 
       {/* Main content */}
       <div className='mx-auto flex min-w-0 flex-1 flex-col'>
-        <div className='sticky top-0 z-20 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 px-6 pl-2 backdrop-blur-lg md:py-2 md:px-6'>
+        <div className='sticky top-0 z-20 flex flex-shrink-0 border-b border-gray-100 bg-white/90 px-6 pl-2 backdrop-blur-lg md:hidden md:py-2 md:px-6'>
           <button
             type='button'
-            className='px-4 text-black focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden'
+            className='p-4 text-black focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden'
             onClick={() => setSidebarOpen(true)}
           >
             <span className='sr-only'>Open sidebar</span>
             <Bars3Icon className='h-6 w-6' aria-hidden='true' />
           </button>
-          <div className='flex flex-1 justify-end'>
-            <div className='ml-4 flex items-center md:ml-6'>
-              <Menu
-                as='div'
-                className='relative inline-block bg-white text-left'
-              >
-                <span className='sr-only'>Open current user menu</span>
-                <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-blue-500 text-white'>
-                  <span className='text-center text-xs font-semibold capitalize leading-none'>
-                    {user?.name?.[0]}
-                  </span>
-                </Menu.Button>
-                <Transition
-                  as={Fragment}
-                  enter='transition ease-out duration-100'
-                  enterFrom='transform opacity-0 scale-95'
-                  enterTo='transform opacity-100 scale-100'
-                  leave='transition ease-in duration-75'
-                  leaveFrom='transform opacity-100 scale-100'
-                  leaveTo='transform opacity-0 scale-95'
-                >
-                  <Menu.Items className='absolute right-0 z-50 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-xl shadow-black/5 ring-1 ring-black ring-opacity-5 focus:outline-none'>
-                    <div className='px-4 py-3'>
-                      <p className='text-xs text-gray-400'>Logged in as</p>
-                      <p className='mt-2 truncate text-sm font-semibold text-gray-900'>
-                        {user?.name}
-                      </p>
-                      <p className='truncate text-sm text-gray-600'>
-                        {org?.name}
-                      </p>
-                    </div>
-
-                    {subNavigation?.filter(n => n.show).length > 0 && (
-                      <div className='py-1'>
-                        {subNavigation
-                          ?.filter(n => n.show)
-                          .map(item => (
-                            <Menu.Item key={item.name}>
-                              <NavLink href={item.href}>
-                                <p className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
-                                  {item.name}
-                                </p>
-                              </NavLink>
-                            </Menu.Item>
-                          ))}
-                      </div>
-                    )}
-                    <div className='py-1'>
-                      <Menu.Item>
-                        <button
-                          type='button'
-                          onClick={() => logout()}
-                          className='block w-full cursor-pointer py-2 px-4 text-left text-sm text-gray-700 hover:bg-gray-100'
-                        >
-                          Log out
-                        </button>
-                      </Menu.Item>
-                    </div>
-                  </Menu.Items>
-                </Transition>
-              </Menu>
-            </div>
-          </div>
         </div>
 
-        <main className='mx-auto w-full max-w-6xl flex-1 px-6 '>
+        <main className='mx-auto w-full max-w-6xl flex-1 px-6 py-8'>
           {children}
         </main>
       </div>
