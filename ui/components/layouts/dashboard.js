@@ -163,14 +163,20 @@ export default function Dashboard({ children }) {
         </div>
         <div className='space-y-1 px-2'>
           <div className='flex space-x-3'>
-            <div>
-              <UserCircleIcon className='h-[18px] w-[18px] text-blue-500' />
-            </div>
-            <div>
-              <p className='truncate text-xs font-semibold leading-none text-gray-900'>
+            <UserCircleIcon className='h-[18px] w-[18px] flex-none text-blue-500' />
+            <div className='min-w-0 flex-1 '>
+              <p
+                className='truncate text-xs font-semibold leading-none text-gray-900'
+                title={user?.name}
+              >
                 {user?.name}
               </p>
-              <p className='truncate text-[12px] text-gray-600'>{org?.name}</p>
+              <p
+                className='truncate text-[12px] text-gray-600'
+                title={org?.name}
+              >
+                {org?.name}
+              </p>
             </div>
           </div>
           <button
