@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -178,11 +178,6 @@ function PersonalKeys() {
               },
             },
           ]}
-        />
-        <Notification
-          show={!!error}
-          setShow={show => !show && setError('')}
-          text='Password Successfully Reset'
         />
       </div>
     </>
@@ -525,6 +520,7 @@ function Password() {
         show={showNotification}
         setShow={setShowNotification}
         text='Password Successfully Reset'
+        setClearNotification={() => clearTimer()}
       />
     </form>
   )
@@ -860,7 +856,13 @@ export default function Settings() {
               </div>
             </div>
             <div className='my-10'>
-              {tabs.map(t => (tab === t.name ? t.render : null))}
+              {tabs.map(
+                t =>
+                  tab === t.name &&
+                  t.render && (
+                    <React.Fragment key={t.name}>{t.render}</React.Fragment>
+                  )
+              )}
             </div>
           </div>
         )}
