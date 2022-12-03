@@ -207,8 +207,8 @@ function ConnectorKeys() {
             Connector Keys
           </h2>
           <h3 className='text-sm text-gray-500'>
-            Connector keys are used to connect infrastructure and have limited
-            permissions.
+            Connector keys are used to connect infrastructure to Infra and have
+            limited permissions. These keys are shared by your organization.
           </h3>
         </div>
         <Link
