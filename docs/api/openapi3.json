@@ -571,6 +571,14 @@
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
+                },
+                "scopes": {
+                  "description": "additional access level scopes",
+                  "items": {
+                    "description": "additional access level scopes",
+                    "type": "string"
+                  },
+                  "type": "array"
                 }
               },
               "type": "object"
