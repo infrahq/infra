@@ -58,7 +58,10 @@ func Login(
 		ExpiresAt:           authenticated.SessionExpiry,
 		InactivityTimeout:   time.Now().UTC().Add(inactivityTimeout),
 		InactivityExtension: inactivityTimeout,
-		Scopes:              models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
+		Scopes: models.CommaSeparatedStrings{
+			models.ScopeAllowCreateAccessKey,
+			models.ScopeAllowApproveDeviceFlowRequest,
+		},
 	}
 
 	if authenticated.AuthScope.PasswordResetOnly {

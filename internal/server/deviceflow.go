@@ -95,9 +95,6 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 		return nil, fmt.Errorf("%w: retrieving approval user: %v", internal.ErrUnauthorized, err)
 	}
 
-	// TODO : there's a lot of repeated logic in here and the Login() endpoint
-	// The Login() endpoint implemention needs to be re-worked into more atomic pieces that can
-	// be re-used here for setting cookies, creating an access key and a LoginResponse
 	accessKey := &models.AccessKey{
 		IssuedFor:     user.ID,
 		IssuedForName: user.Name,
@@ -119,14 +116,6 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 	if err := data.UpdateIdentity(rctx.DBTxn, user); err != nil {
 		return nil, fmt.Errorf("%w: update user last seen: %v", internal.ErrUnauthorized, err)
 	}
-
-	cookie := cookieConfig{
-		Name:    cookieAuthorizationName,
-		Value:   bearer,
-		Domain:  c.Request.Host,
-		Expires: accessKey.ExpiresAt,
-	}
-	setCookie(c, cookie)
 
 	a.t.User(accessKey.IssuedFor.String(), user.Name)
 	a.t.OrgMembership(accessKey.OrganizationID.String(), accessKey.IssuedFor.String())
@@ -162,6 +151,13 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 
 func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
 	rctx := getRequestContext(c)
+
+	if !rctx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowApproveDeviceFlowRequest) {
+		// require the device flow scope to approve access keys provided by login & signup keys, but not
+		// keys resulting from device flow itself
+		return nil, fmt.Errorf("%w: access key missing scope '%s'", internal.ErrBadRequest, models.ScopeAllowApproveDeviceFlowRequest)
+	}
+
 	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: strings.Replace(req.UserCode, "-", "", 1)})
 	if err != nil {
 		return nil, err

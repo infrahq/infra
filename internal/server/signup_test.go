@@ -243,7 +243,7 @@ func TestAPI_Signup(t *testing.T) {
 				k, err := data.GetAccessKeyByKeyID(srv.DB(), strings.Split(key, ".")[0])
 				assert.NilError(t, err)
 
-				assert.DeepEqual(t, k.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})
+				assert.DeepEqual(t, k.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey, models.ScopeAllowApproveDeviceFlowRequest})
 			},
 		},
 		{

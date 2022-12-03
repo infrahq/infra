@@ -1056,7 +1056,7 @@ func makeIdxEmailsProvidersUnique() *migrator.Migration {
 
 func deviceFlowAuthRequestsAddUserIDProviderID() *migrator.Migration {
 	return &migrator.Migration{
-		ID: "2022-11-27T13:14",
+		ID: "2022-12-03T13:14",
 		Migrate: func(tx migrator.DB) error {
 			_, err := tx.Exec(`
 				ALTER TABLE device_flow_auth_requests
@@ -1065,6 +1065,15 @@ func deviceFlowAuthRequestsAddUserIDProviderID() *migrator.Migration {
 					ADD COLUMN IF NOT EXISTS user_id bigint,
 					ADD COLUMN IF NOT EXISTS provider_id bigint;
 			`)
+			if err != nil {
+				return err
+			}
+
+			_, err = tx.Exec(`UPDATE access_keys set scopes=? where scopes=?;`,
+				models.ScopeAllowCreateAccessKey+","+models.ScopeAllowApproveDeviceFlowRequest,
+				models.ScopeAllowCreateAccessKey,
+			)
+
 			return err
 		},
 	}

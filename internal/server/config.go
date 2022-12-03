@@ -990,7 +990,7 @@ func (s Server) loadAccessKey(db data.WriteTxn, identity *models.Identity, key s
 			KeyID:      keyID,
 			Secret:     secret,
 			ProviderID: provider.ID,
-			Scopes:     models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey}, // allows user to create access keys
+			Scopes:     models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey, models.ScopeAllowApproveDeviceFlowRequest}, // allows user to create access keys
 		}
 
 		if _, err := data.CreateAccessKey(db, accessKey); err != nil {

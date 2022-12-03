@@ -79,7 +79,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 		IssuedForName: identity.Name,
 		ProviderID:    data.InfraProvider(db).ID,
 		ExpiresAt:     keyExpiresAt,
-		Scopes:        []string{models.ScopeAllowCreateAccessKey},
+		Scopes:        []string{models.ScopeAllowCreateAccessKey, models.ScopeAllowApproveDeviceFlowRequest},
 	}
 
 	bearer, err := data.CreateAccessKey(db, accessKey)

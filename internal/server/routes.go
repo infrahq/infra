@@ -116,6 +116,10 @@ func (s *Server) GenerateRoutes() Routes {
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
 	post(a, noAuthnNoOrg, "/api/forgot-domain-request", a.RequestForgotDomains)
 
+	post(a, noAuthnNoOrg, "/api/device", a.StartDeviceFlow)
+	post(a, noAuthnNoOrg, "/api/device/status", a.GetDeviceFlowStatus)
+	post(a, authn, "/api/device/approve", a.ApproveDeviceFlow)
+
 	// no auth required, org required
 	noAuthnWithOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true}
 
@@ -129,11 +133,6 @@ func (s *Server) GenerateRoutes() Routes {
 	add(a, noAuthnWithOrg, http.MethodGet, "/link", verifyAndRedirectRoute)
 
 	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", wellKnownJWKsRoute)
-
-	// Device flow
-	post(a, noAuthnNoOrg, "/api/device", a.StartDeviceFlow)
-	post(a, noAuthnWithOrg, "/api/device/status", a.GetDeviceFlowStatus)
-	post(a, authn, "/api/device/approve", a.ApproveDeviceFlow)
 
 	a.deprecatedRoutes(noAuthnNoOrg)
 

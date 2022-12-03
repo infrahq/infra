@@ -126,6 +126,8 @@ func TestDeviceFlow(t *testing.T) {
 	assert.Assert(t, len(newKey) > 0)
 	assert.Assert(t, strings.Contains(newKey, "."))
 
+	// TODO: add test for approving another device flow request
+
 	t.Run("attempting to claim the code again should do nothing", func(t *testing.T) {
 		tx := txnForTestCase(t, srv.db, org.ID)
 		otherUser := &models.Identity{Name: "other@example.com"}
