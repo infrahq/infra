@@ -52,6 +52,7 @@ func (ak *AccessKey) ToAPI() *api.AccessKey {
 		ProviderID:        ak.ProviderID,
 		Expires:           api.Time(ak.ExpiresAt),
 		InactivityTimeout: api.Time(ak.InactivityTimeout),
+		Scopes:            ak.Scopes,
 	}
 }
 

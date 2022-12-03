@@ -21,11 +21,16 @@ import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 
+const CREATE_ACCESS_KEY_SCOPE = 'create-key'
+const CONNECTOR_USER = 'connector'
+
 function PersonalKeys() {
   const { user } = useUser()
   const { data: { items: keys } = {}, mutate: mutate } = useSWR(() =>
     user ? `/api/access-keys?limit=1000&userID=${user.id}` : null
   )
+
+  const [error, setError] = useState('')
 
   return (
     <>
@@ -35,8 +40,8 @@ function PersonalKeys() {
             Personal Keys
           </h2>
           <h3 className='text-sm text-gray-500'>
-            Personal keys are used to authenticate with Infra using the Infra
-            API or CLI. These keys share the same permissions as you.
+            Personal keys are used to authenticate with Infra using the API or
+            CLI. These keys share the same permissions as your user.
           </h3>
         </div>
         <Link
@@ -48,7 +53,11 @@ function PersonalKeys() {
       </header>
       <div className='mt-3 flex min-h-0 flex-1 flex-col'>
         <Table
-          data={keys?.filter(k => k.issuedForName != 'connector')}
+          data={keys
+            // Hide connector keys
+            ?.filter(k => k.issuedForName !== CONNECTOR_USER)
+            // Hide login session keys
+            .filter(k => !k.scopes?.includes(CREATE_ACCESS_KEY_SCOPE))}
           empty='No access keys'
           columns={[
             {
@@ -143,9 +152,16 @@ function PersonalKeys() {
                       setOpen={setOpenDeleteModal}
                       primaryButtonText='Remove'
                       onSubmit={async () => {
-                        await fetch(`/api/access-keys/${id}`, {
-                          method: 'DELETE',
-                        })
+                        try {
+                          const res = await fetch(`/api/access-keys/${id}`, {
+                            method: 'DELETE',
+                          })
+                          const data = await jsonBody(res)
+                          console.log(data)
+                        } catch (e) {
+                          console.log(e)
+                        }
+
                         setOpenDeleteModal(false)
                         mutate()
                       }}
@@ -162,6 +178,11 @@ function PersonalKeys() {
               },
             },
           ]}
+        />
+        <Notification
+          show={!!error}
+          setShow={show => !show && setError('')}
+          text='Password Successfully Reset'
         />
       </div>
     </>
@@ -504,7 +525,6 @@ function Password() {
         show={showNotification}
         setShow={setShowNotification}
         text='Password Successfully Reset'
-        setClearNotification={() => clearTimer()}
       />
     </form>
   )
