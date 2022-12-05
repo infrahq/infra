@@ -89,13 +89,11 @@ func GetDeviceFlowAuthRequest(tx ReadTxn, opts GetDeviceFlowAuthRequestOptions) 
 }
 
 func DeleteExpiredDeviceFlowAuthRequests(tx WriteTxn) error {
-	stmt := `
-		DELETE from device_flow_auth_requests
-		WHERE
-			deleted_at IS NOT NULL
-			OR expires_at < ?
-	`
-	_, err := tx.Exec(stmt, time.Now())
+	query := querybuilder.New("UPDATE device_flow_auth_requests")
+	query.B("SET deleted_at = ?", time.Now().UTC())
+	query.B("WHERE expires_at < ?", time.Now().UTC())
+
+	_, err := tx.Exec(query.String(), query.Args...)
 	return handleError(err)
 }
 
