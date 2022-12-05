@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
 set -eu
-(echo -n "useradd "; printf "'%s' " "$@"; echo) >> ${TEST_CONNECTOR_USER_LOG_FILE}
+
+go run ./testdata/bin/echo.go useradd "$@" >> ${TEST_CONNECTOR_USER_LOG_FILE}
