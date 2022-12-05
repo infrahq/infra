@@ -8,11 +8,12 @@ project_name: infra
 builds:
   - id: infra
     ldflags:
-      - -s -w
-        -X github.com/infrahq/infra/internal.Branch={{ .Branch }}
-        -X github.com/infrahq/infra/internal.Version={{ .Version }}
-        -X github.com/infrahq/infra/internal.Commit={{ .FullCommit }}
-        -X github.com/infrahq/infra/internal.Date={{ .Date }}
+      - -s
+      - -w
+      - -X github.com/infrahq/infra/internal.Branch={{ .Branch }}
+      - -X github.com/infrahq/infra/internal.Version={{ .Version }}
+      - -X github.com/infrahq/infra/internal.Commit={{ .FullCommit }}
+      - -X github.com/infrahq/infra/internal.Date={{ .Date }}
     binary: infra
     main: ./main.go
     goos:
@@ -57,6 +58,39 @@ archives:
       amd64: x86_64
     files:
       - none*
+brews:
+  - tap:
+      owner: infrahq
+      name: homebrew-tap
+    commit_author:
+      name: infra-ci
+      email: contact@infrahq.com
+    homepage: https://infrahq.com
+    description: Infra
+    url_template: "https://github.com/infrahq/infra/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    install: |
+      bin.install "infra"
+      output = Utils.popen_read("#{bin}/infra completion bash")
+      (bash_completion/"infra").write output
+      output = Utils.popen_read("#{bin}/infra completion zsh")
+      (zsh_completion/"_infra").write output
+      output = Utils.popen_read("#{bin}/infra completion fish")
+      (fish_completion/"infra.fish").write output
+scoop:
+  bucket:
+    owner: infrahq
+    name: scoop
+  commit_author:
+    name: infra-ci
+    email: contact@infrahq.com
+  homepage: https://infrahq.com
+  description: Infra
+  url_template: "https://github.com/infrahq/infra/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+publishers:
+  - name: gemfury
+    ids: [packages]
+    dir: "{{ dir .ArtifactPath }}"
+    cmd: curl -F package=@{{ .ArtifactName }} https://{{ .Env.GEMFURY_TOKEN }}@push.fury.io/infrahq/
 checksum:
   name_template: "{{ .ProjectName }}-checksums.txt"
 snapshot:
