@@ -160,7 +160,7 @@ func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowReques
 
 	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: strings.Replace(req.UserCode, "-", "", 1)})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: invalid code", internal.ErrNotFound)
 	}
 
 	if dfar.ExpiresAt.Before(time.Now()) {
