@@ -13,7 +13,6 @@ import (
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
-	"github.com/Masterminds/semver/v3"
 	"github.com/cli/browser"
 	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
@@ -164,10 +163,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 			return Error{Message: "Non-interactive login requires setting either the INFRA_ACCESS_KEY or both the INFRA_USER and INFRA_PASSWORD environment variables"}
 		}
 
-		if err = checkDeviceFlowCompatibility(ctx, lc.APIClient); err != nil {
-			return err
-		}
-
 		resp, err := deviceFlowLogin(ctx, lc.APIClient, cli)
 		if err != nil {
 			return err
@@ -186,33 +181,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 	if options.InjectUserSSHConfig {
 		return updateUserSSHConfig(cli)
 	}
-	return nil
-}
-
-func checkDeviceFlowCompatibility(ctx context.Context, api *api.Client) error {
-	version, err := api.GetServerVersion(ctx)
-	if err != nil {
-		return err
-	}
-
-	// append -0 to compare against "prerelease" versions
-	// see https://pkg.go.dev/github.com/Masterminds/semver/v3#hdr-Checking_Version_Constraints_and_Comparing_Versions
-	c, err := semver.NewConstraint(fmt.Sprintf(">= %s-0", DeviceFlowMinVersion))
-	if err != nil {
-		return err
-	}
-
-	v, err := semver.NewVersion(version.Version)
-	if err != nil {
-		return err
-	}
-
-	if !c.Check(v) {
-		return Error{
-			Message: fmt.Sprintf("Your version of Infra Server (%s) is out of date. Please upgrade to %s or later.", v, DeviceFlowMinVersion),
-		}
-	}
-
 	return nil
 }
 
