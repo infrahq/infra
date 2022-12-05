@@ -318,6 +318,10 @@ func (c Client) GetOrganization(ctx context.Context, id uid.ID) (*Organization, 
 	return get[Organization](ctx, c, fmt.Sprintf("/api/organizations/%s", id), Query{})
 }
 
+func (c Client) GetOrganizationSelf(ctx context.Context) (*Organization, error) {
+	return get[Organization](ctx, c, "/api/organizations/self", Query{})
+}
+
 func (c Client) CreateOrganization(ctx context.Context, req *CreateOrganizationRequest) (*Organization, error) {
 	return post[Organization](ctx, c, "/api/organizations", req)
 }

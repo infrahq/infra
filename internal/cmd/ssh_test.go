@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestSSHHostsCmd(t *testing.T) {
@@ -72,6 +75,22 @@ func TestSSHHostsCmd(t *testing.T) {
 	err = Run(ctx, "ssh", "hosts", "127.12.12.1", "22")
 	assert.NilError(t, err)
 
+	updated, err := client.GetUser(ctx, user.ID)
+	assert.NilError(t, err)
+	assert.Equal(t, len(updated.PublicKeys), 1)
+	assert.Equal(t, updated.PublicKeys[0].KeyType, "ssh-rsa")
+	pubKeyID := updated.PublicKeys[0].ID.String()
+
+	expectedKeysConfig, err := json.Marshal(keysConfig{
+		Keys: []localPublicKey{{
+			Server:         srv.Addrs.HTTPS.String(),
+			OrganizationID: "if",
+			UserID:         user.ID.String(),
+			PublicKeyID:    pubKeyID,
+		}},
+	})
+	assert.NilError(t, err)
+
 	expected := fs.Expected(t,
 		// the mode of the temp dir is not relevant to this test
 		fs.MatchAnyFileMode,
@@ -81,51 +100,49 @@ func TestSSHHostsCmd(t *testing.T) {
 			fs.WithMode(0o700),
 			fs.WithDir("infra",
 				fs.WithMode(0o700),
-				fs.WithFile("config", `
+				fs.WithFile("config", fmt.Sprintf(`
 
 # This file is managed by Infra. Do not edit!
 
 Host 127.12.12.1
-    IdentityFile ~/.ssh/infra/key
+    IdentityFile %[1]v
     IdentitiesOnly yes
     UserKnownHostsFile ~/.ssh/infra/known_hosts
     User anyuser
     Port 22
 
-`,
+`, filepath.Join(home, ".ssh/infra/keys/"+pubKeyID)),
 					fs.WithMode(0o600)),
-				fs.WithFile("key", "",
-					fs.WithMode(0o600),
-					fs.MatchAnyFileContent),
-				fs.WithFile("key.pub", "",
-					fs.WithMode(0o600),
-					fs.MatchAnyFileContent),
 				fs.WithFile("known_hosts",
 					"127.12.12.1 "+hostKey,
 					fs.WithMode(0o600)),
+				fs.WithFile("keys.json", string(expectedKeysConfig)+"\n"),
+				fs.WithDir("keys",
+					fs.WithMode(0o700),
+					fs.WithFile(pubKeyID, "",
+						fs.WithMode(0o600),
+						fs.MatchAnyFileContent),
+					fs.WithFile(pubKeyID+".pub", "",
+						fs.WithMode(0o600),
+						fs.MatchAnyFileContent),
+				),
 			),
 		),
 	)
 	assert.Assert(t, fs.Equal(home, expected))
 
-	raw, err := os.ReadFile(filepath.Join(home, ".ssh/infra/key"))
+	raw, err := os.ReadFile(filepath.Join(home, ".ssh/infra/keys", pubKeyID))
 	assert.NilError(t, err)
 
 	_, err = ssh.ParseRawPrivateKey(raw)
 	assert.NilError(t, err)
 
-	raw, err = os.ReadFile(filepath.Join(home, ".ssh/infra/key.pub"))
+	raw, err = os.ReadFile(filepath.Join(home, ".ssh/infra/keys", pubKeyID+".pub"))
 	assert.NilError(t, err)
 
 	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(raw)
 	assert.NilError(t, err)
 	assert.Equal(t, pubKey.Type(), "ssh-rsa")
-
-	updated, err := client.GetUser(ctx, user.ID)
-	assert.NilError(t, err)
-
-	assert.Equal(t, len(updated.PublicKeys), 1)
-	assert.Equal(t, updated.PublicKeys[0].KeyType, "ssh-rsa")
 	parts := strings.Fields(string(raw))
 	assert.Equal(t, updated.PublicKeys[0].PublicKey, parts[1])
 }
@@ -299,6 +316,243 @@ Match other lines after
 
 `),
 			expected: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestProvisionSSHKey(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for short run")
+	}
+
+	srvDir := t.TempDir()
+	opts := defaultServerOptions(srvDir)
+	opts.Config = server.Config{
+		Users: []server.User{
+			{Name: "admin@example.com", AccessKey: "0000000001.adminadminadminadmin1234"},
+			{Name: "anyuser@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},
+		},
+	}
+	setupServerOptions(t, &opts)
+	srv, err := server.New(opts)
+	assert.NilError(t, err)
+
+	ctx := context.Background()
+	runAndWait(ctx, t, srv.Run)
+
+	client, err := NewAPIClient(&APIClientOpts{
+		AccessKey: "0000000002.notadminsecretnotadmin02",
+		Host:      srv.Addrs.HTTPS.String(),
+		Transport: httpTransportForHostConfig(&ClientHostConfig{TrustedCertificate: string(opts.TLS.Certificate)}),
+	})
+	assert.NilError(t, err)
+
+	user, err := client.GetUserSelf(ctx)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		name     string
+		user     func(t *testing.T) *api.User
+		setup    func(t *testing.T, infraSSHDir string) string
+		expected func(t *testing.T, infraSSHDir string, actual, keyFilename string)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		infraSSHDir := t.TempDir()
+		cli := newCLI(ctx)
+		expectedKeyFile := tc.setup(t, infraSSHDir)
+
+		hostConfig := &ClientHostConfig{
+			Host:   "infra.example.com",
+			UserID: user.ID,
+		}
+		actual, err := provisionSSHKey(ctx, provisionSSHKeyOptions{
+			cli:         cli,
+			client:      client,
+			infraSSHDir: infraSSHDir,
+			hostConfig:  hostConfig,
+			user:        tc.user(t),
+		})
+		assert.NilError(t, err)
+		tc.expected(t, infraSSHDir, actual, expectedKeyFile)
+
+		// TODO: remove public keys when that is possible, so that
+		// test cases don't depend on each other
+	}
+
+	testCases := []testCase{
+		{
+			name: "use existing key",
+			setup: func(t *testing.T, infraSSHDir string) string {
+				// provision a key that should be re-used when called again
+				keyFilename, err := provisionSSHKey(ctx, provisionSSHKeyOptions{
+					cli:         newCLI(ctx),
+					client:      client,
+					infraSSHDir: infraSSHDir,
+					hostConfig: &ClientHostConfig{
+						Host:   "infra.example.com",
+						UserID: user.ID,
+					},
+					user: &api.User{},
+				})
+				assert.NilError(t, err)
+
+				return keyFilename
+			},
+			user: func(t *testing.T) *api.User {
+				user, err := client.GetUserSelf(ctx)
+				assert.NilError(t, err)
+				return user
+			},
+			expected: func(t *testing.T, infraSSHDir string, actual, keyFilename string) {
+				assert.Equal(t, actual, keyFilename)
+
+				keyID := filepath.Base(keyFilename)
+				expected := fs.Expected(t,
+					fs.WithMode(0o755),
+					fs.WithFile("keys.json", "", fs.MatchAnyFileContent),
+					fs.WithDir("keys",
+						fs.WithMode(0o700),
+						fs.WithFile(keyID, "",
+							fs.WithMode(0o600),
+							fs.MatchAnyFileContent),
+						fs.WithFile(keyID+".pub", "",
+							fs.WithMode(0o600),
+							fs.MatchAnyFileContent)),
+				)
+				assert.Assert(t, fs.Equal(infraSSHDir, expected))
+			},
+		},
+		{
+			name: "keys in keysConfig for wrong org, server, and user",
+			user: func(t *testing.T) *api.User {
+				existingID, err := uid.Parse([]byte("existing"))
+				assert.NilError(t, err)
+				return &api.User{
+					PublicKeys: []api.UserPublicKey{{ID: existingID}},
+				}
+			},
+			setup: func(t *testing.T, infraSSHDir string) string {
+				keyCfg := &keysConfig{
+					Keys: []localPublicKey{
+						// wrong org
+						{
+							Server:         "infra.example.com",
+							OrganizationID: "TTT",
+							UserID:         user.ID.String(),
+							PublicKeyID:    "existing",
+						},
+						// wrong server
+						{
+							Server:         "other.example.com",
+							OrganizationID: "if",
+							UserID:         user.ID.String(),
+							PublicKeyID:    "existing",
+						},
+						// wrong user
+						{
+							Server:         "infra.example.com",
+							OrganizationID: "if",
+							UserID:         "TTT",
+							PublicKeyID:    "existing",
+						},
+					},
+				}
+				assert.NilError(t, writeKeysConfig(infraSSHDir, keyCfg))
+
+				fs.Apply(t, fs.DirFromPath(t, infraSSHDir),
+					fs.WithDir("keys",
+						fs.WithFile("existing", "private-key"),
+						fs.WithFile("existing.pub", "public-key")))
+
+				return ""
+			},
+			expected: func(t *testing.T, infraSSHDir string, actual, keyFilename string) {
+				keyID := filepath.Base(actual)
+				assert.Assert(t, keyID != "existing")
+
+				user, err := client.GetUserSelf(ctx)
+				assert.NilError(t, err)
+				assert.Equal(t, len(user.PublicKeys), 2) // one existing, one new
+			},
+		},
+		{
+			name: "local file is missing for key",
+			user: func(t *testing.T) *api.User {
+				existingID, err := uid.Parse([]byte("existing"))
+				assert.NilError(t, err)
+				return &api.User{
+					PublicKeys: []api.UserPublicKey{{ID: existingID}},
+				}
+			},
+			setup: func(t *testing.T, infraSSHDir string) string {
+				keyCfg := &keysConfig{
+					Keys: []localPublicKey{
+						{
+							Server:         "infra.example.com",
+							OrganizationID: "if",
+							UserID:         user.ID.String(),
+							PublicKeyID:    "existing",
+						},
+					},
+				}
+				assert.NilError(t, writeKeysConfig(infraSSHDir, keyCfg))
+
+				// private key is missing
+				fs.Apply(t, fs.DirFromPath(t, infraSSHDir),
+					fs.WithDir("keys",
+						fs.WithFile("existing.pub", "public-key")))
+
+				return ""
+			},
+			expected: func(t *testing.T, infraSSHDir string, actual, keyFilename string) {
+				keyID := filepath.Base(actual)
+				assert.Assert(t, keyID != "existing")
+
+				user, err := client.GetUserSelf(ctx)
+				assert.NilError(t, err)
+				assert.Equal(t, len(user.PublicKeys), 3) // two existing, one new
+			},
+		},
+		{
+			name: "key is missing from the API",
+			user: func(t *testing.T) *api.User {
+				return &api.User{PublicKeys: []api.UserPublicKey{}}
+			},
+			setup: func(t *testing.T, infraSSHDir string) string {
+				keyCfg := &keysConfig{
+					Keys: []localPublicKey{
+						{
+							Server:         "infra.example.com",
+							OrganizationID: "if",
+							UserID:         user.ID.String(),
+							PublicKeyID:    "existing",
+						},
+					},
+				}
+				assert.NilError(t, writeKeysConfig(infraSSHDir, keyCfg))
+
+				fs.Apply(t, fs.DirFromPath(t, infraSSHDir),
+					fs.WithDir("keys",
+						fs.WithFile("existing", "private-key"),
+						fs.WithFile("existing.pub", "public-key")))
+
+				return ""
+			},
+			expected: func(t *testing.T, infraSSHDir string, actual, keyFilename string) {
+				keyID := filepath.Base(actual)
+				assert.Assert(t, keyID != "existing")
+
+				user, err := client.GetUserSelf(ctx)
+				assert.NilError(t, err)
+				assert.Equal(t, len(user.PublicKeys), 4) // three existing, one new
+			},
 		},
 	}
 
