@@ -66,7 +66,7 @@ func isRuneComma(r rune) bool {
 func AddUser(user *api.User, group string) error {
 	args := []string{
 		"--comment", fmt.Sprintf("%v,%v", user.ID, sentinelManagedByInfra),
-		"-m", "-p", "-g", group, "*", user.SSHLoginName,
+		"-m", "-p", "*", "-g", group, user.SSHLoginName,
 	}
 	cmd := exec.Command("useradd", args...)
 	cmd.Stdout = logging.L
