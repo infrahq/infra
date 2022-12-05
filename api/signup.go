@@ -14,7 +14,7 @@ type SignupResponse struct {
 }
 
 type SignupOrg struct {
-	UserName  string `json:"userName"`
+	UserName  string `json:"username"`
 	Password  string `json:"password"`
 	OrgName   string `json:"orgName"`
 	Subdomain string `json:"subDomain"`
