@@ -4378,8 +4378,11 @@
                     "type": "array"
                   },
                   "usersToRemove": {
+                    "description": "List of  user IDs to remove from the group",
+                    "example": "[3w5qrK7ets,4Ajzyzckdn]",
                     "items": {
-                      "example": "4yJ3n3D8E2",
+                      "description": "List of  user IDs to remove from the group",
+                      "example": "[3w5qrK7ets,4Ajzyzckdn]",
                       "format": "uid",
                       "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                       "type": "string"
@@ -7223,7 +7226,7 @@
               "schema": {
                 "properties": {
                   "oldPassword": {
-                    "description": "Old password for the user. Only required when the access key used is not owned by an Infra admin",
+                    "description": "Old password for the user. Only required when the access key making this request is not owned by an Infra admin",
                     "example": "oldpassword",
                     "type": "string"
                   },
