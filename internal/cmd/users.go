@@ -140,8 +140,6 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			fmt.Println(cli.RootOptions.SkipAPIVersionCheck)
-
 			ctx := context.Background()
 
 			type row struct {
