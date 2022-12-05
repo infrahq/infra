@@ -168,9 +168,8 @@ func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowReques
 	}
 
 	if dfar.Approved() {
-		return nil, internal.ErrNotFound
+		return nil, nil
 	}
 
-	err = data.ApproveDeviceFlowAuthRequest(rctx.DBTxn, dfar.ID, rctx.Authenticated.User.ID, rctx.Authenticated.AccessKey.ProviderID)
-	return nil, err
+	return nil, data.ApproveDeviceFlowAuthRequest(rctx.DBTxn, dfar.ID, rctx.Authenticated.User.ID, rctx.Authenticated.AccessKey.ProviderID)
 }
