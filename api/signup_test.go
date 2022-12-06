@@ -10,18 +10,18 @@ import (
 
 func TestSignupWithReservedDomain(t *testing.T) {
 	req := SignupRequest{
-		Org: &SignupOrg{
-			UserName:  "foo@example.com",
-			Password:  "abcdef1235464$!",
-			OrgName:   "Foo",
-			Subdomain: "infrahq",
+		User: &SignupUser{
+			UserName: "foo@example.com",
+			Password: "abcdef1235464$!",
 		},
+		OrgName:   "Foo",
+		Subdomain: "infrahq",
 	}
 
 	err := validate.Validate(req)
-	assert.Error(t, err, "validation failed: org.subDomain: infrahq is reserved and can not be used")
+	assert.Error(t, err, "validation failed: subDomain: infrahq is reserved and can not be used")
 
-	req.Org.Subdomain = "zzz"
+	req.Subdomain = "zzz"
 	err = validate.Validate(req)
-	assert.Error(t, err, "validation failed: org.subDomain: must be at least 4 characters")
+	assert.Error(t, err, "validation failed: subDomain: must be at least 4 characters")
 }

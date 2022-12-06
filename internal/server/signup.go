@@ -56,17 +56,19 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 			IDPAuth:     idpAuth,
 			Provider:    provider,
 			RedirectURL: r.Social.RedirectURL,
+			Org:         &models.Organization{Name: r.OrgName},
+			SubDomain:   r.Subdomain,
 		}
 		created, err = access.SocialSignup(c, keyExpires, a.server.options.BaseDomain, suDetails)
 		if err != nil {
 			return nil, handleSignupError(err)
 		}
-	case r.Org != nil:
+	case r.User != nil:
 		suDetails := access.OrgSignupDetails{
-			Name:      r.Org.UserName,
-			Password:  r.Org.Password,
-			Org:       &models.Organization{Name: r.Org.OrgName},
-			SubDomain: r.Org.Subdomain,
+			Name:      r.User.UserName,
+			Password:  r.User.Password,
+			Org:       &models.Organization{Name: r.OrgName},
+			SubDomain: r.Subdomain,
 		}
 		var err error
 		created, err = access.OrgSignup(c, keyExpires, a.server.options.BaseDomain, suDetails)

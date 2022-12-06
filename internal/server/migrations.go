@@ -52,12 +52,12 @@ func (a *API) addRequestRewrites() {
 	}
 	addRequestRewrite(a, http.MethodPost, "/api/signup", "0.19.0", func(oldRequest signupRequestV0_19_0) api.SignupRequest {
 		return api.SignupRequest{
-			Org: &api.SignupOrg{
-				UserName:  oldRequest.Name,
-				Password:  oldRequest.Password,
-				OrgName:   oldRequest.Org.Name,
-				Subdomain: oldRequest.Org.Subdomain,
+			User: &api.SignupUser{
+				UserName: oldRequest.Name,
+				Password: oldRequest.Password,
 			},
+			OrgName:   oldRequest.Org.Name,
+			Subdomain: oldRequest.Org.Subdomain,
 		}
 	})
 }

@@ -59,7 +59,9 @@ func TestAPI_Signup(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "", Errors: []string{"one of (social, org) is required"}},
+					{FieldName: "", Errors: []string{"one of (social, user) is required"}},
+					{FieldName: "orgName", Errors: []string{"is required"}},
+					{FieldName: "subDomain", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -73,12 +75,12 @@ func TestAPI_Signup(t *testing.T) {
 				})
 
 				return api.SignupRequest{
-					Org: &api.SignupOrg{
-						UserName:  "admin@example.com",
-						Password:  "password",
-						OrgName:   "acme",
-						Subdomain: "acme-co",
+					User: &api.SignupUser{
+						UserName: "admin@example.com",
+						Password: "password",
 					},
+					OrgName:   "acme",
+					Subdomain: "acme-co",
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -160,8 +162,10 @@ func TestAPI_SignupSocial(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
+					{FieldName: "orgName", Errors: []string{"is required"}},
 					{FieldName: "social.code", Errors: []string{"is required"}},
 					{FieldName: "social.redirectURL", Errors: []string{"is required"}},
+					{FieldName: "subDomain", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -172,10 +176,14 @@ func TestAPI_SignupSocial(t *testing.T) {
 				FailExchange: true,
 			},
 			setup: func(t *testing.T) api.SignupRequest {
-				return api.SignupRequest{Social: &api.SocialSignup{
-					Code:        "1234",
-					RedirectURL: "example.com/redirect",
-				}}
+				return api.SignupRequest{
+					Social: &api.SocialSignup{
+						Code:        "1234",
+						RedirectURL: "example.com/redirect",
+					},
+					OrgName:   "invalid-social-code",
+					Subdomain: "invalid-social-code",
+				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
@@ -188,35 +196,19 @@ func TestAPI_SignupSocial(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid social sign-up, empty email domain",
-			client: &fakeOIDCImplementation{
-				UserEmail: "hello@",
-			},
-			setup: func(t *testing.T) api.SignupRequest {
-				return api.SignupRequest{Social: &api.SocialSignup{
-					Code:        "1234",
-					RedirectURL: "example.com/redirect",
-				}}
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
-				respBody := &api.Error{}
-				err := json.Unmarshal(resp.Body.Bytes(), respBody)
-				assert.NilError(t, err)
-
-				assert.Equal(t, respBody.Message, "bad request: get email domain: invalid email domain")
-			},
-		},
-		{
 			name: "successful social sign-up, org domain, unique org name",
 			client: &fakeOIDCImplementation{
 				UserEmail: "hello@bruce-macdonald.com",
 			},
 			setup: func(t *testing.T) api.SignupRequest {
-				return api.SignupRequest{Social: &api.SocialSignup{
-					Code:        "1234",
-					RedirectURL: "example.com/redirect",
-				}}
+				return api.SignupRequest{
+					Social: &api.SocialSignup{
+						Code:        "1234",
+						RedirectURL: "example.com/redirect",
+					},
+					OrgName:   "success-social",
+					Subdomain: "success-social",
+				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -228,8 +220,8 @@ func TestAPI_SignupSocial(t *testing.T) {
 							Name: "hello@bruce-macdonald.com",
 						},
 						Organization: &api.Organization{
-							Name:   "bruce-macdonald",
-							Domain: "bruce-macdonald.exampledomain.com",
+							Name:   "success-social",
+							Domain: "success-social.exampledomain.com",
 						},
 					},
 					Response: resp,
@@ -241,135 +233,28 @@ func TestAPI_SignupSocial(t *testing.T) {
 			},
 		},
 		{
-			name: "successful social sign-up, org domain, duplicate org name",
+			name: "social sign-up, duplicate org name",
 			client: &fakeOIDCImplementation{
-				UserEmail: "hello@bmacd.xyz",
+				UserEmail: "hello@example.com",
 			},
 			setup: func(t *testing.T) api.SignupRequest {
-				return api.SignupRequest{Social: &api.SocialSignup{
-					Code:        "1234",
-					RedirectURL: "example.com/redirect",
-				}}
+				return api.SignupRequest{
+					Social: &api.SocialSignup{
+						Code:        "1234",
+						RedirectURL: "example.com/redirect",
+					},
+					OrgName:   "bmacd",
+					Subdomain: "bmacd",
+				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+				assert.Equal(t, resp.Code, http.StatusConflict, resp.Body.String())
 
-				validateTestSignup := validateTestSignup{
-					Routes: routes,
-					Expected: &api.SignupResponse{
-						User: &api.User{
-							Name: "hello@bmacd.xyz",
-						},
-						Organization: &api.Organization{
-							Name:   "bmacd",
-							Domain: `bmacd-\d\d\d.exampledomain.com`,
-						},
-					},
-					Response: resp,
-				}
-				tx, err := srv.db.Begin(context.Background(), nil)
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
 				assert.NilError(t, err)
-				validateSuccessfulSignup(t, tx, validateTestSignup)
-				assert.NilError(t, tx.Commit())
-			},
-		},
-		{
-			name: "successful social sign-up, gmail domain",
-			client: &fakeOIDCImplementation{
-				UserEmail: "bruce@gmail.com",
-			},
-			setup: func(t *testing.T) api.SignupRequest {
-				return api.SignupRequest{Social: &api.SocialSignup{
-					Code:        "1234",
-					RedirectURL: "example.com/redirect",
-				}}
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
-				validateTestSignup := validateTestSignup{
-					Routes: routes,
-					Expected: &api.SignupResponse{
-						User: &api.User{
-							Name: "bruce@gmail.com",
-						},
-						Organization: &api.Organization{
-							Name:   "bruce",
-							Domain: `bruce.exampledomain.com`,
-						},
-					},
-					Response: resp,
-				}
-				tx, err := srv.db.Begin(context.Background(), nil)
-				assert.NilError(t, err)
-				validateSuccessfulSignup(t, tx, validateTestSignup)
-				assert.NilError(t, tx.Commit())
-			},
-		},
-		{
-			name: "successful social sign-up, short domain",
-			client: &fakeOIDCImplementation{
-				UserEmail: "hello@g.com",
-			},
-			setup: func(t *testing.T) api.SignupRequest {
-				return api.SignupRequest{Social: &api.SocialSignup{
-					Code:        "1234",
-					RedirectURL: "example.com/redirect",
-				}}
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
-
-				validateTestSignup := validateTestSignup{
-					Routes: routes,
-					Expected: &api.SignupResponse{
-						User: &api.User{
-							Name: "hello@g.com",
-						},
-						Organization: &api.Organization{
-							Name:   "g",
-							Domain: `g-\d\d\d.exampledomain.com`,
-						},
-					},
-					Response: resp,
-				}
-				tx, err := srv.db.Begin(context.Background(), nil)
-				assert.NilError(t, err)
-				validateSuccessfulSignup(t, tx, validateTestSignup)
-				assert.NilError(t, tx.Commit())
-			},
-		},
-		{
-			name: "successful social sign-up, reserved domain",
-			client: &fakeOIDCImplementation{
-				UserEmail: "hello@infrahq.com",
-			},
-			setup: func(t *testing.T) api.SignupRequest {
-				return api.SignupRequest{Social: &api.SocialSignup{
-					Code:        "1234",
-					RedirectURL: "example.com/redirect",
-				}}
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
-
-				validateTestSignup := validateTestSignup{
-					Routes: routes,
-					Expected: &api.SignupResponse{
-						User: &api.User{
-							Name: "hello@infrahq.com",
-						},
-						Organization: &api.Organization{
-							Name:   "infrahq",
-							Domain: `infrahq-\d\d\d.exampledomain.com`,
-						},
-					},
-					Response: resp,
-				}
-				tx, err := srv.db.Begin(context.Background(), nil)
-				assert.NilError(t, err)
-				validateSuccessfulSignup(t, tx, validateTestSignup)
-				assert.NilError(t, tx.Commit())
+				assert.Assert(t, strings.Contains(respBody.Message, "an organization with that domain already exists"))
 			},
 		},
 	}
@@ -411,12 +296,12 @@ func TestAPI_SignupOrg(t *testing.T) {
 			name: "invalid subdomain",
 			setup: func(t *testing.T) api.SignupRequest {
 				return api.SignupRequest{
-					Org: &api.SignupOrg{
-						UserName:  "admin@example.com",
-						Password:  "thispasswordisgreat",
-						OrgName:   "My org is awesome",
-						Subdomain: "h@",
+					User: &api.SignupUser{
+						UserName: "admin@example.com",
+						Password: "thispasswordisgreat",
 					},
+					OrgName:   "My org is awesome",
+					Subdomain: "h@",
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -427,7 +312,7 @@ func TestAPI_SignupOrg(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "org.subDomain", Errors: []string{
+					{FieldName: "subDomain", Errors: []string{
 						"must be at least 4 characters",
 						"character '@' at position 1 is not allowed",
 					}},
@@ -439,12 +324,12 @@ func TestAPI_SignupOrg(t *testing.T) {
 			name: "invalid password",
 			setup: func(t *testing.T) api.SignupRequest {
 				return api.SignupRequest{
-					Org: &api.SignupOrg{
-						UserName:  "admin@example.com",
-						Password:  "short",
-						OrgName:   "My org is awesome",
-						Subdomain: "helloo",
+					User: &api.SignupUser{
+						UserName: "admin@example.com",
+						Password: "short",
 					},
+					OrgName:   "My org is awesome",
+					Subdomain: "helloo",
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -455,7 +340,7 @@ func TestAPI_SignupOrg(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "org.password", Errors: []string{
+					{FieldName: "user.password", Errors: []string{
 						"must be at least 8 characters",
 					}},
 				}
@@ -471,7 +356,7 @@ func TestAPI_SignupOrg(t *testing.T) {
 		{
 			name: "missing name, password, and org",
 			setup: func(t *testing.T) api.SignupRequest {
-				return api.SignupRequest{Org: &api.SignupOrg{}}
+				return api.SignupRequest{User: &api.SignupUser{}}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
@@ -481,10 +366,10 @@ func TestAPI_SignupOrg(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "org.orgName", Errors: []string{"is required"}},
-					{FieldName: "org.password", Errors: []string{"is required"}},
-					{FieldName: "org.subDomain", Errors: []string{"is required"}},
-					{FieldName: "org.userName", Errors: []string{"is required"}},
+					{FieldName: "orgName", Errors: []string{"is required"}},
+					{FieldName: "subDomain", Errors: []string{"is required"}},
+					{FieldName: "user.password", Errors: []string{"is required"}},
+					{FieldName: "user.username", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -498,12 +383,12 @@ func TestAPI_SignupOrg(t *testing.T) {
 				})
 
 				return api.SignupRequest{
-					Org: &api.SignupOrg{
-						UserName:  "admin@example.com",
-						Password:  "password",
-						OrgName:   "acme",
-						Subdomain: "acme-co",
+					User: &api.SignupUser{
+						UserName: "admin@example.com",
+						Password: "password",
 					},
+					OrgName:   "acme",
+					Subdomain: "acme-co",
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -526,12 +411,12 @@ func TestAPI_SignupOrg(t *testing.T) {
 				assert.NilError(t, err)
 
 				return api.SignupRequest{
-					Org: &api.SignupOrg{
-						UserName:  "admin@example.com",
-						Password:  "password",
-						OrgName:   "Example",
-						Subdomain: "taken",
+					User: &api.SignupUser{
+						UserName: "admin@example.com",
+						Password: "password",
 					},
+					OrgName:   "Example",
+					Subdomain: "taken",
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -554,12 +439,12 @@ func TestAPI_SignupOrg(t *testing.T) {
 			name: "successful signup",
 			setup: func(t *testing.T) api.SignupRequest {
 				return api.SignupRequest{
-					Org: &api.SignupOrg{
-						UserName:  "admin@example.com",
-						Password:  "password",
-						OrgName:   "acme",
-						Subdomain: "acme-co",
+					User: &api.SignupUser{
+						UserName: "admin@example.com",
+						Password: "password",
 					},
+					OrgName:   "acme",
+					Subdomain: "acme-co",
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
