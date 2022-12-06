@@ -27,12 +27,12 @@ export default function Signup() {
       let res = await fetch('/api/signup', {
         method: 'POST',
         body: JSON.stringify({
-          org: {
+          user: {
             username,
             password,
-            orgName,
-            subDomain,
           },
+          orgName,
+          subDomain,
         }),
       })
 

@@ -42,6 +42,11 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		if a.server.Google == nil {
 			return nil, fmt.Errorf("%w: google login is not configured, provider id must be specified for oidc login", internal.ErrBadRequest)
 		}
+		// check if an org exists with their desired sub-domain
+		// this has to be done here since the auth code is single-use
+		if !access.DomainAvailable(c, fmt.Sprintf("%s.%s", r.Subdomain, a.server.options.BaseDomain)) {
+			return nil, fmt.Errorf("%w: domain is not available", internal.ErrBadRequest)
+		}
 		// perform OIDC authentication
 		provider := a.server.Google
 		auth := &authn.OIDCAuthn{
