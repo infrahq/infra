@@ -41,8 +41,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 		// this will fail if the user was removed from the IDP, which means they no longer are a valid user
 		return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
 	}
-
-	token, err := access.CreateToken(rCtx)
+	token, err := data.CreateIdentityToken(rCtx.DBTxn, rCtx.Authenticated.User.ID)
 	if err != nil {
 		return nil, err
 	}
