@@ -18,7 +18,7 @@ type OverLimitError struct {
 }
 
 func (e OverLimitError) Error() string {
-	return fmt.Sprintf("over limit; retry after %v", e.RetryAfter)
+	return fmt.Sprintf("over limit; retry after %v", e.RetryAfter.Truncate(time.Second))
 }
 
 type Limiter struct {
