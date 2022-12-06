@@ -148,7 +148,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 				return Error{Message: "Non-interactive login requires setting the INFRA_PASSWORD environment variable"}
 			}
 
-			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &options.Password, cli.surveyIO); err != nil {
+			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &options.Password, cli.surveyIO, survey.WithValidator(survey.Required)); err != nil {
 				return err
 			}
 		}
