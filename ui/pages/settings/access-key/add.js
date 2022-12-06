@@ -292,7 +292,7 @@ export default function AccessKey() {
       </Head>
       <div className='flex items-center justify-between'>
         <h1 className='my-6 py-1 font-display text-xl font-medium'>
-          {connector ? 'Create Connector Key' : 'Create Personal key'}
+          {connector ? 'Create Connector Key' : 'Create Personal Key'}
         </h1>
         <Link href='/settings'>
           <XMarkIcon

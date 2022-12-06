@@ -150,11 +150,9 @@ function PersonalKeys() {
                       primaryButtonText='Remove'
                       onSubmit={async () => {
                         try {
-                          const res = await fetch(`/api/access-keys/${id}`, {
+                          await fetch(`/api/access-keys/${id}`, {
                             method: 'DELETE',
                           })
-                          const data = await jsonBody(res)
-                          console.log(data)
                         } catch (e) {
                           console.log(e)
                         }
