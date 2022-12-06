@@ -20,65 +20,31 @@ type NewOrgDetails struct {
 	Bearer       string
 }
 
-// SocialSignupDetails store the information about a sign-up from a successful OIDC authentication
-type SocialSignupDetails struct {
+// SocialSignup stores the information about a sign-up from a successful OIDC authentication
+type SignupSocial struct {
 	IDPAuth     *providers.IdentityProviderAuth
 	RedirectURL string // stored on provider user to use refresh token in the future
 	Provider    *models.Provider
-	Org         *models.Organization
-	SubDomain   string
 }
 
-// SocialSignup creates a user identity using a login from a social identity provider,
-// and grants the identity "admin" access to Infra.
-func SocialSignup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details *SocialSignupDetails) (*NewOrgDetails, error) {
-	rCtx := GetRequestContext(c)
-	db := rCtx.DBTxn
-
-	details.Org.Domain = SanitizedDomain(details.SubDomain, baseDomain)
-
-	if err := data.CreateOrganization(db, details.Org); err != nil {
-		return nil, fmt.Errorf("create org on sign-up: %w", err)
-	}
-
-	db = db.WithOrgID(details.Org.ID)
-	rCtx.DBTxn = db
-	rCtx.Authenticated.Organization = details.Org
-	c.Set(RequestContextKey, rCtx)
-
-	user := &models.ProviderUser{
-		Email:        details.IDPAuth.Email,
-		RedirectURL:  details.RedirectURL,
-		AccessToken:  models.EncryptedAtRest(details.IDPAuth.AccessToken),
-		RefreshToken: models.EncryptedAtRest(details.IDPAuth.RefreshToken),
-		ExpiresAt:    details.IDPAuth.AccessTokenExpiry,
-		LastUpdate:   time.Now().UTC(),
-		Active:       true,
-	}
-
-	identity, bearer, err := signupUser(c, keyExpiresAt, user)
-	if err != nil {
-		return nil, err
-	}
-
-	return &NewOrgDetails{
-		Identity:     identity,
-		Organization: details.Org,
-		Bearer:       bearer,
-	}, nil
+// SocialUser allows a user to sign-up with an email and a password
+type SignupUser struct {
+	Name     string
+	Password string
 }
 
-type OrgSignupDetails struct {
-	Name      string
-	Password  string
+type SignupDetails struct {
+	User      *SignupUser
+	Social    *SignupSocial
 	Org       *models.Organization
 	SubDomain string
 }
 
-// OrgSignup creates a user identity using the supplied name and password,
-// generates an org name,
-// and grants the identity "admin" access to Infra.
-func OrgSignup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details OrgSignupDetails) (*NewOrgDetails, error) {
+// Signup creates an organization, and grants an identity "admin" access to Infra.
+func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details *SignupDetails) (*NewOrgDetails, error) {
+	if details.Social == nil && details.User == nil {
+		return nil, fmt.Errorf("sign-up requires social login details or user details")
+	}
 	rCtx := GetRequestContext(c)
 	db := rCtx.DBTxn
 
@@ -93,30 +59,57 @@ func OrgSignup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, detail
 	rCtx.Authenticated.Organization = details.Org
 	c.Set(RequestContextKey, rCtx)
 
-	user := &models.ProviderUser{
-		ProviderID: data.InfraProvider(db).ID,
-		Email:      details.Name,
-		LastUpdate: time.Now().UTC(),
-		Active:     true,
-	}
+	var identity *models.Identity
+	bearer := ""
+	switch {
+	case details.User != nil:
+		// username/password sign-up
+		user := &models.ProviderUser{
+			ProviderID: data.InfraProvider(db).ID,
+			Email:      details.User.Name,
+			LastUpdate: time.Now().UTC(),
+			Active:     true,
+		}
 
-	identity, bearer, err := signupUser(c, keyExpiresAt, user)
-	if err != nil {
-		return nil, err
-	}
+		var err error
+		identity, bearer, err = signupUser(c, keyExpiresAt, user)
+		if err != nil {
+			return nil, err
+		}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(details.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, fmt.Errorf("hash password on sign-up: %w", err)
-	}
+		hash, err := bcrypt.GenerateFromPassword([]byte(details.User.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, fmt.Errorf("hash password on sign-up: %w", err)
+		}
 
-	credential := &models.Credential{
-		IdentityID:   identity.ID,
-		PasswordHash: hash,
-	}
+		credential := &models.Credential{
+			IdentityID:   identity.ID,
+			PasswordHash: hash,
+		}
 
-	if err := data.CreateCredential(db, credential); err != nil {
-		return nil, fmt.Errorf("create credential on sign-up: %w", err)
+		if err := data.CreateCredential(db, credential); err != nil {
+			return nil, fmt.Errorf("create credential on sign-up: %w", err)
+		}
+	case details.Social != nil:
+		// sign-up with social (google)
+		user := &models.ProviderUser{
+			Email:        details.Social.IDPAuth.Email,
+			RedirectURL:  details.Social.RedirectURL,
+			AccessToken:  models.EncryptedAtRest(details.Social.IDPAuth.AccessToken),
+			RefreshToken: models.EncryptedAtRest(details.Social.IDPAuth.RefreshToken),
+			ExpiresAt:    details.Social.IDPAuth.AccessTokenExpiry,
+			LastUpdate:   time.Now().UTC(),
+			Active:       true,
+		}
+
+		var err error
+		identity, bearer, err = signupUser(c, keyExpiresAt, user)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		// this should have been caught by the inital error check
+		return nil, fmt.Errorf("sign-up requires social login or user credentials")
 	}
 
 	return &NewOrgDetails{

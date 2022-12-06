@@ -52,26 +52,30 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		if err != nil {
 			return nil, err // make sure to return this error directly for an unauthorized response
 		}
-		suDetails := &access.SocialSignupDetails{
-			IDPAuth:     idpAuth,
-			Provider:    provider,
-			RedirectURL: r.Social.RedirectURL,
-			Org:         &models.Organization{Name: r.OrgName},
-			SubDomain:   r.Subdomain,
+		details := &access.SignupDetails{
+			Social: &access.SignupSocial{
+				IDPAuth:     idpAuth,
+				Provider:    provider,
+				RedirectURL: r.Social.RedirectURL,
+			},
+			Org:       &models.Organization{Name: r.OrgName},
+			SubDomain: r.Subdomain,
 		}
-		created, err = access.SocialSignup(c, keyExpires, a.server.options.BaseDomain, suDetails)
+		created, err = access.Signup(c, keyExpires, a.server.options.BaseDomain, details)
 		if err != nil {
 			return nil, handleSignupError(err)
 		}
 	case r.User != nil:
-		suDetails := access.OrgSignupDetails{
-			Name:      r.User.UserName,
-			Password:  r.User.Password,
+		details := &access.SignupDetails{
+			User: &access.SignupUser{
+				Name:     r.User.UserName,
+				Password: r.User.Password,
+			},
 			Org:       &models.Organization{Name: r.OrgName},
 			SubDomain: r.Subdomain,
 		}
 		var err error
-		created, err = access.OrgSignup(c, keyExpires, a.server.options.BaseDomain, suDetails)
+		created, err = access.Signup(c, keyExpires, a.server.options.BaseDomain, details)
 		if err != nil {
 			return nil, handleSignupError(err)
 		}
