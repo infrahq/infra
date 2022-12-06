@@ -108,7 +108,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details *
 			return nil, err
 		}
 	default:
-		// this should have been caught by the inital error check
+		// this should have been caught by the initial error check
 		return nil, fmt.Errorf("sign-up requires social login or user credentials")
 	}
 
