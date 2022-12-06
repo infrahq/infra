@@ -123,6 +123,8 @@ func login(cli *CLI, options loginCmdOptions) error {
 	options.Server = strings.TrimPrefix(options.Server, "https://")
 	options.Server = strings.TrimPrefix(options.Server, "http://")
 
+	fmt.Fprintf(cli.Stderr, "  Logging in to %s\n", termenv.String(options.Server).Bold().String())
+
 	if len(options.TrustedCertificate) == 0 {
 		// Attempt to find a previously trusted certificate
 		for _, hc := range config.Hosts {
@@ -143,6 +145,8 @@ func login(cli *CLI, options loginCmdOptions) error {
 	case options.AccessKey != "":
 		loginReq.AccessKey = options.AccessKey
 	case options.User != "":
+		fmt.Fprintf(cli.Stderr, "  Logging in as user %s\n", termenv.String(options.User).Bold().String())
+
 		if options.Password == "" {
 			if options.NonInteractive {
 				return Error{Message: "Non-interactive login requires setting the INFRA_PASSWORD environment variable"}
@@ -231,7 +235,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 			return err
 		}
 
-		fmt.Fprintf(os.Stderr, "  Updated password\n")
+		fmt.Fprintf(cli.Stderr, "  Updated password\n")
 	}
 
 	if err := updateInfraConfig(lc, loginRes); err != nil {
@@ -456,8 +460,8 @@ func deviceFlowLogin(ctx context.Context, client *api.Client, cli *CLI) (*api.Lo
 	url := resp.VerificationURI + "?code=" + resp.UserCode
 
 	// display to user
-	cli.Output("Navigate to " + url + " and verify your code:\n")
-	cli.Output("\t\t" + resp.UserCode + "\n")
+	fmt.Fprintf(cli.Stderr, "  Navigate to %s and verify your code:\n\n", termenv.String(url).Underline().String())
+	fmt.Fprintf(cli.Stderr, "\t\t%s\n\n", termenv.String(resp.UserCode).Bold().String())
 
 	// we don't care if this fails. some devices won't be able to open the browser
 	_ = browser.OpenURL(url)

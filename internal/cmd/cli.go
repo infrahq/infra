@@ -87,6 +87,6 @@ func newCLI(ctx context.Context) *CLI {
 	return &CLI{
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Stderr: newStderr(os.Stderr),
 	}
 }

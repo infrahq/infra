@@ -23,7 +23,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
-	"gotest.tools/v3/golden"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/infrahq/infra/api"
@@ -541,6 +540,8 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		expected := &ClientConfig{ClientConfigVersion: clientConfigVersion}
 		assert.DeepEqual(t, cfg, expected, cmpopts.EquateEmpty())
 
-		golden.Assert(t, bufs.Stderr.String(), t.Name())
+		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "TLS fingerprint from server does not match the trusted fingerprint."))
+		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "Trusted: BA::D0::FF"))
+		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "Server:  C8:73:E3:27:2C:EA:48:00:FA:40:66:1A:3E:97:D8:59:5E:1F:70:8E:83:9F:79:CF:22:04:C8:64:39:40:5B:73"))
 	})
 }
