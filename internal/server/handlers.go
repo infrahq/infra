@@ -118,7 +118,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			provider = a.server.Google
 		} else {
 			var err error
-			provider, err = access.GetProvider(c, r.OIDC.ProviderID)
+			provider, err = data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.OIDC.ProviderID})
 			if err != nil {
 				return nil, fmt.Errorf("invalid identity provider: %w", err)
 			}
