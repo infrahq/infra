@@ -3,7 +3,9 @@ package types
 import (
 	"errors"
 	"io"
+	"io/fs"
 	"os"
+	"syscall"
 
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -22,8 +24,12 @@ func (s *StringOrFile) String() string {
 }
 
 func (s *StringOrFile) Set(raw string) error {
+	pathError := &fs.PathError{}
 	fh, err := os.Open(raw)
 	switch {
+	case errors.As(err, &pathError) && errors.Is(pathError.Err, syscall.ENAMETOOLONG):
+		*s = StringOrFile(raw)
+		return nil
 	case errors.Is(err, os.ErrNotExist):
 		// Only log a small prefix of the value, at trace level, in case the value is sensitive.
 		logging.L.Trace().

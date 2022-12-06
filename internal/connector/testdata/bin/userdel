@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 set -eu
-(echo -n "userdel "; printf "'%s' " "$@"; echo) >> ${TEST_CONNECTOR_USER_LOG_FILE}
+
+go run ./testdata/bin/echo.go userdel "$@" >> ${TEST_CONNECTOR_USER_LOG_FILE}
 
 # simulate failing to remove a user
 if [ "$2" = "failremove" ]; then exit 8; fi

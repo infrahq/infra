@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 set -eu
-(echo -n "pkill "; printf "'%s' " "$@"; echo) >> ${TEST_CONNECTOR_USER_LOG_FILE}
+
+go run ./testdata/bin/echo.go pkill "$@" >> ${TEST_CONNECTOR_USER_LOG_FILE}
 
 # user three333 has no processes running
 if [ "$4" = "three333" ]; then exit 1; fi
