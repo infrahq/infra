@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/router'
 
 import { useServerConfig } from '../../lib/serverconfig'
@@ -19,20 +19,24 @@ export default function Callback() {
 
   async function onSubmit(e) {
     e.preventDefault()
+    setError('')
+    setSubmitted(true)
 
     if (state !== window.localStorage.getItem('state')) {
-      setError("social login is in an unexpected state, aborted")
-      return
+      setError('social login is in an unexpected state, aborted')
     }
 
     if (!code) {
-      setError("missing google authentication code")
-      return
+      setError('missing google authentication code')
     }
 
     const redirectURL = window.localStorage.getItem('redirectURL')
     if (!redirectURL) {
-      setError("could not read redirect, check that you allow cookies")
+      setError('could not read redirect, check that you allow cookies')
+    }
+
+    if (error !== '') {
+      setSubmitted(false)
       return
     }
 
@@ -44,6 +48,8 @@ export default function Callback() {
             code,
             redirectURL,
           },
+          orgName,
+          subDomain,
         }),
       })
 
@@ -54,6 +60,7 @@ export default function Callback() {
     } catch (e) {
       setError(e.message)
     }
+    setSubmitted(false)
   }
 
   if (!isReady) {
@@ -67,15 +74,15 @@ export default function Callback() {
         Name your Organization
       </h2>
       <form onSubmit={onSubmit} className='mt-8 flex w-full flex-col'>
-          <OrgSignup
-            baseDomain={baseDomain}
-            subDomain={subDomain}
-            setSubDomain={setSubDomain}
-            setOrgName={setOrgName}
-            errors={errors}
-            setErrors={setErrors}
-            setError={setError}
-          />
+        <OrgSignup
+          baseDomain={baseDomain}
+          subDomain={subDomain}
+          setSubDomain={setSubDomain}
+          setOrgName={setOrgName}
+          errors={errors}
+          setErrors={setErrors}
+          setError={setError}
+        />
         <button
           type='submit'
           disabled={submitted}
@@ -83,7 +90,9 @@ export default function Callback() {
         >
           Sign Up
         </button>
-        {error && <p className='my-1 text-xs text-red-500'>sign-up failed: {error}</p>}
+        {error && (
+          <p className='my-1 text-xs text-red-500'>sign-up failed: {error}</p>
+        )}
         <div className='my-3 text-center text-2xs text-gray-400'>
           By continuing, you agree to Infra&apos;s{' '}
           <a
