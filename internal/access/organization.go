@@ -2,6 +2,7 @@ package access
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -67,14 +68,14 @@ func SanitizedDomain(subDomain, serverBaseDomain string) string {
 }
 
 // DomainAvailable is needed to check if an org domain is available before completing social sign-up
-func DomainAvailable(c *gin.Context, domain string) bool {
+func DomainAvailable(c *gin.Context, domain string) error {
 	rCtx := GetRequestContext(c)
 	_, err := data.GetOrganization(rCtx.DBTxn, data.GetOrganizationOptions{ByDomain: domain})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			logging.L.Error().Err(err).Msg("failed to check if organization exists by domain")
 		}
-		return true // not found, so available
+		return nil // not found, so available
 	}
-	return false // found, not available
+	return fmt.Errorf("%s is already in use", domain)
 }
