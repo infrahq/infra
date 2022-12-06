@@ -58,7 +58,6 @@ func TestDeviceFlow(t *testing.T) {
 		IssuedForName:      user.Name,
 		ProviderID:         data.InfraProvider(srv.db).ID,
 		ExpiresAt:          expires,
-		Scopes:             models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
 
 	_, err = data.CreateAccessKey(srv.db, scoped)
