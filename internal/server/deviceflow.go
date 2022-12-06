@@ -152,10 +152,10 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
 	rctx := getRequestContext(c)
 
-	if !rctx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowApproveDeviceFlowRequest) {
+	if !rctx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
 		// require the device flow scope to approve access keys provided by login & signup keys, but not
 		// keys resulting from device flow itself
-		return nil, fmt.Errorf("%w: access key missing scope '%s'", internal.ErrUnauthorized, models.ScopeAllowApproveDeviceFlowRequest)
+		return nil, fmt.Errorf("%w: access key missing scope '%s'", internal.ErrUnauthorized, models.ScopeAllowCreateAccessKey)
 	}
 
 	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: strings.Replace(req.UserCode, "-", "", 1)})

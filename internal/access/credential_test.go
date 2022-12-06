@@ -128,7 +128,6 @@ func TestUpdateCredentials(t *testing.T) {
 			Scopes: []string{
 				models.ScopeAllowCreateAccessKey,
 				models.ScopePasswordReset,
-				models.ScopeAllowApproveDeviceFlowRequest,
 			},
 		}
 		_, err = CreateAccessKey(c, key)
@@ -151,10 +150,7 @@ func TestUpdateCredentials(t *testing.T) {
 
 		updatedKey, err := data.GetAccessKeyByKeyID(db, key.KeyID)
 		assert.NilError(t, err)
-		assert.DeepEqual(t, updatedKey.Scopes, models.CommaSeparatedStrings{
-			models.ScopeAllowCreateAccessKey,
-			models.ScopeAllowApproveDeviceFlowRequest,
-		})
+		assert.DeepEqual(t, updatedKey.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})
 	})
 }
 

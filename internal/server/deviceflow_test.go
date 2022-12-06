@@ -48,7 +48,7 @@ func TestDeviceFlow(t *testing.T) {
 		IssuedForName:      user.Name,
 		ProviderID:         data.InfraProvider(srv.db).ID,
 		ExpiresAt:          expires,
-		Scopes:             models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey, models.ScopeAllowApproveDeviceFlowRequest},
+		Scopes:             models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
 
 	notscoped := &models.AccessKey{
@@ -153,10 +153,7 @@ func TestDeviceFlow(t *testing.T) {
 			IssuedForName: otherUser.Name,
 			ProviderID:    data.InfraProvider(tx).ID,
 			ExpiresAt:     time.Now().Add(10 * time.Minute),
-			Scopes: models.CommaSeparatedStrings{
-				models.ScopeAllowCreateAccessKey,
-				models.ScopeAllowApproveDeviceFlowRequest,
-			},
+			Scopes:        models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 		}
 		_, err = data.CreateAccessKey(tx, otherKey)
 		assert.NilError(t, err)

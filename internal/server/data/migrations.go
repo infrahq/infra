@@ -1065,15 +1065,6 @@ func deviceFlowAuthRequestsAddUserIDProviderID() *migrator.Migration {
 					ADD COLUMN IF NOT EXISTS user_id bigint,
 					ADD COLUMN IF NOT EXISTS provider_id bigint;
 			`)
-			if err != nil {
-				return err
-			}
-
-			_, err = tx.Exec(`UPDATE access_keys set scopes=? where scopes=?;`,
-				models.ScopeAllowCreateAccessKey+","+models.ScopeAllowApproveDeviceFlowRequest,
-				models.ScopeAllowCreateAccessKey,
-			)
-
 			return err
 		},
 	}
