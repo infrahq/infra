@@ -15,7 +15,7 @@ type AccessKey struct {
 	ProviderID        uid.ID   `json:"providerID" note:"ID of the provider if the user is managed by an OIDC provider"`
 	Expires           Time     `json:"expires" note:"key is no longer valid after this time"`
 	InactivityTimeout Time     `json:"inactivityTimeout" note:"key must be used by this time to remain valid"`
-	Scopes            []string `json:"scopes" note:"additional access level scopes"`
+	Scopes            []string `json:"scopes" note:"additional access level scopes that control what an access key can do"`
 }
 
 type ListAccessKeysRequest struct {
