@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hinshun/vt10x"
+	"github.com/muesli/termenv"
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
@@ -251,34 +253,34 @@ func TestLoginCmd_UserPass(t *testing.T) {
 		assert.ErrorContains(t, err, "INFRA_PASSWORD")
 	})
 
-	t.Run("logs in", func(t *testing.T) {
-		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if req.URL.Path == "/api/login" {
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/api/login" {
 
-				var loginRequest api.LoginRequest
-				err := json.NewDecoder(req.Body).Decode(&loginRequest)
-				assert.Check(t, err)
-				assert.Equal(t, loginRequest.PasswordCredentials.Name, "admin@example.com")
-				assert.Equal(t, loginRequest.PasswordCredentials.Password, "p4ssw0rd")
+			var loginRequest api.LoginRequest
+			err := json.NewDecoder(req.Body).Decode(&loginRequest)
+			assert.Check(t, err)
+			assert.Equal(t, loginRequest.PasswordCredentials.Name, "admin@example.com")
+			assert.Equal(t, loginRequest.PasswordCredentials.Password, "p4ssw0rd")
 
-				res := &api.LoginResponse{
-					UserID:                 uid.New(),
-					Name:                   "foo@gmail.com",
-					AccessKey:              "abc.xyz",
-					OrganizationName:       "Default",
-					PasswordUpdateRequired: false,
-					Expires:                api.Time(time.Now().UTC().Add(time.Hour * 24)),
-				}
-				err = json.NewEncoder(resp).Encode(res)
-				assert.Check(t, err)
+			res := &api.LoginResponse{
+				UserID:                 uid.New(),
+				Name:                   "admin@example.com",
+				AccessKey:              "abc.xyz",
+				OrganizationName:       "Default",
+				PasswordUpdateRequired: false,
+				Expires:                api.Time(time.Now().UTC().Add(time.Hour * 24)),
 			}
+			err = json.NewEncoder(resp).Encode(res)
+			assert.Check(t, err)
 		}
+	}
 
+	srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+	t.Cleanup(srv.Close)
+
+	t.Run("login with env vars", func(t *testing.T) {
 		t.Setenv("INFRA_USER", "admin@example.com")
 		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
-
-		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
-		t.Cleanup(srv.Close)
 
 		ctx, bufs := PatchCLI(context.Background())
 
@@ -286,7 +288,54 @@ func TestLoginCmd_UserPass(t *testing.T) {
 		assert.NilError(t, err)
 
 		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "Logged in as"))
-		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "foo@gmail.com"))
+		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "admin@example.com"))
+	})
+
+	t.Run("login with password prompt", func(t *testing.T) {
+		t.Setenv("INFRA_NON_INTERACTIVE", "false")
+
+		ctx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+
+		console := newConsole(t)
+		ctx = PatchCLIWithPTY(ctx, console.Tty())
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			return Run(ctx, "login", srv.Listener.Addr().String(), "--tls-trusted-fingerprint", certs.Fingerprint(srv.Certificate().Raw), "--user", "admin@example.com")
+		})
+
+		exp := expector{console: console}
+		exp.ExpectString(t, "Password:")
+		exp.Send(t, "p4ssw0rd\n")
+		exp.ExpectString(t, fmt.Sprintf("Logged in as %s", termenv.String("admin@example.com").Bold().String()))
+
+		assert.NilError(t, g.Wait())
+	})
+
+	t.Run("login with empty password prompt", func(t *testing.T) {
+		t.Setenv("INFRA_NON_INTERACTIVE", "false")
+
+		ctx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+
+		console := newConsole(t)
+		ctx = PatchCLIWithPTY(ctx, console.Tty())
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			return Run(ctx, "login", srv.Listener.Addr().String(), "--tls-trusted-fingerprint", certs.Fingerprint(srv.Certificate().Raw), "--user", "admin@example.com")
+		})
+
+		exp := expector{console: console}
+		exp.ExpectString(t, "Password:")
+		exp.Send(t, "\n")
+		exp.ExpectString(t, "is required")
+		exp.ExpectString(t, "Password:")
+		exp.Send(t, "p4ssw0rd\n")
+		exp.ExpectString(t, fmt.Sprintf("Logged in as %s", termenv.String("admin@example.com").Bold().String()))
+
+		assert.NilError(t, g.Wait())
 	})
 }
 
