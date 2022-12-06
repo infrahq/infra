@@ -45,12 +45,12 @@ retry:
 		return nil, err
 	}
 
-	host := a.server.options.BaseDomain
+	var host string
 	if rctx.Authenticated.Organization != nil {
 		host = rctx.Authenticated.Organization.Domain
 	}
+
 	if host == "" {
-		// Default to the request hostname when in single tenant mode
 		host = rctx.Request.Host
 	}
 
