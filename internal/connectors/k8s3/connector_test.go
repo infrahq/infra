@@ -4,14 +4,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/kubernetes"
-	"github.com/infrahq/infra/uid"
 	"gotest.tools/v3/assert"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/kubernetes"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestCredentialRequestReconciler(t *testing.T) {
@@ -76,7 +77,7 @@ type FakeK8s struct{ t *testing.T }
 func (f FakeK8s) Namespaces() ([]string, error)                                        { return nil, nil }
 func (f FakeK8s) ClusterRoles() ([]string, error)                                      { return nil, nil }
 func (f FakeK8s) IsServiceTypeClusterIP() (bool, error)                                { return false, nil }
-func (f FakeK8s) Endpoint() (string, int, error)                                       { return "", 0, nil }
+func (f FakeK8s) DirectEndpoint() (string, int, []byte, error)                         { return "", 0, nil, nil }
 func (f FakeK8s) UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error { return nil }
 func (f FakeK8s) UpdateRoleBindings(subjects map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) error {
 	return nil

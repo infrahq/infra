@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/uid"
 	"github.com/jackc/pgx/v4"
 	pgxstdlib "github.com/jackc/pgx/v4/stdlib"
+
+	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/uid"
 )
 
 type Listener struct {

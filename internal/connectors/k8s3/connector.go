@@ -380,22 +380,24 @@ func startMetricsService(ctx context.Context, con *k8sConnector, runGroup *errgr
 	}, []string{"host", "method", "path", "status"})
 	promRegistry.MustRegister(responseDuration)
 
-	con.client.(*api.Client).ObserveFunc = func(start time.Time, request *http.Request, response *http.Response, err error) {
-		statusLabel := ""
-		if response != nil {
-			statusLabel = strconv.Itoa(response.StatusCode)
-		}
+	if c, ok := con.client.(*api.Client); ok {
+		c.ObserveFunc = func(start time.Time, request *http.Request, response *http.Response, err error) {
+			statusLabel := ""
+			if response != nil {
+				statusLabel = strconv.Itoa(response.StatusCode)
+			}
 
-		if err != nil {
-			statusLabel = "-1"
-		}
+			if err != nil {
+				statusLabel = "-1"
+			}
 
-		responseDuration.With(prometheus.Labels{
-			"host":   request.URL.Host,
-			"method": request.Method,
-			"path":   request.URL.Path,
-			"status": statusLabel,
-		}).Observe(time.Since(start).Seconds())
+			responseDuration.With(prometheus.Labels{
+				"host":   request.URL.Host,
+				"method": request.Method,
+				"path":   request.URL.Path,
+				"status": statusLabel,
+			}).Observe(time.Since(start).Seconds())
+		}
 	}
 
 	metricsServer := &http.Server{

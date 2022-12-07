@@ -910,7 +910,7 @@ func addCredentialRequests() *migrator.Migration {
 					RETURN NULL;
 				END; $$;
 
-				CREATE OR REPLACE TRIGGER credreq_notify_trigger AFTER update
+				CREATE OR REPLACE TRIGGER credreq_notify_update_trigger AFTER update
 					ON credential_requests
 					FOR EACH ROW EXECUTE FUNCTION credential_request_update_notify();
 			`)
