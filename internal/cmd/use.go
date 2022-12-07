@@ -40,10 +40,10 @@ $ infra use development.kube-system`,
 			parts := strings.Split(destination, ".")
 
 			if len(parts) == 1 {
-				return kubernetesSetContext(destination, "")
+				return kubernetesSetContext(cli, destination, "")
 			}
 
-			return kubernetesSetContext(parts[0], parts[1])
+			return kubernetesSetContext(cli, parts[0], parts[1])
 		},
 	}
 }

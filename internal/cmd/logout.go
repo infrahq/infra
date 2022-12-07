@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -19,7 +18,7 @@ type logoutCmdOptions struct {
 	all    bool
 }
 
-func newLogoutCmd(_ *CLI) *cobra.Command {
+func newLogoutCmd(cli *CLI) *cobra.Command {
 	var options logoutCmdOptions
 
 	cmd := &cobra.Command{
@@ -53,7 +52,7 @@ $ infra logout --all --clear`,
 				}
 				options.server = args[0]
 			}
-			return logout(options.clear, options.server, options.all)
+			return logout(cli, options.clear, options.server, options.all)
 		},
 	}
 
@@ -99,7 +98,7 @@ func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
 	return true
 }
 
-func logout(clear bool, server string, all bool) error {
+func logout(cli *CLI, clear bool, server string, all bool) error {
 	switch {
 	case all:
 		logging.Debugf("logging out of all servers\n")
@@ -110,13 +109,13 @@ func logout(clear bool, server string, all bool) error {
 	}
 
 	if all {
-		return logoutAll(clear)
+		return logoutAll(cli, clear)
 	}
 
-	return logoutOne(clear, server)
+	return logoutOne(cli, clear, server)
 }
 
-func logoutAll(clear bool) error {
+func logoutAll(cli *CLI, clear bool) error {
 	config, err := readConfig()
 	if err != nil {
 		if errors.Is(err, ErrConfigNotFound) {
@@ -130,7 +129,7 @@ func logoutAll(clear bool) error {
 		logoutOfServer(&config.Hosts[i])
 	}
 
-	fmt.Fprintf(os.Stderr, "Logged out of all servers.\n")
+	fmt.Fprintf(cli.Stderr, "Logged out of all servers.\n")
 	if clear {
 		config.Hosts = nil
 		logging.Debugf("cleared all servers from login list\n")
@@ -147,7 +146,7 @@ func logoutAll(clear bool) error {
 	return nil
 }
 
-func logoutOne(clear bool, server string) error {
+func logoutOne(cli *CLI, clear bool, server string) error {
 	config, err := readConfig()
 	if err != nil {
 		if errors.Is(err, ErrConfigNotFound) {
@@ -165,7 +164,7 @@ func logoutOne(clear bool, server string) error {
 
 	success := logoutOfServer(host)
 	if success {
-		fmt.Fprintf(os.Stderr, "Logged out of server %s\n", host.Host)
+		fmt.Fprintf(cli.Stderr, "Logged out of server %s\n", host.Host)
 	}
 
 	if clear {

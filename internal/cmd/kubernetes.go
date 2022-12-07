@@ -24,7 +24,7 @@ func clientConfig() clientcmd.ClientConfig {
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 }
 
-func kubernetesSetContext(cluster, namespace string) error {
+func kubernetesSetContext(cli *CLI, cluster, namespace string) error {
 	config := clientConfig()
 
 	kubeConfig, err := config.RawConfig()
@@ -53,7 +53,7 @@ func kubernetesSetContext(cluster, namespace string) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Switched to context %q.\n", friendlyName)
+	fmt.Fprintf(cli.Stderr, "Switched to context %q.\n", friendlyName)
 	return nil
 }
 
