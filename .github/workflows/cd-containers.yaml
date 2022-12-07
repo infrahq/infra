@@ -110,4 +110,9 @@ jobs:
           argocd-tools: |
             argocd-image-updater
       - run: |
-          argocd-image-updater run --once --match-application-label=ci.infrahq.com/component=${{ matrix.component.name }}
+          for TRY in $(seq $MAX_TRIES); do
+            argocd-image-updater run --once --match-application-label=ci.infrahq.com/component=${{ matrix.component.name }} && exit 0
+            sleep $(( 3 ** $TRY ))
+          done
+        env:
+          MAX_TRIES: 5
