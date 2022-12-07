@@ -577,6 +577,14 @@
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
+                },
+                "scopes": {
+                  "description": "additional access level scopes that control what an access key can do",
+                  "items": {
+                    "description": "additional access level scopes that control what an access key can do",
+                    "type": "string"
+                  },
+                  "type": "array"
                 }
               },
               "type": "object"

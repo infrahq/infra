@@ -3,6 +3,8 @@ import Head from 'next/head'
 import { Fragment, useEffect, useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
+import { useRouter } from 'next/router'
+import useSWR from 'swr'
 
 import {
   XMarkIcon,
@@ -241,8 +243,17 @@ export default function AccessKey() {
   const [error, setError] = useState('')
   const [generatedAccessKey, setGeneratedAccessKey] = useState('')
   const [accessKeyDialogOpen, setAccessKeyDialogOpen] = useState(false)
+  const router = useRouter()
+
+  const { connector } = router.query
 
   const { user } = useUser()
+
+  const { data: { items: connectors } = {} } = useSWR(
+    '/api/users?name=connector&showSystem=true'
+  )
+
+  const userID = connector ? connectors?.[0]?.id : user.id
 
   useEffect(() => {
     setAccessKeyDialogOpen(generatedAccessKey.length > 0)
@@ -258,7 +269,7 @@ export default function AccessKey() {
         method: 'POST',
         body: JSON.stringify({
           name,
-          userID: user.id,
+          userID,
           expiry: selectedExpiry.value,
           inactivityTimeout: '720h',
         }),
@@ -281,7 +292,7 @@ export default function AccessKey() {
       </Head>
       <div className='flex items-center justify-between'>
         <h1 className='my-6 py-1 font-display text-xl font-medium'>
-          {`New access key`}
+          {connector ? 'Create Connector Key' : 'Create Personal Key'}
         </h1>
         <Link href='/settings'>
           <XMarkIcon

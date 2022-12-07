@@ -6,15 +6,16 @@ import (
 )
 
 type AccessKey struct {
-	ID                uid.ID `json:"id" note:"ID of the access key"`
-	Created           Time   `json:"created"`
-	LastUsed          Time   `json:"lastUsed"`
-	Name              string `json:"name" example:"cicdkey" note:"Name of the access key"`
-	IssuedForName     string `json:"issuedForName" example:"admin@example.com" note:"Name of the user the key was issued to"`
-	IssuedFor         uid.ID `json:"issuedFor" note:"ID of the user the key was issued to"`
-	ProviderID        uid.ID `json:"providerID" note:"ID of the provider if the user is managed by an OIDC provider"`
-	Expires           Time   `json:"expires" note:"key is no longer valid after this time"`
-	InactivityTimeout Time   `json:"inactivityTimeout" note:"key must be used by this time to remain valid"`
+	ID                uid.ID   `json:"id" note:"ID of the access key"`
+	Created           Time     `json:"created"`
+	LastUsed          Time     `json:"lastUsed"`
+	Name              string   `json:"name" example:"cicdkey" note:"Name of the access key"`
+	IssuedForName     string   `json:"issuedForName" example:"admin@example.com" note:"Name of the user the key was issued to"`
+	IssuedFor         uid.ID   `json:"issuedFor" note:"ID of the user the key was issued to"`
+	ProviderID        uid.ID   `json:"providerID" note:"ID of the provider if the user is managed by an OIDC provider"`
+	Expires           Time     `json:"expires" note:"key is no longer valid after this time"`
+	InactivityTimeout Time     `json:"inactivityTimeout" note:"key must be used by this time to remain valid"`
+	Scopes            []string `json:"scopes" note:"additional access level scopes that control what an access key can do"`
 }
 
 type ListAccessKeysRequest struct {
