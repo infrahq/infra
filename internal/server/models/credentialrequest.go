@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/infrahq/infra/api"
@@ -38,7 +39,7 @@ type CredentialRequest struct {
 	// Password string
 
 	// // API key
-	BearerToken string
+	BearerToken sql.NullString
 
 	// // Certificate
 
@@ -53,10 +54,14 @@ func (c CredentialRequest) ToAPI() api.CredentialRequest {
 		OrganizationID: c.OrganizationID,
 		ExpiresAt:      api.Time(c.ExpiresAt),
 		UserID:         c.UserID,
-		BearerToken:    c.BearerToken,
+		BearerToken:    c.BearerToken.String,
+		UpdateIndex:    c.UpdateIndex,
 	}
 }
 
 func (c *CredentialRequest) FromUpdateAPI(r *api.UpdateCredentialRequest) {
-	c.BearerToken = r.BearerToken
+	c.BearerToken = sql.NullString{String: r.BearerToken, Valid: len(r.BearerToken) > 0}
+	if r.ExpiresAt.Time().After(c.ExpiresAt) {
+		c.ExpiresAt = r.ExpiresAt.Time()
+	}
 }

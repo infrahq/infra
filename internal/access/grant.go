@@ -90,6 +90,7 @@ func blockingRequest[Result updateIndexable](
 ) (Result, error) {
 	listener, err := data.ListenForNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 	if err != nil {
+		// nolint: gocritic
 		return *new(Result), fmt.Errorf("listen for notify: %w", err)
 	}
 	defer func() {

@@ -1,29 +1,38 @@
 package kubernetes
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/google/shlex"
 	"github.com/jessevdk/go-flags"
+	"gopkg.in/yaml.v2"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -575,7 +584,7 @@ func (k *Kubernetes) CreateServiceAccountToken(username string) (*authentication
 	if err != nil {
 		return nil, err
 	}
-	expirationInSeconds := int64((24 * time.Hour).Seconds())
+	expirationInSeconds := int64((12 * time.Hour).Seconds())
 	return clientset.CoreV1().ServiceAccounts("default").CreateToken(context.TODO(), username, &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
 			ExpirationSeconds: &expirationInSeconds,
@@ -588,10 +597,10 @@ func (k *Kubernetes) CreateServiceAccount(username string) (*corev1.ServiceAccou
 	if err != nil {
 		return nil, err
 	}
-	serviceAccount, err := clientset.CoreV1().ServiceAccounts("foo").Create(context.TODO(), &corev1.ServiceAccount{
+	serviceAccount, err := clientset.CoreV1().ServiceAccounts("default").Create(context.TODO(), &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      username,
-			Namespace: "default",
+			Namespace: "default", // TODO: Do we need to use the installed namespace?
 		},
 	}, metav1.CreateOptions{})
 	if err != nil {
@@ -651,6 +660,160 @@ func (k *Kubernetes) NodePort(service *corev1.Service) (string, int, error) {
 
 	logging.Debugf("using internal node address %s", nodeIP)
 	return nodeIP, nodePort, nil
+}
+
+// DirectEndpoint points to the k8s cluster itself
+// returns host, port, certdata, err
+func (k *Kubernetes) DirectEndpoint() (string, int, []byte, error) {
+	// Create empty crbs for roles with no users
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return "", 0, nil, err
+	}
+
+	var endpoint string
+
+	// Get the full command line for kube-proxy pods
+	// if --master is specified, use that
+	// if --kubeconfig is specified, exec + cat to read that
+	// if --config is specified, exec + cat the file the kubeconfig location, and read the kubeconfig
+
+	pods1, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "k8s-app=kube-proxy",
+	})
+	if err != nil {
+		return "", 0, nil, err
+	}
+
+	pods2, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "component=kube-proxy",
+	})
+	if err != nil {
+		return "", 0, nil, err
+	}
+
+	pods := []v1.Pod{}
+	pods = append(pods, pods1.Items...)
+	pods = append(pods, pods2.Items...)
+
+	if len(pods) == 0 {
+		return "", 0, nil, errors.New("no kube-proxy pods to inspect")
+	}
+
+	pod := pods[0]
+
+	var command []string
+	for _, c := range pod.Spec.Containers {
+		if c.Name == "kube-proxy" {
+			command = c.Command
+			break
+		}
+	}
+
+	var args []string
+	for _, c := range command {
+		split, err := shlex.Split(c)
+		if err != nil {
+			continue
+		}
+		args = append(args, split...)
+	}
+
+	var opts struct {
+		Master     string `long:"master"`
+		Config     string `long:"config"`
+		Kubeconfig string `long:"kubeconfig"`
+	}
+
+	p := flags.NewParser(&opts, flags.IgnoreUnknown)
+	_, err = p.ParseArgs(args)
+	if err != nil {
+		return "", 0, nil, err
+	}
+
+	switch {
+	case opts.Master != "":
+		endpoint = opts.Master
+	case opts.Config != "":
+		contents, err := k.ExecCat(pod.Name, "kube-system", opts.Config)
+		if err != nil {
+			return "", 0, nil, err
+		}
+		var raw map[string]interface{}
+		err = yaml.Unmarshal([]byte(contents), &raw)
+		if err != nil {
+			return "", 0, nil, err
+		}
+
+		clientConnection, ok := raw["clientConnection"].(map[interface{}]interface{})
+		if !ok {
+			return "", 0, nil, errors.New("invalid kube-proxy config format")
+		}
+		kubeconfig, ok := clientConnection["kubeconfig"].(string)
+		if !ok {
+			return "", 0, nil, errors.New("invalid kube-proxy config format")
+		}
+
+		opts.Kubeconfig = kubeconfig
+		fallthrough
+	case opts.Kubeconfig != "":
+		contents, err := k.ExecCat(pod.Name, "kube-system", opts.Kubeconfig)
+		if err != nil {
+			return "", 0, nil, err
+		}
+
+		cfg, err := clientcmd.NewClientConfigFromBytes([]byte(contents))
+		if err != nil {
+			return "", 0, nil, err
+		}
+
+		rc, err := cfg.RawConfig()
+		if err != nil {
+			return "", 0, nil, err
+		}
+
+		context, ok := rc.Contexts[rc.CurrentContext]
+		if !ok {
+			return "", 0, nil, errors.New("could not read kubeconfig context")
+		}
+
+		cluster, ok := rc.Clusters[context.Cluster]
+		if !ok {
+			return "", 0, nil, errors.New("could not read kubeconfig cluster")
+		}
+
+		endpoint = cluster.Server
+	default:
+		fmt.Println("Warning, could not find parse kube-proxy opts, args: ", args)
+	}
+
+	// Rewrite docker desktop
+	if endpoint == "https://vm.docker.internal:6443" {
+		endpoint = "https://kubernetes.docker.internal:6443"
+	}
+
+	// Rewrite digital ocean
+	if strings.HasSuffix(endpoint, ".internal.k8s.ondigitalocean.com") {
+		endpoint = strings.ReplaceAll(endpoint, ".internal.k8s.ondigitalocean.com", ".k8s.ondigitalocean.com")
+	}
+
+	// TODO (jmorganca): minikube
+
+	// get port
+	parts := strings.Split(endpoint, "://")
+
+	host, port, err := net.SplitHostPort(parts[len(parts)-1])
+	if err != nil {
+		return "", 0, nil, err
+	}
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return "", 0, nil, err
+	}
+	if len(parts) > 1 {
+		host = strings.Join([]string{parts[0], host}, "://")
+	}
+	return host, portInt, k.Config.TLSClientConfig.CAData, nil
 }
 
 // Find a suitable Endpoint to use by inspecting Service objects
@@ -746,4 +909,39 @@ func (k *Kubernetes) ClusterRoles() ([]string, error) {
 	}
 
 	return results, nil
+}
+
+func (k *Kubernetes) ExecCat(pod string, namespace string, file string) (string, error) {
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return "", err
+	}
+
+	cmd := []string{
+		"/bin/cat",
+		file,
+	}
+	req := clientset.CoreV1().RESTClient().Post().Resource("pods").Name(pod).Namespace(namespace).SubResource("exec")
+	req.VersionedParams(
+		&v1.PodExecOptions{
+			Command: cmd,
+			Stdout:  true,
+		},
+		scheme.ParameterCodec,
+	)
+
+	exec, err := remotecommand.NewSPDYExecutor(k.Config, "POST", req.URL())
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdout: io.Writer(&buf),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }

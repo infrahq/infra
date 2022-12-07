@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 func (a *API) CreateCredentialRequest(c *gin.Context, r *api.CreateCredentialRequest) (*api.CredentialRequest, error) {
@@ -11,10 +12,10 @@ func (a *API) CreateCredentialRequest(c *gin.Context, r *api.CreateCredentialReq
 	if err != nil {
 		return nil, err
 	}
+	logging.Debugf("Created Credential Request %+v", req)
 
-	return &api.CredentialRequest{
-		BearerToken: req.BearerToken,
-	}, nil
+	result := req.ToAPI()
+	return &result, nil
 }
 
 // ListCredentialRequests is a long-polling endpoint that returns Credential Requests awaiting to be filled.
@@ -29,7 +30,7 @@ func (a *API) ListCredentialRequests(c *gin.Context, r *api.ListCredentialReques
 		MaxUpdateIndex: resp.MaxUpdateIndex,
 	}
 	for i := range resp.Items {
-		apiResp.Items = append(apiResp.Items, resp.Items[i].ToAPI())
+		apiResp.Items[i] = resp.Items[i].ToAPI()
 	}
 
 	return apiResp, nil

@@ -990,7 +990,12 @@ func dumpSchema(t *testing.T, conn string, args ...string) string {
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 
-	assert.NilError(t, cmd.Run())
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("OUTPUT: " + out.String())
+	}
+
+	assert.NilError(t, err)
 	return out.String()
 }
 

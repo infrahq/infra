@@ -333,11 +333,16 @@ func (c Client) DeleteProvider(ctx context.Context, id uid.ID) error {
 	return delete(ctx, c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }
 
+func (c Client) CreateCredentialRequest(ctx context.Context, r *CreateCredentialRequest) (*CredentialRequest, error) {
+	return post[CredentialRequest](ctx, c, "/api/credentials", r)
+}
+
 func (c Client) ListCredentialRequests(ctx context.Context, req ListCredentialRequest) (*ListCredentialRequestResponse, error) {
-	return get[ListCredentialRequestResponse](ctx, c, "/api/credentials", Query{
+	resp, err := get[ListCredentialRequestResponse](ctx, c, "/api/credentials", Query{
 		"destination":     []string{req.Destination},
 		"lastUpdateIndex": []string{strconv.FormatInt(req.LastUpdateIndex, 10)},
 	})
+	return resp, err
 }
 
 func (c Client) UpdateCredentialRequest(ctx context.Context, r *UpdateCredentialRequest) (*EmptyResponse, error) {

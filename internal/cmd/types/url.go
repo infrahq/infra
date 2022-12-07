@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/goware/urlx"
 )
@@ -67,7 +68,7 @@ func (h *HostPort) String() string {
 	if h.Port == 0 {
 		return h.Host
 	}
-	return net.JoinHostPort(h.Host, strconv.Itoa(h.Port))
+	return strings.Join([]string{h.Host, strconv.Itoa(h.Port)}, ":")
 }
 
 func (h *HostPort) Type() string {

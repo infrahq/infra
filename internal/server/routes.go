@@ -95,6 +95,7 @@ func (s *Server) GenerateRoutes() Routes {
 
 	post(a, authn, "/api/tokens", a.CreateToken)
 	post(a, authn, "/api/credentials", a.CreateCredentialRequest)
+	put(a, authn, "/api/credentials", a.UpdateCredentialRequest)
 	post(a, authn, "/api/logout", a.Logout)
 
 	// SCIM inbound provisioning
@@ -265,7 +266,8 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			completeTx = tx.Rollback
 		}
 		if err := completeTx(); err != nil {
-			return err
+			logging.Warnf("Couldn't commit or roll back transaction")
+			// return err
 		}
 
 		if !route.omitFromTelemetry {

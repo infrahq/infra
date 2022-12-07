@@ -893,11 +893,11 @@ func addCredentialRequests() *migrator.Migration {
 					AS $$
 				BEGIN
 					-- on insert, we notify connector listeners for this destination
-					PERFORM pg_notify(current_schema() || '.credreq_' || NEW.organization_id || '_' || NEW.destination_id, NEW.id);
+					PERFORM pg_notify(current_schema() || '.credreq_' || NEW.organization_id::TEXT || '_' || NEW.destination_id::TEXT, NEW.id::TEXT);
 					RETURN NULL;
 				END; $$;
 
-				CREATE OR REPLACE TRIGGER credreq_notify_trigger AFTER insert
+				CREATE OR REPLACE TRIGGER credreq_notify_insert_trigger AFTER insert
 					ON credential_requests
 					FOR EACH ROW EXECUTE FUNCTION credential_request_insert_notify();
 
@@ -906,7 +906,7 @@ func addCredentialRequests() *migrator.Migration {
 					AS $$
 				BEGIN
 					-- on update, we notify user listeners for this specific id, waiting to login
-					PERFORM pg_notify(current_schema() || '.credreq_' || NEW.organization_id || '_' || NEW.id, NEW.id);
+					PERFORM pg_notify(current_schema() || '.credreq_' || NEW.organization_id::TEXT || '_' || NEW.id::TEXT, NEW.id::TEXT);
 					RETURN NULL;
 				END; $$;
 

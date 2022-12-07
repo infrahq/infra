@@ -31,6 +31,9 @@ type CredentialRequest struct {
 
 	ExpiresAt Time `json:"expiresAt"`
 
+	// Internal Fields
+	UpdateIndex int64 `json:"updateIndex"`
+
 	// certificate
 	// PublicCertificate []byte `json:"publicCertificate"` // supplied if the user is planning to connect via client-generated certificate pair
 
@@ -59,8 +62,9 @@ type UpdateCredentialRequest struct {
 	////////////////////
 	// request fields //
 	////////////////////
-	ID             uid.ID
-	OrganizationID uid.ID
+	ID             uid.ID `json:"id"`
+	OrganizationID uid.ID `json:"organizationID"`
+	ExpiresAt      Time   `json:"expiresAt"`
 
 	// // certificate
 	// PublicCertificate []byte // supplied if the user is planning to connect via client-generated certificate pair
@@ -76,7 +80,7 @@ type UpdateCredentialRequest struct {
 	// Password string
 
 	// // API key
-	BearerToken string
+	BearerToken string `json:"bearerToken"`
 
 	// // Certificate
 

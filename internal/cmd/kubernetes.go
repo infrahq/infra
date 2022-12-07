@@ -168,7 +168,7 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		kubeConfig.AuthInfos[user.Name] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
-				Args:            []string{"tokens", "add"},
+				Args:            []string{"credentials", "add", cluster},
 				APIVersion:      "client.authentication.k8s.io/v1beta1",
 				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
 			},

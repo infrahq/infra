@@ -70,8 +70,8 @@ spec:
           livenessProbe:
             httpGet:
               path: /healthz
-              port: https
-              scheme: HTTPS
+              port: http
+              scheme: HTTP
             successThreshold: {{ .Values.connector.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.connector.livenessProbe.failureThreshold }}
             initialDelaySeconds: {{ .Values.connector.livenessProbe.initialDelaySeconds }}
@@ -80,8 +80,8 @@ spec:
           readinessProbe:
             httpGet:
               path: /healthz
-              port: https
-              scheme: HTTPS
+              port: http
+              scheme: HTTP
             successThreshold: {{ .Values.connector.readinessProbe.successThreshold }}
             failureThreshold: {{ .Values.connector.readinessProbe.failureThreshold }}
             initialDelaySeconds: {{ .Values.connector.readinessProbe.initialDelaySeconds }}

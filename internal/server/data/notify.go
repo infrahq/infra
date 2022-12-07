@@ -33,20 +33,24 @@ func (l *Listener) WaitForNotification(ctx context.Context) error {
 			return err
 		}
 
-		err = l.isMatchingNotify(notficaition.Payload)
-		switch {
-		case errors.Is(err, errNotificationNoMatch):
-			continue
-		case err != nil:
-			return err
-		default:
-			return nil
+		if l.isMatchingNotify != nil {
+			err = l.isMatchingNotify(notficaition.Payload)
+			switch {
+			case errors.Is(err, errNotificationNoMatch):
+				continue
+			case err != nil:
+				return err
+			default:
+				return nil
+			}
 		}
+		return nil
 	}
 }
 
 func (l *Listener) Release(ctx context.Context) error {
 	var errs []error
+	logging.Debugf("unlisten *")
 	if _, err := l.pgxConn.Exec(ctx, `UNLISTEN *`); err != nil {
 		errs = append(errs, err)
 	}
@@ -96,6 +100,7 @@ func ListenForNotify(ctx context.Context, db *DB, opts ListenForNotifyOptions) (
 		channel = fmt.Sprintf("credreq_%d_%d", opts.OrgID, opts.CredentialRequestsByID)
 	}
 
+	logging.Debugf("listing for notify on %s", channel)
 	_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", channel)
 	if err != nil {
 		if err := pgxstdlib.ReleaseConn(sqlDB, pgxConn); err != nil {

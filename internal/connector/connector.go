@@ -536,6 +536,9 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 
 			name = group.Name
 			kind = rbacv1.GroupKind
+			if len(name) == 0 {
+				return errors.New("group name cannot be blank")
+			}
 		case g.User != 0:
 			user, err := c.GetUser(ctx, g.User)
 			if err != nil {
@@ -544,6 +547,9 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 
 			name = user.Name
 			kind = rbacv1.UserKind
+			if len(name) == 0 {
+				return errors.New("user name cannot be blank")
+			}
 		}
 
 		subj := rbacv1.Subject{

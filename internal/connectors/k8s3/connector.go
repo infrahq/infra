@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
@@ -82,7 +81,6 @@ type KubernetesOptions struct {
 
 // k8sConnector stores all the dependencies for the k8sConnector operations.
 type k8sConnector struct {
-	sync.Mutex
 	k8s         kubeClient
 	client      apiClient
 	destination api.Destination
@@ -109,7 +107,7 @@ type kubeClient interface {
 	Namespaces() ([]string, error)
 	ClusterRoles() ([]string, error)
 	IsServiceTypeClusterIP() (bool, error)
-	Endpoint() (string, int, error)
+	DirectEndpoint() (string, int, []byte, error)
 
 	UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error
 	UpdateRoleBindings(subjects map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) error
@@ -120,6 +118,8 @@ type kubeClient interface {
 var httpErrorLog *log.Logger
 
 func Run(ctx context.Context, options Options) error {
+	logging.Debugf("k8s3 started")
+
 	httpErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
 
 	u, err := urlx.Parse(options.Server.URL)
@@ -134,33 +134,50 @@ func Run(ctx context.Context, options Options) error {
 
 	runGroup, ctx := errgroup.WithContext(ctx)
 
-	con, err := newK8sConnector(options)
+	con1, err := newK8sConnector(options)
+	if err != nil {
+		return err
+	}
+	con2, err := newK8sConnector(options)
+	if err != nil {
+		return err
+	}
+	con3, err := newK8sConnector(options)
+	if err != nil {
+		return err
+	}
+	con4, err := newK8sConnector(options)
 	if err != nil {
 		return err
 	}
 
 	// sync destination once to populate the con's destination fields. these get shared across goroutines.
-	err = syncDestination(ctx, con)
+	err = syncDestination(ctx, con3)
 	if err != nil {
 		return err
 	}
 
-	startMetricsService(ctx, con, runGroup)
-	startHealthService(ctx, options, runGroup)
-	startGrantReconciler(ctx, con, runGroup)
-	startDestinationSync(ctx, con, runGroup)
-	startCredentialRequestReconciler(ctx, con, runGroup)
+	logging.Debugf("k8s3 starting services")
 
-	logging.Infof("starting infra k8s connector (%s)", internal.FullVersion())
+	startMetricsService(ctx, con1, runGroup)
+	startHealthService(ctx, options, runGroup)
+	startGrantReconciler(ctx, con2, runGroup)
+	startDestinationSync(ctx, con3, runGroup)
+	startCredentialRequestReconciler(ctx, con4, runGroup)
+
+	logging.Debugf("starting infra k8s connector (%s)", internal.FullVersion())
 
 	// wait for shutdown signal
 	<-ctx.Done()
+
+	logging.Debugf("shutdown received")
 
 	// wait for goroutines to shutdown
 	err = runGroup.Wait()
 	if errors.Is(err, context.Canceled) {
 		return nil
 	}
+	logging.Errorf("rungroup error: %s", err)
 	return err
 }
 
@@ -173,6 +190,7 @@ func startCredentialRequestReconciler(ctx context.Context, con *k8sConnector, ru
 				lastUpdateIndex = resp.MaxUpdateIndex
 			}
 		}
+		logging.Debugf("CredentialRequestReconciler exited")
 		return nil
 	})
 }
@@ -181,6 +199,7 @@ func pollForCredentialRequestsOnce(ctx context.Context, con *k8sConnector, lastU
 	client := con.client
 
 	// long-poll credentials against server
+	logging.Debugf("ListCredentialRequests since %d", lastUpdateIndex)
 	resp, err := client.ListCredentialRequests(ctx, api.ListCredentialRequest{
 		Destination:     con.destination.Name,
 		LastUpdateIndex: lastUpdateIndex,
@@ -190,35 +209,36 @@ func pollForCredentialRequestsOnce(ctx context.Context, con *k8sConnector, lastU
 		time.Sleep(1 * time.Second) // don't want to wait long as this is critical path
 		return nil
 	}
+	logging.Debugf("ListCredentialRequests found %d requests", len(resp.Items))
 
 	// for each: create service account
 	for _, req := range resp.Items {
 		user, err := con.client.GetUser(ctx, req.UserID)
 		if err != nil {
 			logging.Errorf("GetUser failed, ignoring credential request: %s", err.Error())
-			return nil
-		}
-		// create account if it's missing
-		_, err = con.k8s.CreateServiceAccount(user.Name)
-		if err != nil {
-			logging.Errorf("CreateServiceAccount failed, ignoring credential request: %s", err.Error())
-			return nil
+			return &api.ListCredentialRequestResponse{MaxUpdateIndex: req.UpdateIndex}
 		}
 		// issue token to user
-		tokenRequest, err := con.k8s.CreateServiceAccountToken(user.Name)
+		tokenRequest, err := con.k8s.CreateServiceAccountToken(normalizeUsername(user.Name))
 		if err != nil {
 			logging.Errorf("CreateServiceAccountToken failed, ignoring credential request: %s", err.Error())
-			return nil
+			return &api.ListCredentialRequestResponse{MaxUpdateIndex: req.UpdateIndex}
 		}
 		// return credentials to user by posting back to the api.
+		logging.Debugf("UpdateCredentialRequest %d for org %d", req.ID, req.OrganizationID)
+		expiresAt := time.Now().Add(24 * time.Hour)
+		if tokenRequest.Spec.ExpirationSeconds != nil {
+			expiresAt = time.Now().Add(time.Duration(*(tokenRequest.Spec.ExpirationSeconds)) * time.Second)
+		}
 		_, err = con.client.UpdateCredentialRequest(ctx, &api.UpdateCredentialRequest{
 			ID:             req.ID,
 			OrganizationID: req.OrganizationID,
 			BearerToken:    tokenRequest.Status.Token,
+			ExpiresAt:      api.Time(expiresAt),
 		})
 		if err != nil {
 			logging.Errorf("UpdateCredentialRequest failed, ignoring credential request: %s", err.Error())
-			return nil
+			return &api.ListCredentialRequestResponse{MaxUpdateIndex: req.UpdateIndex}
 		}
 	}
 
@@ -289,6 +309,7 @@ func startGrantReconciler(ctx context.Context, con *k8sConnector, runGroup *errg
 			Multiplier:          1.5,
 		}
 		waiter := repeat.NewWaiter(backOff)
+		defer logging.Debugf("GrantReconciler exited")
 		return syncGrantsToKubeBindings(ctx, con, waiter)
 	})
 }
@@ -310,6 +331,7 @@ func startDestinationSync(ctx context.Context, con *k8sConnector, runGroup *errg
 					waiter.Reset()
 				}
 			case <-ctx.Done():
+				logging.Debugf("DestinationSync exited")
 				return nil
 			}
 		}
@@ -317,6 +339,7 @@ func startDestinationSync(ctx context.Context, con *k8sConnector, runGroup *errg
 }
 
 func startHealthService(ctx context.Context, options Options, runGroup *errgroup.Group) {
+	gin.SetMode(gin.ReleaseMode)
 	healthOnlyRouter := gin.New()
 	healthOnlyRouter.GET("/healthz", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -343,6 +366,7 @@ func startHealthService(ctx context.Context, options Options, runGroup *errgroup
 		if err := plaintextServer.Close(); err != nil {
 			logging.L.Warn().Err(err).Msgf("shutdown plaintext server")
 		}
+		logging.Debugf("HealthService exited")
 	}()
 }
 
@@ -395,6 +419,7 @@ func startMetricsService(ctx context.Context, con *k8sConnector, runGroup *errgr
 		if err := metricsServer.Close(); err != nil {
 			logging.L.Warn().Err(err).Msgf("shutdown metrics server")
 		}
+		logging.Debugf("MetricsService exited")
 	}()
 }
 
@@ -423,9 +448,13 @@ func httpTransportFromOptions(opts ServerOptions) *http.Transport {
 
 // syncDestination creates and manages the destination record in Infra.
 func syncDestination(ctx context.Context, con *k8sConnector) error {
-	endpoint, err := getEndpointHostPort(con.k8s, con.options)
+	endpoint, cert, err := getEndpointHostPort(con.k8s, con.options)
 	if err != nil {
 		logging.L.Warn().Err(err).Msg("could not get host")
+	}
+
+	if cert != nil {
+		con.options.CACert = types.StringOrFile(cert)
 	}
 
 	if endpoint.Host != "" {
@@ -433,7 +462,6 @@ func syncDestination(ctx context.Context, con *k8sConnector) error {
 			// wait for DNS resolution if endpoint is not an IP address
 			if _, err := net.LookupIP(endpoint.Host); err != nil {
 				logging.L.Warn().Err(err).Msg("host could not be resolved")
-				endpoint.Host = ""
 			}
 		}
 
@@ -449,9 +477,6 @@ func syncDestination(ctx context.Context, con *k8sConnector) error {
 	if err != nil {
 		return fmt.Errorf("could not get kubernetes cluster-roles: %w", err)
 	}
-
-	con.Lock()
-	defer con.Unlock()
 
 	switch {
 	case con.destination.ID == 0:
@@ -489,17 +514,17 @@ func syncDestination(ctx context.Context, con *k8sConnector) error {
 	return nil
 }
 
-func getEndpointHostPort(k8s kubeClient, opts Options) (types.HostPort, error) {
+func getEndpointHostPort(k8s kubeClient, opts Options) (types.HostPort, []byte, error) {
 	if opts.EndpointAddr.Host != "" {
-		return opts.EndpointAddr, nil
+		return opts.EndpointAddr, nil, nil
 	}
 
-	host, port, err := k8s.Endpoint()
+	host, port, cert, err := k8s.DirectEndpoint()
 	if err != nil {
-		return types.HostPort{}, fmt.Errorf("failed to lookup endpoint: %w", err)
+		return types.HostPort{}, nil, fmt.Errorf("failed to lookup endpoint: %w", err)
 	}
 
-	return types.HostPort{Host: host, Port: port}, nil
+	return types.HostPort{Host: host, Port: port}, cert, nil
 }
 
 type waiter interface {
@@ -517,7 +542,6 @@ func syncGrantsToKubeBindings(ctx context.Context, con *k8sConnector, waiter wai
 		return err
 	}
 
-	con.Lock()
 	client := &api.Client{
 		Name:      "connector",
 		Version:   internal.Version,
@@ -533,11 +557,8 @@ func syncGrantsToKubeBindings(ctx context.Context, con *k8sConnector, waiter wai
 			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
 		},
 	}
-	con.Unlock()
 
 	sync := func() error {
-		con.Lock()
-		defer con.Unlock()
 		grants, err := client.ListGrants(ctx, api.ListGrantsRequest{
 			Destination:     con.destination.Name,
 			BlockingRequest: api.BlockingRequest{LastUpdateIndex: latestIndex},
@@ -558,7 +579,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con *k8sConnector, waiter wai
 			Int("grants", len(grants.Items)).
 			Msg("received grants from server")
 
-		err = updateRoles(ctx, con.client, con.k8s, grants.Items)
+		err = updateRoles(ctx, con, grants.Items)
 		if err != nil {
 			return fmt.Errorf("update roles: %w", err)
 		}
@@ -585,7 +606,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con *k8sConnector, waiter wai
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
-func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Grant) error {
+func updateRoles(ctx context.Context, con *k8sConnector, grants []api.Grant) error {
 	logging.Debugf("syncing local grants from infra configuration")
 
 	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject
@@ -600,7 +621,7 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 
 		switch {
 		case g.Group != 0:
-			group, err := c.GetGroup(ctx, g.Group)
+			group, err := con.client.GetGroup(ctx, g.Group)
 			if err != nil {
 				return err
 			}
@@ -608,19 +629,18 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 			name = group.Name
 			kind = rbacv1.GroupKind
 		case g.User != 0:
-			user, err := c.GetUser(ctx, g.User)
+			user, err := con.client.GetUser(ctx, g.User)
 			if err != nil {
 				return err
 			}
 
-			name = user.Name
+			name = normalizeUsername(user.Name)
 			kind = rbacv1.ServiceAccountKind
 		}
-
 		subj := rbacv1.Subject{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     kind,
-			Name:     name,
+			Kind:      kind,
+			Name:      name,
+			Namespace: "default",
 		}
 
 		parts := strings.Split(g.Resource, ".")
@@ -645,11 +665,11 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 		}
 	}
 
-	if err := k.UpdateClusterRoleBindings(crSubjects); err != nil {
+	if err := con.k8s.UpdateClusterRoleBindings(crSubjects); err != nil {
 		return fmt.Errorf("update cluster role bindings: %w", err)
 	}
 
-	if err := k.UpdateRoleBindings(crnSubjects); err != nil {
+	if err := con.k8s.UpdateRoleBindings(crnSubjects); err != nil {
 		return fmt.Errorf("update role bindings: %w", err)
 	}
 
@@ -723,4 +743,35 @@ func slicesEqual(s1, s2 []string) bool {
 	}
 
 	return true
+}
+
+const validCharacters string = "qwertyuiopasdfghjklzxcvbnm1234567890-."
+
+func normalizeUsername(name string) string {
+	result := ""
+	for i := range strings.ToLower(name) {
+		if strings.ContainsAny(string(name[i]), validCharacters) {
+			result += string(name[i])
+		} else {
+			result += "."
+		}
+	}
+	result = strings.ReplaceAll(result, "..", ".")
+	result = strings.ReplaceAll(result, "--", "-")
+	parts := strings.Split(result, ".")
+	acceptedParts := []string{}
+	// parts must not start or end with non-alphanumerics
+	for _, part := range parts {
+		for len(part) > 0 && (part[0] < 'a' || part[0] > 'z') && (part[0] < '0' || part[0] > '9') {
+			part = part[1:]
+		}
+		for len(part) > 0 && (part[len(part)-1] < 'a' || part[len(part)-1] > 'z') && (part[len(part)-1] < '0' || part[len(part)-1] > '9') {
+			part = part[:len(part)-2]
+		}
+		if len(part) > 0 {
+			acceptedParts = append(acceptedParts, part)
+		}
+	}
+	full := strings.Join(acceptedParts, ".")
+	return full
 }

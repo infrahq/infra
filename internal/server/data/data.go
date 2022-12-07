@@ -190,6 +190,17 @@ func (t *Transaction) Rollback() error {
 	return err
 }
 
+func (t *Transaction) Begin(opts ...*sql.TxOptions) error {
+	t.DB = t.DB.Session(&gorm.Session{NewDB: true})
+	db := t.DB.Begin(opts...)
+	if db.Error != nil {
+		return db.Error
+	}
+	t.completed.Store(false)
+	t.DB = db
+	return nil
+}
+
 func (t *Transaction) Commit() error {
 	err := t.DB.Commit().Error
 	if err == nil {

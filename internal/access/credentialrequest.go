@@ -26,7 +26,7 @@ func CreateCredentialRequest(c *gin.Context, destination string) (*models.Creden
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ListGrants: %w", err)
 	}
 	if len(grants) == 0 {
 		return nil, internal.ErrUnauthorized
@@ -34,7 +34,7 @@ func CreateCredentialRequest(c *gin.Context, destination string) (*models.Creden
 
 	dest, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByName: destination})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetDestination: %w", err)
 	}
 
 	cr := &models.CredentialRequest{
@@ -46,8 +46,9 @@ func CreateCredentialRequest(c *gin.Context, destination string) (*models.Creden
 	}
 	err = data.CreateCredentialRequest(rCtx.DBTxn, cr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreateCredentialRequest: %w", err)
 	}
+	logging.Debugf("Creating CredentialRequest with id %d, orgID %d", cr.ID, cr.OrganizationID)
 
 	// commit the transaction so others can see the request
 	err = rCtx.DBTxn.Commit()
@@ -61,7 +62,7 @@ func CreateCredentialRequest(c *gin.Context, destination string) (*models.Creden
 		CredentialRequestsByID: cr.ID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ListenForNotify: %w", err)
 	}
 	defer func() {
 		err := listener.Release(c)
@@ -72,13 +73,28 @@ func CreateCredentialRequest(c *gin.Context, destination string) (*models.Creden
 
 	err = listener.WaitForNotification(c)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", api.ErrTimeout, err)
+		logging.Debugf("CreateCredentialRequest notification timeout")
+		return nil, fmt.Errorf("WaitForNotification %w: %s", api.ErrTimeout, err)
 	}
+	logging.Debugf("CreateCredentialRequest notification received")
+
+	tx, err := rCtx.DataDB.Begin(rCtx.Request.Context(), &sql.TxOptions{
+		Isolation: sql.LevelReadCommitted,
+		ReadOnly:  true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	tx = tx.WithOrgID(cr.OrganizationID)
 
 	// looks like the CredentialRequest has been updated; reload the credential request
-	cr, err = data.GetCredentialRequest(rCtx.DBTxn, cr.ID, cr.OrganizationID)
+	logging.Debugf("Reloading CredentialRequest with id %d, orgID %d", cr.ID, cr.OrganizationID)
+	cr, err = data.GetCredentialRequest(tx, cr.ID, cr.OrganizationID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetCredentialRequest: %w", err)
+	}
+	if err = tx.Rollback(); err != nil {
+		logging.Debugf("could not roll back transaction")
 	}
 
 	return cr, nil
@@ -100,8 +116,11 @@ func ListCredentialRequests(c *gin.Context, destination string, lastUpdateIndex 
 	}
 
 	if lastUpdateIndex == 0 {
+		logging.Debugf("listing all credential requests")
 		result, err := data.ListCredentialRequests(rCtx.DBTxn, dest.ID)
-		return ListCredentialRequestResponse{Items: result}, err
+		if len(result) > 0 {
+			return ListCredentialRequestResponse{Items: result}, err
+		}
 	}
 
 	// Close the request scoped txn to avoid long-running transactions.

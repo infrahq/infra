@@ -393,6 +393,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 
 	// Hidden
 	rootCmd.AddCommand(newTokensCmd(cli))
+	rootCmd.AddCommand(newCredentialsCmd(cli))
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newConnectorCmd())
 	rootCmd.AddCommand(newAgentCmd())
