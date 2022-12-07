@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -286,18 +285,6 @@ var cmpAnyStringSuffix = gocmp.Comparer(func(x, y interface{}) bool {
 	}
 
 	return xs == ys
-})
-
-// cmpEquateEmptySlice is a gocmp.Option that evalutes any empty slice as equal regardless of their types, then falls back to deep comparison
-var cmpEquateEmptySlice = gocmp.Comparer(func(x, y interface{}) bool {
-	xs, _ := x.([]any)
-	ys, _ := y.([]any)
-
-	if len(xs) == len(ys) {
-		return true
-	}
-
-	return reflect.DeepEqual(xs, ys)
 })
 
 // cmpAnyValidAccessKey is a gocmp.Option that allows a field to match any valid access key
