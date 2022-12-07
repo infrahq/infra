@@ -248,19 +248,21 @@ type DeleteAccessKeysOptions struct {
 }
 
 func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
-	query := querybuilder.New("UPDATE access_keys")
-	query.B("SET deleted_at = ? WHERE", time.Now())
-	switch {
-	case opts.ByID != 0:
-		query.B("id = ?", opts.ByID)
-	case opts.ByIssuedForID != 0:
-		query.B("issued_for = ?", opts.ByIssuedForID)
-	case opts.ByProviderID != 0:
-		query.B("provider_id = ?", opts.ByProviderID)
-	default:
-		return fmt.Errorf("DeleteAccessKeys requires an ID to delete")
+	if opts.ByID == 0 && opts.ByIssuedForID == 0 && opts.ByProviderID == 0 {
+		return fmt.Errorf("DeleteAccessKeys requires an ID, IssuedForID, or ProviderID")
 	}
-	query.B("AND organization_id = ?", tx.OrganizationID())
+	query := querybuilder.New("UPDATE access_keys")
+	query.B("SET deleted_at = ?", time.Now())
+	query.B("WHERE organization_id = ?", tx.OrganizationID())
+	if opts.ByID != 0 {
+		query.B("AND id = ?", opts.ByID)
+	}
+	if opts.ByIssuedForID != 0 {
+		query.B("AND issued_for = ?", opts.ByIssuedForID)
+	}
+	if opts.ByProviderID != 0 {
+		query.B("AND provider_id = ?", opts.ByProviderID)
+	}
 
 	_, err := tx.Exec(query.String(), query.Args...)
 	return err

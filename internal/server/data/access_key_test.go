@@ -210,7 +210,7 @@ func TestDeleteAccessKeys(t *testing.T) {
 
 		t.Run("empty options", func(t *testing.T) {
 			err := DeleteAccessKeys(db, DeleteAccessKeysOptions{})
-			assert.ErrorContains(t, err, "requires an ID to delete")
+			assert.ErrorContains(t, err, "DeleteAccessKeys requires an ID, IssuedForID, or ProviderID")
 		})
 
 		t.Run("by user id", func(t *testing.T) {
