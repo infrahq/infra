@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/smtp"
+	"strings"
 	"time"
 )
 
@@ -93,6 +94,10 @@ const RespectListManagement bool = false
 
 // SendSMTP sends an email message
 func SendSMTP(msg Message, bypassListManagement bool) error {
+	if strings.HasSuffix(msg.ToAddress, "@example.com") {
+		return nil
+	}
+	
 	client := &Client{} // setup a new client for each smtp send
 
 	if testClient != nil {
