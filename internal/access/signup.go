@@ -8,7 +8,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
@@ -50,22 +49,6 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details *
 	db := rCtx.DBTxn
 
 	details.Org.Domain = SanitizedDomain(details.SubDomain, baseDomain)
-
-	adminEmail := ""
-	switch {
-	case details.User != nil:
-		adminEmail = details.User.Name
-	case details.Social != nil:
-		adminEmail = details.Social.IDPAuth.Email
-	}
-	allowedLoginDomain, err := email.Domain(adminEmail)
-	if err != nil {
-		return nil, fmt.Errorf("allowed login domain from admin email: %w", err)
-	}
-	if allowedLoginDomain != "gmail.com" && allowedLoginDomain != "googlemail.com" {
-		// if gmail or goolemal the admin will have to manually specify this later
-		details.Org.AllowedDomains = []string{allowedLoginDomain}
-	}
 
 	if err := data.CreateOrganization(db, details.Org); err != nil {
 		return nil, fmt.Errorf("create org on sign-up: %w", err)
