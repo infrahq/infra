@@ -19,7 +19,7 @@ import (
 func setupClient(srv net.Listener) {
 	SendgridAPIKey = "api-key"
 	SMTPServer = srv.Addr().String()
-	testClient = &Client{skipTLSVerify: true}
+	testClient = &Client{skipTLSVerify: true, deliverExampleEmails: true}
 }
 
 func setupSMTPServer(t *testing.T, handler func(t *testing.T, c net.Conn)) net.Listener {

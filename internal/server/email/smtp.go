@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"io"
 	"net/smtp"
+	"strings"
 	"time"
 )
 
 type Client struct {
 	*tls.Conn
-	Client        *smtp.Client
-	skipTLSVerify bool
+	Client               *smtp.Client
+	skipTLSVerify        bool
+	deliverExampleEmails bool
 }
 
 type Message struct {
@@ -97,6 +99,10 @@ func SendSMTP(msg Message, bypassListManagement bool) error {
 
 	if testClient != nil {
 		client = testClient
+	}
+
+	if strings.HasSuffix(msg.ToAddress, "@example.com") && !client.deliverExampleEmails {
+		return nil
 	}
 
 	if err := client.connect(); err != nil {
