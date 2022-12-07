@@ -16,15 +16,15 @@ func (organizationsTable) Table() string {
 }
 
 func (o organizationsTable) Columns() []string {
-	return []string{"created_at", "created_by", "deleted_at", "domain", "id", "name", "updated_at", "allowed_domains"}
+	return []string{"created_at", "created_by", "deleted_at", "domain", "id", "name", "updated_at"}
 }
 
 func (o organizationsTable) Values() []any {
-	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID, o.Name, o.UpdatedAt, o.AllowedDomains}
+	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID, o.Name, o.UpdatedAt}
 }
 
 func (o *organizationsTable) ScanFields() []any {
-	return []any{&o.CreatedAt, &o.CreatedBy, &o.DeletedAt, &o.Domain, &o.ID, &o.Name, &o.UpdatedAt, &o.AllowedDomains}
+	return []any{&o.CreatedAt, &o.CreatedBy, &o.DeletedAt, &o.Domain, &o.ID, &o.Name, &o.UpdatedAt}
 }
 
 // CreateOrganization creates a new organization, and initializes it with

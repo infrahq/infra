@@ -110,7 +110,6 @@ func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
 	rows, err := d.DB.Query(query, args...)
 	logQuery(query, err, start, -1)
 	return rows, err
-
 }
 
 func (d *DB) QueryRow(query string, args ...any) *sql.Row {
@@ -267,10 +266,9 @@ func initialize(db *DB) error {
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{
-			Model:          models.Model{ID: defaultOrganizationID},
-			Name:           "Default",
-			CreatedBy:      models.CreatedBySystem,
-			AllowedDomains: []string{},
+			Model:     models.Model{ID: defaultOrganizationID},
+			Name:      "Default",
+			CreatedBy: models.CreatedBySystem,
 		}
 		if err := CreateOrganization(tx, org); err != nil {
 			return fmt.Errorf("failed to create default organization: %w", err)

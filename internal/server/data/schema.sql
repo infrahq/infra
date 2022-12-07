@@ -208,8 +208,7 @@ CREATE TABLE organizations (
     deleted_at timestamp with time zone,
     name text,
     created_by bigint,
-    domain text,
-    allowed_domains text DEFAULT ''::text
+    domain text
 );
 
 CREATE TABLE password_reset_tokens (

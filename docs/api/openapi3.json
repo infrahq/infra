@@ -828,16 +828,6 @@
           "items": {
             "items": {
               "properties": {
-                "allowedDomains": {
-                  "description": "domains which can be used to login to this organization",
-                  "example": "['example.com', 'infrahq.com']",
-                  "items": {
-                    "description": "domains which can be used to login to this organization",
-                    "example": "['example.com', 'infrahq.com']",
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
                 "created": {
                   "description": "formatted as an RFC3339 date-time",
                   "example": "2022-03-14T09:48:00Z",
@@ -1141,16 +1131,6 @@
       },
       "Organization": {
         "properties": {
-          "allowedDomains": {
-            "description": "domains which can be used to login to this organization",
-            "example": "['example.com', 'infrahq.com']",
-            "items": {
-              "description": "domains which can be used to login to this organization",
-              "example": "['example.com', 'infrahq.com']",
-              "type": "string"
-            },
-            "type": "array"
-          },
           "created": {
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",

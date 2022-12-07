@@ -81,6 +81,7 @@ func migrations() []*migrator.Migration {
 		addUserPubicKeysTable(),
 		addUserSSHLoginName(),
 		makeIdxEmailsProvidersUnique(),
+		removeAllowedDomainsFromOrganizationsTable(),
 		// next one here
 	}
 }
@@ -1049,6 +1050,19 @@ func makeIdxEmailsProvidersUnique() *migrator.Migration {
 				CREATE UNIQUE INDEX IF NOT EXISTS idx_emails_providers_identities ON provider_users (email, provider_id, identity_id)`
 			_, err := tx.Exec(stmt)
 			return err
+		},
+	}
+}
+
+func removeAllowedDomainsFromOrganizationsTable() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-12-07T11:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `ALTER TABLE organizations DROP COLUMN IF EXISTS allowed_domains`
+			if _, err := tx.Exec(stmt); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 }

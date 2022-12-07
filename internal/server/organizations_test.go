@@ -156,20 +156,17 @@ func TestAPI_GetOrganization(t *testing.T) {
 						"name": "%[2]v",
 						"created": "%[3]v",
 						"updated": "%[3]v",
-						"domain": "%[4]v",
-						"allowedDomains": "%[5]v"
+						"domain": "%[4]v"
 					}`,
 					srv.db.DefaultOrg.ID.String(),
 					srv.db.DefaultOrg.Name,
 					time.Now().UTC().Format(time.RFC3339),
 					srv.db.DefaultOrg.Domain,
-					srv.db.DefaultOrg.AllowedDomains,
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
 
 				cmpAPIOrganizationJSON := gocmp.Options{
 					gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
-					gocmp.FilterPath(pathMapKey(`allowedDomains`), cmpEquateEmptySlice),
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIOrganizationJSON)
 			},

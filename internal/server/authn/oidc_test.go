@@ -61,12 +61,12 @@ func TestOIDCAuthenticate(t *testing.T) {
 	}
 
 	t.Run("nil provider", func(t *testing.T) {
-		_, err := NewOIDCAuthentication(nil, "localhost:8031", "1234", oidc, []string{})
+		_, err := NewOIDCAuthentication(nil, "localhost:8031", "1234", oidc)
 		assert.ErrorContains(t, err, "nil provider in oidc authentication")
 	})
 
 	t.Run("successful authentication", func(t *testing.T) {
-		oidcAuthn, err := NewOIDCAuthentication(mocktaProvider, "localhost:8031", "1234", oidc, []string{})
+		oidcAuthn, err := NewOIDCAuthentication(mocktaProvider, "localhost:8031", "1234", oidc)
 		assert.NilError(t, err)
 		authnIdentity, err := oidcAuthn.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
 
@@ -260,7 +260,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			assert.NilError(t, err)
 
 			mockOIDC := tc.setup(t, db)
-			loginMethod, err := NewOIDCAuthentication(provider, "mockOIDC.example.com/redirect", "AAA", mockOIDC, []string{})
+			loginMethod, err := NewOIDCAuthentication(provider, "mockOIDC.example.com/redirect", "AAA", mockOIDC)
 			assert.NilError(t, err)
 
 			a, err := loginMethod.Authenticate(context.Background(), db, sessionExpiry)
@@ -274,80 +274,6 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				a.Identity = u
 				tc.expected(t, a)
 			}
-		})
-	}
-}
-
-func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
-	db := setupDB(t)
-
-	existing := &models.Identity{
-		Name: "existing@infra.app",
-	}
-	assert.NilError(t, data.CreateIdentity(db, existing))
-
-	sessionExpiry := time.Now().Add(5 * time.Minute)
-
-	type testCase struct {
-		client   providers.OIDCClient
-		expected func(t *testing.T, authnIdentity AuthenticatedIdentity, err error)
-	}
-
-	testCases := map[string]testCase{
-		"User With Allowed Email Domain Succeeds": {
-			client: &mockOIDCImplementation{
-				UserEmailResp: "user@example.com",
-			},
-			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
-				assert.NilError(t, err)
-				assert.Equal(t, "user@example.com", a.Identity.Name)
-				assert.Equal(t, "mockoidc", a.Provider.Name)
-				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
-			},
-		},
-		"User With Email Domain Not Allowed Fails": {
-			client: &mockOIDCImplementation{
-				UserEmailResp: "user@infra.app",
-			},
-			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
-				assert.ErrorContains(t, err, "infra.app is not an allowed email domain")
-			},
-		},
-		"User Identifier With No At Sign Fails": {
-			client: &mockOIDCImplementation{
-				UserEmailResp: "example.com",
-			},
-			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
-				assert.ErrorContains(t, err, "example.com is an invalid email address")
-			},
-		},
-		"User Without Allowed Domain But Existing Identity Succeeds": {
-			client: &mockOIDCImplementation{
-				UserEmailResp: existing.Name,
-			},
-			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
-				assert.NilError(t, err)
-				assert.Equal(t, existing.Name, a.Identity.Name)
-				assert.Equal(t, "mockoidc", a.Provider.Name)
-				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
-			},
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			// setup fake identity provider with allowed domains specified
-			provider := &models.Provider{
-				Name: "mockoidc",
-				URL:  "mockOIDC.example.com",
-				Kind: models.ProviderKindOIDC,
-			}
-
-			loginMethod, err := NewOIDCAuthentication(provider, "mockOIDC.example.com/redirect", "AAA", tc.client, []string{"example.com", "infrahq.com"})
-			assert.NilError(t, err)
-
-			a, err := loginMethod.Authenticate(context.Background(), db, sessionExpiry)
-			tc.expected(t, a, err)
 		})
 	}
 }

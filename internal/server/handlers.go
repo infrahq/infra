@@ -90,24 +90,13 @@ func (a *API) signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
-	allowedSocialLoginDomain, err := email.Domain(r.Name)
-	if err != nil {
-		// this should be caught by request validation before we hit this
-		return nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
-	}
-	if allowedSocialLoginDomain == "gmail.com" || allowedSocialLoginDomain == "googlemail.com" {
-		// the admin will have to manually specify this later, default to no allowed domains
-		allowedSocialLoginDomain = ""
-	}
-
 	keyExpires := time.Now().UTC().Add(a.server.options.SessionDuration)
 
 	suDetails := access.SignupDetails{
 		Name:     r.Name,
 		Password: r.Password,
 		Org: &models.Organization{
-			Name:           r.Org.Name,
-			AllowedDomains: []string{allowedSocialLoginDomain},
+			Name: r.Org.Name,
 		},
 		SubDomain: r.Org.Subdomain,
 	}
@@ -227,7 +216,6 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			r.OIDC.RedirectURL,
 			r.OIDC.Code,
 			providerClient,
-			rCtx.Authenticated.Organization.AllowedDomains,
 		)
 		if err != nil {
 			return nil, err

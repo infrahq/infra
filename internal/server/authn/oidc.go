@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"golang.org/x/exp/slices"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 )
@@ -20,10 +17,9 @@ type oidcAuthn struct {
 	RedirectURL        string
 	Code               string
 	OIDCProviderClient providers.OIDCClient
-	AllowedDomains     []string
 }
 
-func NewOIDCAuthentication(provider *models.Provider, redirectURL string, code string, oidcProviderClient providers.OIDCClient, allowedDomains []string) (LoginMethod, error) {
+func NewOIDCAuthentication(provider *models.Provider, redirectURL string, code string, oidcProviderClient providers.OIDCClient) (LoginMethod, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("nil provider in oidc authentication")
 	}
@@ -32,7 +28,6 @@ func NewOIDCAuthentication(provider *models.Provider, redirectURL string, code s
 		RedirectURL:        redirectURL,
 		Code:               code,
 		OIDCProviderClient: oidcProviderClient,
-		AllowedDomains:     allowedDomains,
 	}, nil
 }
 
@@ -45,25 +40,6 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 		}
 
 		return AuthenticatedIdentity{}, fmt.Errorf("exhange code for tokens: %w", err)
-	}
-
-	if a.Provider.ID == 0 {
-		// this is a social login, check if they can access this org
-		domain, err := email.Domain(idpAuth.Email)
-		if err != nil {
-			return AuthenticatedIdentity{}, err
-		}
-		if !slices.Contains(a.AllowedDomains, domain) {
-			// check if the user has been added manually
-			_, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: idpAuth.Email})
-			if err != nil {
-				if errors.Is(err, internal.ErrNotFound) {
-					return AuthenticatedIdentity{}, fmt.Errorf("%s is not an allowed email domain or existing user", domain)
-				}
-				// someting else went wrong getting the user
-				return AuthenticatedIdentity{}, fmt.Errorf("check user identity on social oidc login: %w", err)
-			}
-		}
 	}
 
 	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: idpAuth.Email, LoadGroups: true})
