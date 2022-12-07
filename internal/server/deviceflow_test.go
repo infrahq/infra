@@ -171,4 +171,38 @@ func TestAPI_StartDeviceFlow(t *testing.T) {
 		}
 		assert.DeepEqual(t, flowResp, expected, cmpDeviceFlowResponse)
 	})
+
+	t.Run("non-existent org", func(t *testing.T) {
+		srv := setupServer(t, withAdminUser, func(t *testing.T, opts *Options) {
+			opts.EnableSignup = true
+			opts.BaseDomain = "example.com"
+			opts.DefaultOrganizationDomain = "example.example.com"
+		})
+		routes := srv.GenerateRoutes()
+
+		req := httptest.NewRequest(http.MethodPost, "https://nonexistent-org.example.com:2020/api/device", nil)
+		req.Header.Set("Infra-Version", apiVersionLatest)
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		flowResp := &api.DeviceFlowResponse{}
+		err := json.NewDecoder(resp.Body).Decode(flowResp)
+		assert.NilError(t, err)
+
+		assert.Equal(t, resp.Code, http.StatusCreated, (*responseDebug)(resp))
+		expected := &api.DeviceFlowResponse{
+			DeviceCode:          "<any-string>",
+			UserCode:            "<any-string>",
+			VerificationURI:     "https://nonexistent-org.example.com:2020/device",
+			ExpiresInSeconds:    600,
+			PollIntervalSeconds: 5,
+		}
+		cmpDeviceFlowResponse := gocmp.Options{
+			gocmp.FilterPath(
+				opt.PathField(api.DeviceFlowResponse{}, "DeviceCode"), cmpAnyString),
+			gocmp.FilterPath(
+				opt.PathField(api.DeviceFlowResponse{}, "UserCode"), cmpAnyString),
+		}
+		assert.DeepEqual(t, flowResp, expected, cmpDeviceFlowResponse)
+	})
 }
