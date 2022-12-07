@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -73,7 +72,7 @@ func DomainAvailable(c *gin.Context, domain string) error {
 	_, err := data.GetOrganization(rCtx.DBTxn, data.GetOrganizationOptions{ByDomain: domain})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
-			logging.L.Error().Err(err).Msg("failed to check if organization exists by domain")
+			return fmt.Errorf("check domain available: %w", err)
 		}
 		return nil // not found, so available
 	}

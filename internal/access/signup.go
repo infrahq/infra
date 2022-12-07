@@ -51,19 +51,20 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details *
 
 	details.Org.Domain = SanitizedDomain(details.SubDomain, baseDomain)
 
+	adminEmail := ""
 	switch {
 	case details.User != nil:
-		email, err := email.Domain(details.User.Name)
-		if err != nil {
-			return nil, fmt.Errorf("set allowed domain from user: %w", err)
-		}
-		details.Org.AllowedDomains = []string{email}
+		adminEmail = details.User.Name
 	case details.Social != nil:
-		email, err := email.Domain(details.Social.IDPAuth.Email)
-		if err != nil {
-			return nil, fmt.Errorf("set allowed domain from email: %w", err)
-		}
-		details.Org.AllowedDomains = []string{email}
+		adminEmail = details.Social.IDPAuth.Email
+	}
+	allowedLoginDomain, err := email.Domain(adminEmail)
+	if err != nil {
+		return nil, fmt.Errorf("allowed login domain from admin email: %w", err)
+	}
+	if allowedLoginDomain != "gmail.com" && allowedLoginDomain != "googlemail.com" {
+		// if gmail or goolemal the admin will have to manually specify this later
+		details.Org.AllowedDomains = []string{allowedLoginDomain}
 	}
 
 	if err := data.CreateOrganization(db, details.Org); err != nil {
