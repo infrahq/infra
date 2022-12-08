@@ -416,7 +416,8 @@ func TestProvisionSSHKey(t *testing.T) {
 				keyID := filepath.Base(keyFilename)
 				expected := fs.Expected(t,
 					fs.WithMode(0o755),
-					fs.WithFile("keys.json", "", fs.MatchAnyFileContent),
+					fs.WithFile("keys.json", "",
+						fs.MatchAnyFileContent),
 					fs.WithDir("keys",
 						fs.WithMode(0o700),
 						fs.WithFile(keyID, "",
@@ -427,6 +428,9 @@ func TestProvisionSSHKey(t *testing.T) {
 							fs.MatchAnyFileContent)),
 				)
 				assert.Assert(t, fs.Equal(infraSSHDir, expected))
+
+				actualIDs := keyIDsFromKeysConfig(t, filepath.Join(infraSSHDir, "keys.json"))
+				assert.DeepEqual(t, actualIDs, []string{keyID})
 			},
 		},
 		{
@@ -480,6 +484,10 @@ func TestProvisionSSHKey(t *testing.T) {
 				user, err := client.GetUserSelf(ctx)
 				assert.NilError(t, err)
 				assert.Equal(t, len(user.PublicKeys), 2) // one existing, one new
+
+				actualIDs := keyIDsFromKeysConfig(t, filepath.Join(infraSSHDir, "keys.json"))
+				expectedIDs := []string{"existing", "existing", "existing", keyID}
+				assert.DeepEqual(t, actualIDs, expectedIDs)
 			},
 		},
 		{
@@ -518,6 +526,9 @@ func TestProvisionSSHKey(t *testing.T) {
 				user, err := client.GetUserSelf(ctx)
 				assert.NilError(t, err)
 				assert.Equal(t, len(user.PublicKeys), 3) // two existing, one new
+
+				actualIDs := keyIDsFromKeysConfig(t, filepath.Join(infraSSHDir, "keys.json"))
+				assert.DeepEqual(t, actualIDs, []string{keyID})
 			},
 		},
 		{
@@ -540,6 +551,7 @@ func TestProvisionSSHKey(t *testing.T) {
 
 				fs.Apply(t, fs.DirFromPath(t, infraSSHDir),
 					fs.WithDir("keys",
+						fs.WithMode(0o700),
 						fs.WithFile("existing", "private-key"),
 						fs.WithFile("existing.pub", "public-key")))
 
@@ -552,6 +564,24 @@ func TestProvisionSSHKey(t *testing.T) {
 				user, err := client.GetUserSelf(ctx)
 				assert.NilError(t, err)
 				assert.Equal(t, len(user.PublicKeys), 4) // three existing, one new
+
+				expected := fs.Expected(t,
+					fs.WithMode(0o755),
+					fs.WithFile("keys.json", "",
+						fs.MatchAnyFileContent),
+					fs.WithDir("keys",
+						fs.WithMode(0o700),
+						fs.WithFile(keyID, "",
+							fs.WithMode(0o600),
+							fs.MatchAnyFileContent),
+						fs.WithFile(keyID+".pub", "",
+							fs.WithMode(0o600),
+							fs.MatchAnyFileContent)),
+				)
+				assert.Assert(t, fs.Equal(infraSSHDir, expected))
+
+				actualIDs := keyIDsFromKeysConfig(t, filepath.Join(infraSSHDir, "keys.json"))
+				assert.DeepEqual(t, actualIDs, []string{keyID})
 			},
 		},
 	}
@@ -561,4 +591,21 @@ func TestProvisionSSHKey(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func keyIDsFromKeysConfig(t *testing.T, filename string) []string {
+	t.Helper()
+
+	fh, err := os.Open(filename)
+	assert.NilError(t, err)
+	defer fh.Close()
+
+	keysCfg := &keysConfig{}
+	assert.NilError(t, json.NewDecoder(fh).Decode(keysCfg))
+
+	var actual []string
+	for _, key := range keysCfg.Keys {
+		actual = append(actual, key.PublicKeyID)
+	}
+	return actual
 }

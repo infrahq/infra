@@ -19,6 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/exp/slices"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
@@ -221,10 +222,11 @@ func provisionSSHKey(ctx context.Context, opts provisionSSHKeyOptions) (string, 
 
 	keysDir := filepath.Join(opts.infraSSHDir, "keys")
 	existingKeys := matchingPublicKeys(keysCfg, opts.hostConfig, org.ID)
-	for _, existing := range existingKeys {
+	for i, existing := range existingKeys {
 		filename := filepath.Join(keysDir, existing.PublicKeyID)
 		if !fileExists(filename) || !fileExists(filename+".pub") {
 			// key doesn't exist locally
+			keysCfg.Keys = slices.Delete(keysCfg.Keys, i, i+1)
 			continue
 		}
 
@@ -235,7 +237,15 @@ func provisionSSHKey(ctx context.Context, opts provisionSSHKeyOptions) (string, 
 		}
 
 		// key doesn't exist in the API
-		// TODO: delete the local key file, and remove it from keysConfig
+		fmt.Fprintf(opts.cli.Stderr,
+			"Removing %v because it was expired or deleted from Infra", filename)
+		if err := os.Remove(filename); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("removing deleted key %w", err)
+		}
+		if err := os.Remove(filename + ".pub"); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("removing deleted key %w", err)
+		}
+		keysCfg.Keys = slices.Delete(keysCfg.Keys, i, i+1)
 	}
 
 	_ = os.MkdirAll(keysDir, 0o700)
