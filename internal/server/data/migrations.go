@@ -1058,7 +1058,12 @@ func deviceFlowAuthRequestsAddUserIDProviderID() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-12-03T13:14",
 		Migrate: func(tx migrator.DB) error {
-			_, err := tx.Exec("UPDATE device_flow_auth_requests SET expires_at = ?", time.Now().UTC())
+			now := time.Now().UTC()
+			_, err := tx.Exec(`
+				UPDATE device_flow_auth_requests
+					SET expires_at = ?
+					WHERE expires_at > ?;
+			`, now, now)
 			if err != nil {
 				return err
 			}
