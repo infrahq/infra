@@ -150,8 +150,6 @@ func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowReques
 	rctx := getRequestContext(c)
 
 	if !rctx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
-		// require the device flow scope to approve access keys provided by login & signup keys, but not
-		// keys resulting from device flow itself
 		return nil, fmt.Errorf("%w: access key missing scope '%s'", internal.ErrUnauthorized, models.ScopeAllowCreateAccessKey)
 	}
 
