@@ -70,9 +70,6 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 
 	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByDeviceCode: req.DeviceCode})
 	if err != nil {
-		if errors.Is(err, internal.ErrNotFound) {
-			return nil, err
-		}
 		return nil, fmt.Errorf("%w: error retrieving device flow auth request: %v", internal.ErrUnauthorized, err)
 	}
 

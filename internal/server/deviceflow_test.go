@@ -114,7 +114,14 @@ func TestDeviceFlow(t *testing.T) {
 	resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", key, api.ApproveDeviceFlowRequest{
 		UserCode: dfResp.UserCode,
 	}, nil)
-	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
+	assert.Assert(t, resp.Result().StatusCode < 300,
+		fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
+
+	// approve again does nothing
+	resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", key, api.ApproveDeviceFlowRequest{
+		UserCode: dfResp.UserCode,
+	}, nil)
+	assert.Assert(t, resp.Result().StatusCode == 201, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
 	// get flow status with key
 	resp = request(t, "POST", "http://"+org.Domain+"/api/device/status", "", api.DeviceFlowStatusRequest{
@@ -130,7 +137,7 @@ func TestDeviceFlow(t *testing.T) {
 
 	// Verify access key is valid
 	var loginuser api.User
-	resp = request(t, "GET", "http://"+org.Domain+"/api/users/self", statusResp.LoginResponse.AccessKey, nil, &loginuser)
+	_ = request(t, "GET", "http://"+org.Domain+"/api/users/self", statusResp.LoginResponse.AccessKey, nil, &loginuser)
 	assert.Equal(t, loginuser.Name, user.Name)
 
 	// valid access key
@@ -138,38 +145,17 @@ func TestDeviceFlow(t *testing.T) {
 	assert.Assert(t, len(newKey) > 0)
 	assert.Assert(t, strings.Contains(newKey, "."))
 
-	// TODO: add test for approving another device flow request
+	// Approving again after fulfilling the request should fail
+	resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", key, api.ApproveDeviceFlowRequest{
+		UserCode: dfResp.UserCode,
+	}, nil)
+	assert.Assert(t, resp.Result().StatusCode == 404, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
-	t.Run("attempting to claim the code again should do nothing", func(t *testing.T) {
-		tx := txnForTestCase(t, srv.db, org.ID)
-		otherUser := &models.Identity{Name: "other@example.com"}
-		err = data.CreateIdentity(tx, otherUser)
-		assert.NilError(t, err)
-
-		otherKey := &models.AccessKey{
-			Name:          "Other key",
-			IssuedFor:     otherUser.ID,
-			IssuedForName: otherUser.Name,
-			ProviderID:    data.InfraProvider(tx).ID,
-			ExpiresAt:     time.Now().Add(10 * time.Minute),
-			Scopes:        models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
-		}
-		_, err = data.CreateAccessKey(tx, otherKey)
-		assert.NilError(t, err)
-		assert.NilError(t, tx.Commit())
-
-		resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", otherKey.Token(), api.ApproveDeviceFlowRequest{
-			UserCode: dfResp.UserCode,
-		}, nil)
-		assert.Assert(t, resp.Result().StatusCode == 404, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
-
-		resp = request(t, "POST", "http://"+org.Domain+"/api/device/status", "", api.DeviceFlowStatusRequest{
-			DeviceCode: dfResp.DeviceCode,
-		}, statusResp)
-		assert.Assert(t, resp.Result().StatusCode == 404, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
-
-		assert.Equal(t, statusResp.LoginResponse.UserID, user.ID)
-	})
+	// Status check should fail now that the request is fulfilled
+	resp = request(t, "POST", "http://"+org.Domain+"/api/device/status", "", api.DeviceFlowStatusRequest{
+		DeviceCode: dfResp.DeviceCode,
+	}, statusResp)
+	assert.Assert(t, resp.Result().StatusCode == 401, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 }
 
 func TestAPI_StartDeviceFlow(t *testing.T) {

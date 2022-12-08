@@ -167,7 +167,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 			},
 		})
 		if err != nil {
-			if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
+			if api.ErrorStatusCode(err) == http.StatusUnauthorized {
 				return &LoginError{Message: "your username or password may be invalid"}
 			}
 
