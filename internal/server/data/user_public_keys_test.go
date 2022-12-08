@@ -22,7 +22,7 @@ func TestListUserPublicKeys(t *testing.T) {
 				UserID:      other.ID,
 				PublicKey:   "the-other-public-key",
 				KeyType:     "ssh-rsa",
-				Fingerprint: "the-fingerprint",
+				Fingerprint: "the-other-fingerprint",
 			}
 			err := AddUserPublicKey(tx, otherKey)
 			assert.NilError(t, err)
@@ -69,8 +69,7 @@ func TestListUserPublicKeys(t *testing.T) {
 
 			actual, err := listUserPublicKeys(tx, user.ID)
 			assert.NilError(t, err)
-			expected := []models.UserPublicKey{}
-			assert.DeepEqual(t, actual, expected)
+			assert.Equal(t, len(actual), 0)
 		})
 	})
 }

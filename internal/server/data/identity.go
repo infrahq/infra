@@ -648,7 +648,7 @@ func deleteReferencesToIdentities(tx WriteTxn, providerID uid.ID, toDelete []mod
 		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: i.ID, ByProviderID: providerID}); err != nil {
 			return nil, fmt.Errorf("delete identity access keys: %w", err)
 		}
-		if err := deleteUserPublicKeys(tx, i.ID); err != nil {
+		if err := DeleteUserPublicKeys(tx, i.ID); err != nil {
 			return nil, fmt.Errorf("delete identity public keys: %w", err)
 		}
 

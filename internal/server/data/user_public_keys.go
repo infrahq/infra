@@ -58,8 +58,8 @@ func AddUserPublicKey(tx WriteTxn, key *models.UserPublicKey) error {
 	return insert(tx, (*userPublicKeysTable)(key))
 }
 
-func deleteUserPublicKeys(tx WriteTxn, userID uid.ID) error {
-	stmt := "UPDATE user_public_keys SET deleted_at = ? WHERE user_id = ?"
+func DeleteUserPublicKeys(tx WriteTxn, userID uid.ID) error {
+	stmt := "UPDATE user_public_keys SET deleted_at = ? WHERE deleted_at is null AND user_id = ?"
 	_, err := tx.Exec(stmt, time.Now(), userID)
 	return handleError(err)
 }

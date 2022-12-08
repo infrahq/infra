@@ -17,6 +17,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -366,6 +367,11 @@ func TestProvisionSSHKey(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		infraSSHDir := t.TempDir()
 		cli := newCLI(ctx)
+
+		t.Cleanup(func() {
+			assert.NilError(t, data.DeleteUserPublicKeys(srv.DB(), user.ID))
+		})
+
 		expectedKeyFile := tc.setup(t, infraSSHDir)
 
 		hostConfig := &ClientHostConfig{
@@ -381,9 +387,6 @@ func TestProvisionSSHKey(t *testing.T) {
 		})
 		assert.NilError(t, err)
 		tc.expected(t, infraSSHDir, actual, expectedKeyFile)
-
-		// TODO: remove public keys when that is possible, so that
-		// test cases don't depend on each other
 	}
 
 	testCases := []testCase{
@@ -483,7 +486,7 @@ func TestProvisionSSHKey(t *testing.T) {
 
 				user, err := client.GetUserSelf(ctx)
 				assert.NilError(t, err)
-				assert.Equal(t, len(user.PublicKeys), 2) // one existing, one new
+				assert.Equal(t, len(user.PublicKeys), 1)
 
 				actualIDs := keyIDsFromKeysConfig(t, filepath.Join(infraSSHDir, "keys.json"))
 				expectedIDs := []string{"existing", "existing", "existing", keyID}
@@ -525,7 +528,7 @@ func TestProvisionSSHKey(t *testing.T) {
 
 				user, err := client.GetUserSelf(ctx)
 				assert.NilError(t, err)
-				assert.Equal(t, len(user.PublicKeys), 3) // two existing, one new
+				assert.Equal(t, len(user.PublicKeys), 1)
 
 				actualIDs := keyIDsFromKeysConfig(t, filepath.Join(infraSSHDir, "keys.json"))
 				assert.DeepEqual(t, actualIDs, []string{keyID})
@@ -563,7 +566,7 @@ func TestProvisionSSHKey(t *testing.T) {
 
 				user, err := client.GetUserSelf(ctx)
 				assert.NilError(t, err)
-				assert.Equal(t, len(user.PublicKeys), 4) // three existing, one new
+				assert.Equal(t, len(user.PublicKeys), 1)
 
 				expected := fs.Expected(t,
 					fs.WithMode(0o755),
