@@ -138,12 +138,12 @@ CREATE TABLE device_flow_auth_requests (
     id bigint NOT NULL,
     user_code text NOT NULL,
     device_code text NOT NULL,
-    access_key_id bigint,
-    access_key_token text,
     expires_at timestamp with time zone,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    deleted_at timestamp with time zone
+    deleted_at timestamp with time zone,
+    user_id bigint,
+    provider_id bigint
 );
 
 CREATE TABLE encryption_keys (

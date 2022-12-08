@@ -6,21 +6,21 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// DeviceFlowAuthRequest is an outstanding request to log in via device flow
 type DeviceFlowAuthRequest struct {
 	Model
 	UserCode   string
 	DeviceCode string
 
-	AccessKeyID uid.ID
-
-	// AccessKeyToken is set once the request is approved.
-	AccessKeyToken EncryptedAtRest
-
 	ExpiresAt time.Time
 
-	// AccessKey will be populated by some queries, but is never used on writes.
-	AccessKey *AccessKey `db:"-"`
+	// UserID when set means the device flow request has been approved by this user
+	UserID uid.ID
 
-	// Organization will be populated by some queries, but is never used on writes.
-	Organization *Organization `db:"-"`
+	// ProviderID when set means the device flow request has been approved by a user with this provider
+	ProviderID uid.ID
+}
+
+func (dr *DeviceFlowAuthRequest) Approved() bool {
+	return dr.UserID != 0 && dr.ProviderID != 0
 }

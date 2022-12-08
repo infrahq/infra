@@ -6,6 +6,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -30,9 +31,9 @@ func TestDeleteExpiredDeviceFlowAuthRequests(t *testing.T) {
 	err = DeleteExpiredDeviceFlowAuthRequests(tx)
 	assert.NilError(t, err)
 
-	_, err = GetDeviceFlowAuthRequest(tx, GetDeviceFlowAuthRequestOptions{ByID: dfar.ID})
-	assert.ErrorContains(t, err, "not found")
+	_, err = GetDeviceFlowAuthRequest(tx, GetDeviceFlowAuthRequestOptions{ByUserCode: "BCDFGHJK"})
+	assert.ErrorIs(t, err, internal.ErrNotFound)
 
-	_, err = GetDeviceFlowAuthRequest(tx, GetDeviceFlowAuthRequestOptions{ByID: dfar2.ID})
+	_, err = GetDeviceFlowAuthRequest(tx, GetDeviceFlowAuthRequestOptions{ByUserCode: "LMNPQRST"})
 	assert.NilError(t, err)
 }
