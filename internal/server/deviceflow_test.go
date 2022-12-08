@@ -133,7 +133,6 @@ func TestDeviceFlow(t *testing.T) {
 	assert.Equal(t, statusResp.LoginResponse.Name, user.Name)
 	assert.Equal(t, statusResp.LoginResponse.UserID, user.ID)
 	assert.Equal(t, statusResp.LoginResponse.OrganizationName, org.Name)
-	assert.Assert(t, statusResp.LoginResponse.Expires.Time().UTC().Equal(expires))
 
 	// Verify access key is valid
 	var loginuser api.User
