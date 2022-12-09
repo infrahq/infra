@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 )
 
 var verifyAndRedirectRoute = route[api.VerifyAndRedirectRequest, *api.RedirectResponse]{
@@ -21,7 +21,9 @@ var verifyAndRedirectRoute = route[api.VerifyAndRedirectRequest, *api.RedirectRe
 }
 
 func VerifyAndRedirect(c *gin.Context, r *api.VerifyAndRedirectRequest) (*api.RedirectResponse, error) {
-	if err := access.VerifyUserByToken(getRequestContext(c), r.VerificationToken); err != nil {
+	// No authorization required
+	rCtx := getRequestContext(c)
+	if err := data.SetIdentityVerified(rCtx.DBTxn, r.VerificationToken); err != nil {
 		logging.L.Error().Msg("VerifyUserByToken: " + err.Error())
 	}
 

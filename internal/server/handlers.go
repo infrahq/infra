@@ -192,7 +192,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 }
 
 func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
-	err := access.DeleteRequestAccessKey(getRequestContext(c))
+	// does not need authorization check, this action is limited to the calling key
+	rCtx := getRequestContext(c)
+	id := rCtx.Authenticated.AccessKey.ID
+	err := data.DeleteAccessKeys(rCtx.DBTxn, data.DeleteAccessKeysOptions{ByID: id})
 	if err != nil {
 		return nil, err
 	}
