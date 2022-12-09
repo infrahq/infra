@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
+import { useServerConfig } from '../../lib/serverconfig'
 
 import Dashboard from '../../components/layouts/dashboard'
 
@@ -29,6 +30,7 @@ export default function DestinationsAdd() {
   const [focused, setFocused] = useState(true)
 
   const { user, isAdmin } = useUser()
+  const { baseDomain } = useServerConfig()
 
   const { data: { items: destinations } = {}, mutate } = useSWR(
     '/api/destinations?limit=999'
@@ -105,7 +107,11 @@ export default function DestinationsAdd() {
     setSubmitted(true)
   }
 
-  const command = `helm repo add infrahq https://helm.infrahq.com \nhelm repo update \nhelm upgrade --install infra-connector infrahq/infra --set connector.config.server=${window.location.host} --set connector.config.name=${name} --set connector.config.accessKey=${accessKey}`
+  const command = `helm repo add infrahq https://infrahq.github.io/helm-charts\nhelm repo update\nhelm upgrade --install infra infrahq/infra ${
+    baseDomain === 'infrahq.com'
+      ? ''
+      : `--set config.server.url=${window.location.host}`
+  } --set config.name=${name} --set config.accessKey=${accessKey}`
 
   if (!isAdmin) {
     router.replace('/')

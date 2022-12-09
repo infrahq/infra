@@ -1,6 +1,0 @@
-apiVersion: v2
-name: infra
-description: A Helm chart for Infra
-type: application
-version: 0.20.9
-appVersion: 0.19.0

@@ -2,6 +2,12 @@ package api
 
 import "github.com/infrahq/infra/internal/validate"
 
+const (
+	DeviceFlowStatusPending   = "pending"
+	DeviceFlowStatusExpired   = "expired"
+	DeviceFlowStatusConfirmed = "confirmed"
+)
+
 type ApproveDeviceFlowRequest struct {
 	UserCode string `json:"userCode" example:"BDSD-HQMK"`
 }
@@ -31,7 +37,7 @@ func (pdfr *DeviceFlowStatusRequest) ValidationRules() []validate.ValidationRule
 }
 
 type DeviceFlowStatusResponse struct {
-	Status        string         `json:"status,omitempty" note:"can be one of pending, rejected, expired, confirmed"`
+	Status        string         `json:"status,omitempty" note:"can be one of pending, expired, confirmed"`
 	DeviceCode    string         `json:"deviceCode,omitempty" example:""`
 	LoginResponse *LoginResponse `json:"login,omitempty"`
 }

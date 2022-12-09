@@ -39,8 +39,6 @@ type loginCmdOptions struct {
 	InjectUserSSHConfig bool
 }
 
-const DeviceFlowMinVersion = "0.16.0"
-
 func newLoginCmd(cli *CLI) *cobra.Command {
 	var options loginCmdOptions
 
@@ -139,11 +137,16 @@ func login(cli *CLI, options loginCmdOptions) error {
 		return err
 	}
 
-	loginReq := &api.LoginRequest{}
+	var loginRes *api.LoginResponse
 
 	switch {
 	case options.AccessKey != "":
-		loginReq.AccessKey = options.AccessKey
+		loginRes, err = lc.APIClient.Login(ctx, &api.LoginRequest{
+			AccessKey: options.AccessKey,
+		})
+		if err != nil {
+			return err
+		}
 	case options.User != "":
 		fmt.Fprintf(cli.Stderr, "  Logging in as user %s\n", termenv.String(options.User).Bold().String())
 
@@ -157,85 +160,57 @@ func login(cli *CLI, options loginCmdOptions) error {
 			}
 		}
 
-		loginReq.PasswordCredentials = &api.LoginRequestPasswordCredentials{
-			Name:     options.User,
-			Password: options.Password,
-		}
+		loginRes, err = lc.APIClient.Login(ctx, &api.LoginRequest{
+			PasswordCredentials: &api.LoginRequestPasswordCredentials{
+				Name:     options.User,
+				Password: options.Password,
+			},
+		})
+		if err != nil {
+			if api.ErrorStatusCode(err) == http.StatusUnauthorized {
+				return &LoginError{Message: "your username or password may be invalid"}
+			}
 
+			return err
+		}
 	default:
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login requires setting either the INFRA_ACCESS_KEY or both the INFRA_USER and INFRA_PASSWORD environment variables"}
 		}
 
-		resp, err := deviceFlowLogin(ctx, lc.APIClient, cli)
-		if err != nil {
-			return err
-		}
-
-		loginReq.AccessKey = resp.AccessKey
-		err = updateInfraConfig(lc, resp)
+		loginRes, err = deviceFlowLogin(ctx, lc.APIClient, cli)
 		if err != nil {
 			return err
 		}
 	}
 
-	if err := loginToInfra(cli, lc, loginReq, options.NoAgent); err != nil {
-		return err
-	}
-	if options.InjectUserSSHConfig {
-		return updateUserSSHConfig(cli)
-	}
-	return nil
-}
-
-func equalHosts(x, y string) bool {
-	if x == y {
-		return true
-	}
-	if strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://") {
-		return true
-	}
-	return false
-}
-
-func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
-	ctx := context.TODO()
-	loginRes, err := lc.APIClient.Login(ctx, loginReq)
-	if err != nil {
-		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
-			switch {
-			case loginReq.PasswordCredentials != nil:
-				return &LoginError{Message: "your username or password may be invalid"}
-			}
-		}
-
-		return err
-	}
 	// Update the API client with the new access key from login
 	lc.APIClient.AccessKey = loginRes.AccessKey
 
 	if loginRes.PasswordUpdateRequired {
 		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password.\n")
 
-	PROMPTLOGIN:
-		password, err := promptSetPassword(cli, loginReq.PasswordCredentials.Password)
-		if err != nil {
-			return err
-		}
-
-		logging.Debugf("call server: update user %s", loginRes.UserID)
-		if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{
-			ID:          loginRes.UserID,
-			Password:    password,
-			OldPassword: loginReq.PasswordCredentials.Password,
-		}); err != nil {
-			if passwordError(cli, err) {
-				goto PROMPTLOGIN
+		for {
+			password, err := promptSetPassword(cli, options.Password)
+			if err != nil {
+				return err
 			}
-			return err
-		}
 
-		fmt.Fprintf(cli.Stderr, "  Updated password\n")
+			logging.Debugf("call server: update user %s", loginRes.UserID)
+			if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{
+				ID:          loginRes.UserID,
+				Password:    password,
+				OldPassword: options.Password,
+			}); err != nil {
+				if passwordError(cli, err) {
+					continue
+				}
+				return err
+			}
+
+			fmt.Fprintf(os.Stderr, "  Updated password\n")
+			break
+		}
 	}
 
 	if err := updateInfraConfig(lc, loginRes); err != nil {
@@ -252,7 +227,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		logging.Errorf("unable to check background agent: %v", err)
 	}
 
-	if !backgroundAgentRunning && !noAgent {
+	if !backgroundAgentRunning && !options.NoAgent {
 		// the agent is started in a separate command so that it continues after the login command has finished
 		if err := execAgent(); err != nil {
 			// user still has a valid session, so do not fail
@@ -261,7 +236,16 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 	}
 
 	fmt.Fprintf(cli.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
+
+	if options.InjectUserSSHConfig {
+		return updateUserSSHConfig(cli)
+	}
+
 	return nil
+}
+
+func equalHosts(x, y string) bool {
+	return strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://")
 }
 
 // Updates all configs with the current logged in session
@@ -491,13 +475,11 @@ func deviceFlowLogin(ctx context.Context, client *api.Client, cli *CLI) (*api.Lo
 				return nil, err
 			}
 			switch pollResp.Status {
-			case "rejected":
-				return nil, Error{Message: "device approval request rejected"}
-			case "expired":
+			case api.DeviceFlowStatusExpired:
 				return nil, Error{Message: "device approval request expired"}
-			case "confirmed":
-				return pollResp.LoginResponse, nil // success!
-			case "pending": // wait more
+			case api.DeviceFlowStatusConfirmed:
+				return pollResp.LoginResponse, nil
+			case api.DeviceFlowStatusPending:
 			default:
 				logging.Warnf("unexpected response status: " + pollResp.Status)
 			}

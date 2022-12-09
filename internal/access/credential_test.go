@@ -125,7 +125,10 @@ func TestUpdateCredentials(t *testing.T) {
 		key := &models.AccessKey{
 			IssuedFor:  user.ID,
 			ProviderID: data.InfraProvider(db).ID,
-			Scopes:     []string{models.ScopeAllowCreateAccessKey, models.ScopePasswordReset},
+			Scopes: []string{
+				models.ScopeAllowCreateAccessKey,
+				models.ScopePasswordReset,
+			},
 		}
 		_, err = CreateAccessKey(c, key)
 		assert.NilError(t, err)

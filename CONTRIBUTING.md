@@ -32,128 +32,72 @@ documentation which describes how to:
 - [Fork a repo](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
 - [Contribute to projects](https://docs.github.com/en/get-started/quickstart/contributing-to-projects)
 
-When you are ready to commit your change, follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
-for your commit message. The type must be one of `fix`, `feat`, `improve`, or `maintain`. These types are
-documented in the [commitlint config file](.github/commitlint.config.js).
-
 ## Developing Infra
 
 ### Setup
 
-1. Install [Go 1.19](https://go.dev/dl/#go1.19)
+1. Install [Go](https://go.dev/dl), version 1.19 or higher
 1. Clone the project
-   ```
+   ```shell
    git clone https://github.com/infrahq/infra
    cd infra
    ```
 
 ### Run locally
 
-```
+```shell
 go run .
 ```
 
 ### Run tests
 
-#### Go tests
-
-```
+```shell
 go test ./...
 
 # for shorter tests
 go test -short ./...
 ```
 
-#### JavaScript tests
-
-Within the `ui` directory:
-
-```
-npm run test
-```
-
 ### Linting
 
-```
-make tools
+```shell
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 make lint
 ```
 
-### Run in Docker Desktop
+### Run in Kubernetes
 
-#### Prerequisites
+#### Setup
 
-Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and enable Kubernetes.
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and enable Kubernetes.
+1. Add the `infrahq` Helm repo
 
-#### Build and run
+   ```shell
+   helm repo add infrahq https://infrahq.github.io/helm-charts
+   helm repo update
+   ```
 
-Run `make dev`:
+For a full list of configurable options, use `helm show values infrahq/infra` and `helm show values infrahq/infra-server`.
 
-```
+#### Install the server
+
+```shell
 make dev
 ```
 
-#### Customize
+#### Install the connector
 
-The local Kubernetes setup uses [`helm`](https://helm.sh/) can be modified via a `values.yaml` file:
-
-```bash
-make dev flags="-f values.yaml"
+```shell
+make dev/connector flags='--set config.accessKey=... --set config.server.url=...'
 ```
 
-Example `values.yaml` files:
-
-- Create an Infra configuration for local development
-
-```yaml
----
-# example values.yaml
-server:
-  config:
-    # enable multi-tenancy
-    enableSignup: true
-
-    # the base domain of your Infra server
-    baseDomain: acme.internal
-
-    # increase the log level for debugging
-    logLevel: debug
-
-    # postgres connection
-    dbHost: host.docker.internal
-    dbPort: 5432
-    dbName: infra-db
-    dbUsername: username
-    dbPassword: password
-```
-
-See [Helm Chart reference](./reference/helm-chart.md) for a complete list of options configurable through Helm.
-
-- Add the base domain and an organization domain to your `/etc/hosts` file
-
-```
-127.0.0.1       acme.internal # the server base domain
-127.0.0.1       dev.acme.internal # an organization sub domain
-```
-
-#### Using Customized Development Deployment
-
-1. Setup the prerequisites and follow the customization instructions above to create a values.yaml configuration file.
-2. In the root of the directory run:
-
-```
-$ make dev flags="-f values.yaml"
-```
-
-3. Navigate to the Infra server UI in a web browser, for example `acme.internal/signup`.
-4. Register an organization with a domain, for example `dev.acme.internal`.
-5. You can now login via the CLI, for example `infra login dev.acme.internal`.
+###
 
 ### CLI documentation
 
 To generate CLI documentation, run the `docgen` package:
 
-```
+```shell
 go run ./internal/docgen
 ```
 
