@@ -1,16 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, Fragment } from 'react'
+import * as ReactDOM from 'react-dom'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
+import { usePopper } from 'react-popper'
 import Link from 'next/link'
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
 import moment from 'moment'
 import {
+  EllipsisVerticalIcon,
   TrashIcon,
   ChevronDownIcon,
   CheckIcon,
   PlusIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { Menu } from '@headlessui/react'
+import { Dialog, Menu, Transition } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
 import { sortBySubject } from '../../lib/grants'
@@ -675,19 +679,314 @@ function Admins() {
   )
 }
 
-function Providers() {
+function AddAllowedDomainDialog({ setOpen, org }) {
+  const [domain, setDomain] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function onSubmit(e) {
+    e.preventDefault()
+    setError('')
+
+    // check that we only have the domain (no protocol), but be lenient on validation
+    if (
+      domain.startsWith('http://') ||
+      domain.startsWith('https://') ||
+      domain.startsWith('www.') ||
+      domain.startsWith('@')
+    ) {
+      setError('please enter only the domain name without a prefix')
+      return
+    }
+
+    try {
+      let allowedDomains = org?.allowedDomains
+      allowedDomains.push(domain)
+      const res = await fetch('/api/organizations/' + org.id, {
+        method: 'PUT',
+        body: JSON.stringify({ allowedDomains }),
+      })
+
+      await jsonBody(res)
+
+      mutate('/api/organizations/self')
+
+      setOpen(false)
+    } catch (e) {
+      setError(e.message)
+    }
+
+    setSubmitting(false)
+
+    return false
+  }
+
+  return (
+    <div className='w-full 2xl:m-auto'>
+      <h1 className='py-1 font-display text-lg font-medium'>Add domain</h1>
+      <div className='space-y-4'>
+        <form className='flex flex-col space-y-4' onSubmit={onSubmit}>
+          <div className='mb-4 flex flex-col'>
+            <div className='relative mt-4'>
+              <label className='text-2xs font-medium text-gray-700'>
+                Domain
+              </label>
+              <input
+                name='domain'
+                required
+                autoFocus
+                spellCheck='false'
+                type='search'
+                onKeyDown={e => {
+                  if (e.key === 'Escape' || e.key === 'Esc') {
+                    e.preventDefault()
+                  }
+                }}
+                value={domain}
+                // trim leading whitespace on input. trailing whitespace will be
+                // trimmed on submit
+                onChange={e => setDomain(e.target.value.trimStart())}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                  error ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
+            </div>
+          </div>
+          <div className='flex flex-row items-center justify-end space-x-3'>
+            <button
+              type='button'
+              onClick={() => setOpen(false)}
+              className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
+            >
+              Cancel
+            </button>
+            <button
+              disabled={submitting}
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+            >
+              Add
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function Authentication() {
   const { data: { items: providers } = {} } = useSWR(
     `/api/providers?&limit=1000`
   )
+  const { data: org } = useSWR('/api/organizations/self')
+  const [open, setOpen] = useState(false)
+  const [error, setError] = useState('')
 
   return (
     <>
-      <header className='my-2 flex items-center justify-end'>
+      {providers?.some(p => p.id === '') && (
+        <>
+          <header className='my-6 flex flex-col justify-between space-y-4 md:flex-row md:space-y-0 md:space-x-4'>
+            <div>
+              <h2 className='mb-0.5 flex items-center font-display text-lg font-medium'>
+                Allowed Domains
+              </h2>
+              <h3 className='text-sm text-gray-500'>
+                Google accounts with these domains are able to log in to your
+                organization. They will not have any infrastructure access by
+                default.
+              </h3>
+            </div>
+            <button
+              onClick={() => setOpen(true)}
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+            >
+              <PlusIcon className='mr-1 h-3 w-3' /> Add domain
+            </button>
+            <Transition.Root show={open} as={Fragment}>
+              <Dialog as='div' className='relative z-30' onClose={setOpen}>
+                <Transition.Child
+                  as={Fragment}
+                  enter='ease-out duration-150'
+                  enterFrom='opacity-0'
+                  enterTo='opacity-100'
+                  leave='ease-in duration-100'
+                  leaveFrom='opacity-100'
+                  leaveTo='opacity-0'
+                >
+                  <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+                </Transition.Child>
+                <div className='fixed inset-0 z-30 overflow-y-auto'>
+                  <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+                    <Transition.Child
+                      as={Fragment}
+                      enter='ease-out duration-150'
+                      enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                      enterTo='opacity-100 translate-y-0 sm:scale-100'
+                      leave='ease-in duration-100'
+                      leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+                      leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                    >
+                      <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white px-8 py-4 text-left shadow-xl shadow-gray-300/10 transition-all sm:max-w-sm'>
+                        <AddAllowedDomainDialog setOpen={setOpen} org={org} />
+                      </Dialog.Panel>
+                    </Transition.Child>
+                  </div>
+                </div>
+              </Dialog>
+            </Transition.Root>
+          </header>
+          <div className='mt-3 flex min-h-0 flex-1 flex-col'>
+            <Table
+              data={org?.allowedDomains}
+              empty='No allowed domains'
+              columns={[
+                {
+                  cell: info => (
+                    <div className='flex flex-row items-center py-1'>
+                      {info.row.original}
+                    </div>
+                  ),
+                  header: () => <span>Email Domain</span>,
+                  accessorKey: 'domain',
+                },
+                {
+                  id: 'actions',
+                  cell: function Cell(info) {
+                    const [open, setOpen] = useState(false)
+                    const [referenceElement, setReferenceElement] =
+                      useState(null)
+                    const [popperElement, setPopperElement] = useState(null)
+                    let { styles, attributes } = usePopper(
+                      referenceElement,
+                      popperElement,
+                      {
+                        placement: 'bottom-end',
+                        modifiers: [
+                          {
+                            name: 'flip',
+                            enabled: false,
+                          },
+                        ],
+                      }
+                    )
+
+                    return (
+                      <div className='flex justify-end'>
+                        <Menu
+                          as='div'
+                          className='relative inline-block text-left'
+                        >
+                          <Menu.Button
+                            ref={setReferenceElement}
+                            className='cursor-pointer rounded-md border border-transparent py-0.5 px-px text-gray-400 hover:bg-gray-50 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20'
+                          >
+                            <EllipsisVerticalIcon className='z-0 h-[18px]' />
+                          </Menu.Button>
+                          {ReactDOM.createPortal(
+                            <div
+                              ref={setPopperElement}
+                              style={styles.popper}
+                              {...attributes.popper}
+                            >
+                              <Transition
+                                as={Fragment}
+                                enter='transition ease-out duration-100'
+                                enterFrom='transform opacity-0 scale-95'
+                                enterTo='transform opacity-100 scale-100'
+                                leave='transition ease-in duration-75'
+                                leaveFrom='transform opacity-100 scale-100'
+                                leaveTo='transform opacity-0 scale-95'
+                              >
+                                <Menu.Items className='absolute right-0 z-30 mt-2 w-40 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                                  <div className='px-1 py-1'>
+                                    <Menu.Item>
+                                      {({ active }) => (
+                                        <button
+                                          className={`${
+                                            active ? 'bg-gray-50' : 'bg-white'
+                                          } group flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-red-500`}
+                                          onClick={() => setOpen(true)}
+                                        >
+                                          <XMarkIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
+                                          Remove Domain
+                                        </button>
+                                      )}
+                                    </Menu.Item>
+                                  </div>
+                                </Menu.Items>
+                              </Transition>
+                            </div>,
+                            document.querySelector('body')
+                          )}
+                        </Menu>
+                        <DeleteModal
+                          open={open}
+                          setOpen={setOpen}
+                          primaryButtonText='Remove'
+                          onSubmit={async () => {
+                            setError('')
+                            try {
+                              const allowedDomains = org.allowedDomains.filter(
+                                d => d !== info.row.original
+                              )
+                              const res = await fetch(
+                                '/api/organizations/' + org.id,
+                                {
+                                  method: 'PUT',
+                                  body: JSON.stringify({ allowedDomains }),
+                                }
+                              )
+
+                              await jsonBody(res)
+
+                              mutate('/api/organizations/self')
+                              setOpen(false)
+                            } catch (e) {
+                              setError(e.message)
+                            }
+                          }}
+                          title='Remove Domain'
+                          message={
+                            <div>
+                              Are you sure you want to remove{' '}
+                              <span className='break-all font-bold'>
+                                {info.row.original}
+                              </span>
+                              ?
+                              {error && (
+                                <p className='my-1 text-xs text-red-500'>
+                                  {error}
+                                </p>
+                              )}
+                            </div>
+                          }
+                        />
+                      </div>
+                    )
+                  },
+                },
+              ]}
+            />
+          </div>
+        </>
+      )}
+
+      <header className='my-6 flex flex-col justify-between space-y-4 md:flex-row md:space-y-0 md:space-x-4'>
+        <div>
+          <h2 className='mb-0.5 flex items-center font-display text-lg font-medium'>
+            Identity Providers
+          </h2>
+          <h3 className='text-sm text-gray-500'>
+            Configure additional methods of logging in using custom OpenID
+            Connect (OIDC) identity providers.
+          </h3>
+        </div>
         <Link
           href='/settings/providers/add'
-          className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+          className='inline-flex items-center self-end whitespace-nowrap rounded-md border border-transparent bg-black px-3 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
         >
-          Connect provider
+          <PlusIcon className='mr-1 h-3 w-3' /> Connect provider
         </Link>
       </header>
       <div className='mt-3 flex min-h-0 flex-1 flex-col'>
@@ -775,9 +1074,9 @@ export default function Settings() {
             render: <Admins />,
           },
           {
-            name: 'providers',
-            title: 'Identity Providers',
-            render: <Providers />,
+            name: 'authentication',
+            title: 'Authentication',
+            render: <Authentication />,
           },
         ]
       : []),

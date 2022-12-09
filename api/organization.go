@@ -42,6 +42,51 @@ func (r CreateOrganizationRequest) ValidationRules() []validate.ValidationRule {
 	}
 }
 
+type UpdateOrganizationRequest struct {
+	ID             uid.ID   `uri:"id" json:"-"`
+	AllowedDomains []string `json:"allowedDomains"`
+}
+
+func (r UpdateOrganizationRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("id", r.ID),
+		validate.Required("allowedDomains", r.AllowedDomains),
+		validate.StringSliceRule{
+			Value: r.AllowedDomains,
+			Name:  "allowedDomains",
+			ItemRule: validate.StringRule{
+				Name:      "allowedDomains.values",
+				MaxLength: 254,
+				CharacterRanges: []validate.CharRange{
+					validate.AlphabetLower,
+					validate.AlphabetUpper,
+					validate.Numbers,
+					validate.Dash,
+					validate.Dot,
+				},
+				FirstCharacterRange: validate.AlphaNumeric,
+			},
+		},
+	}
+}
+
+// ValidateDomain returns a permissive validation for a domain field (with no protocol).
+func ValidateDomain(name, value string) validate.StringRule {
+	return validate.StringRule{
+		Value:     value,
+		Name:      name,
+		MinLength: 2,
+		MaxLength: 256, // arbitrary max length
+		CharacterRanges: []validate.CharRange{
+			validate.AlphabetLower,
+			validate.AlphabetUpper,
+			validate.Numbers,
+			validate.Dash,
+			validate.Dot,
+		},
+	}
+}
+
 func (req ListOrganizationsRequest) SetPage(page int) Paginatable {
 	req.PaginationRequest.Page = page
 	return req
