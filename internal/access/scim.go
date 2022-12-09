@@ -101,7 +101,7 @@ func DeleteProviderUser(c *gin.Context, userID uid.ID) error {
 		ByProviderID: providerID,
 		ByIDs:        []uid.ID{userID},
 	}
-	if err := data.DeleteIdentities(ctx.DBTxn, opts); err != nil {
+	if err := data.DeleteIdentities(c, ctx.DBTxn, opts); err != nil {
 		return fmt.Errorf("delete provider user identity: %w", err)
 	}
 	return nil

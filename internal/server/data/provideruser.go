@@ -16,6 +16,15 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+const GoogleProviderContextKey = "googleProviderContext"
+
+func GetGoogleProviderContext(c context.Context) *models.Provider {
+	if value, ok := c.Value(GoogleProviderContextKey).(*models.Provider); ok {
+		return value
+	}
+	return nil
+}
+
 type providerUserTable models.ProviderUser
 
 func (p providerUserTable) Table() string {
@@ -148,7 +157,7 @@ func ListProviderUsers(tx ReadTxn, opts ListProviderUsersOptions) ([]models.Prov
 	}
 	query.B("FROM")
 	query.B(table.Table())
-	query.B("INNER JOIN providers ON provider_users.provider_id = providers.id AND providers.organization_id = ?", tx.OrganizationID())
+	query.B("LEFT OUTER JOIN providers ON provider_users.provider_id = providers.id AND providers.organization_id = ?", tx.OrganizationID())
 	query.B("WHERE 1=1") // this is always true, used to make the logic of adding clauses simpler by always appending them with an AND
 	if opts.ByProviderID != 0 {
 		query.B("AND provider_id = ?", opts.ByProviderID)

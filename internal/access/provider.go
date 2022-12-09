@@ -51,5 +51,5 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 		return fmt.Errorf("%w: the infra provider can not be deleted", internal.ErrBadRequest)
 	}
 
-	return data.DeleteProviders(db, data.DeleteProvidersOptions{ByID: id})
+	return data.DeleteProviders(c, db, data.DeleteProvidersOptions{ByID: id})
 }

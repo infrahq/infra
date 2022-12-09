@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -374,7 +375,7 @@ type ListIdentityOptions struct {
 	LoadPublicKeys         bool
 }
 
-func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, error) {
+func ListIdentities(c context.Context, tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, error) {
 	if len(opts.ByNotIDs) > 0 && opts.CreatedBy == 0 {
 		return nil, fmt.Errorf("ListIdentities by 'not IDs' requires 'created by'")
 	}
@@ -450,7 +451,7 @@ func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, er
 	}
 
 	if opts.LoadProviders {
-		if err := loadIdentitiesProviders(tx, result); err != nil {
+		if err := loadIdentitiesProviders(c, tx, result); err != nil {
 			return nil, err
 		}
 	}
@@ -532,7 +533,7 @@ func loadIdentitiesGroups(tx ReadTxn, identities []models.Identity) error {
 	return nil
 }
 
-func loadIdentitiesProviders(tx ReadTxn, identities []models.Identity) error {
+func loadIdentitiesProviders(c context.Context, tx ReadTxn, identities []models.Identity) error {
 	// get the ids of all the identities
 	identityIDs := []uid.ID{}
 	for _, i := range identities {
@@ -574,6 +575,10 @@ func loadIdentitiesProviders(tx ReadTxn, identities []models.Identity) error {
 		providersByID[p.ID] = p
 	}
 
+	if goog := GetGoogleProviderContext(c); goog != nil {
+		providersByID[goog.ID] = *goog
+	}
+
 	// now we have all the info we need, add the providers to each identity
 	for i := range identities {
 		providers := []models.Provider{}
@@ -599,7 +604,7 @@ type DeleteIdentitiesOptions struct {
 	ByProviderID uid.ID
 }
 
-func DeleteIdentities(tx WriteTxn, opts DeleteIdentitiesOptions) error {
+func DeleteIdentities(c context.Context, tx WriteTxn, opts DeleteIdentitiesOptions) error {
 	if opts.ByProviderID == 0 {
 		return fmt.Errorf("DeleteIdentities requires a provider ID")
 	}
@@ -609,7 +614,7 @@ func DeleteIdentities(tx WriteTxn, opts DeleteIdentitiesOptions) error {
 		ByNotIDs:  opts.ByNotIDs,
 		CreatedBy: opts.CreatedBy,
 	}
-	toDelete, err := ListIdentities(tx, listOpts)
+	toDelete, err := ListIdentities(c, tx, listOpts)
 	if err != nil {
 		return err
 	}

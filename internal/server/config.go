@@ -670,7 +670,7 @@ func (s Server) loadProviders(db data.WriteTxn, providers []Provider) error {
 	}
 
 	// remove any provider previously defined by config
-	if err := data.DeleteProviders(db, data.DeleteProvidersOptions{
+	if err := data.DeleteProviders(context.Background(), db, data.DeleteProvidersOptions{
 		CreatedBy: models.CreatedBySystem,
 		NotIDs:    keep,
 	}); err != nil {
@@ -867,7 +867,7 @@ func (s Server) loadUsers(db data.WriteTxn, users []User) error {
 		ByNotIDs:     keep,
 		CreatedBy:    models.CreatedBySystem,
 	}
-	if err := data.DeleteIdentities(db, opts); err != nil {
+	if err := data.DeleteIdentities(context.Background(), db, opts); err != nil {
 		return err
 	}
 

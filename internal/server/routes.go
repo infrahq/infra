@@ -15,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
@@ -250,6 +251,9 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			Response:      &access.ResponseMetadata{},
 		}
 		c.Set(access.RequestContextKey, rCtx)
+		if a.server.Google != nil {
+			c.Set(data.GoogleProviderContextKey, a.server.Google)
+		}
 
 		resp, err := route.handler(c, req)
 		if err != nil {
