@@ -8,29 +8,44 @@ test-all: check-psql-env
 test/update:
 	go test ./internal/cmd -test.update-golden
 
-dev:
-	docker buildx build . --load -t infrahq/infra:dev
-	docker buildx build ui --load -t infrahq/ui:dev
+DOCKER_CONTEXT=.
+
+docker/%:
+	docker buildx build $(DOCKER_CONTEXT) --load -t infrahq/$*:dev
+
+docker/ui: DOCKER_CONTEXT=ui
+
+dev: dev/server
+
+dev/context:
 	kubectl config use-context docker-desktop
-	helm upgrade --install --wait  \
-		--set-string global.image.pullPolicy=Never \
-		--set-string global.image.tag=dev \
+
+helm/update:
+	helm repo update infrahq
+
+dev/server: dev/context docker/infra docker/ui helm/update
+	helm upgrade --install --wait \
+		--set-string server.image.pullPolicy=Never \
+		--set-string server.image.tag=dev \
 		--set-string server.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
-		--set-string connector.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
+		--set-string ui.image.pullPolicy=Never \
+		--set-string ui.image.tag=dev \
 		--set-string ui.podAnnotations.checksum=$$(docker images -q infrahq/ui:dev) \
-		infra ./helm/charts/infra \
+		infra-server infrahq/infra-server \
+		$(flags)
+
+dev/connector: dev/context docker/infra
+	helm upgrade --install --wait \
+		--set-string connector.image.pullPolicy=Never \
+		--set-string connector.image.tag=dev \
+		--set-string connector.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
+		infra infrahq/infra \
 		$(flags)
 
 dev/clean:
 	kubectl config use-context docker-desktop
+	helm uninstall infra-server || true
 	helm uninstall infra || true
-
-helm/lint:
-	helm lint helm/charts/*
-
-tools:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install github.com/goreleaser/goreleaser@latest
 
 postgres:
 	docker run -d --name=postgres-dev --rm \
@@ -46,9 +61,14 @@ postgres:
 
 LINT_ARGS ?= --fix
 
-lint:
-	(cd ./internal/tools/querylinter/cmd; go build -o ./querylinter.so -buildmode=plugin .)
+golangci-lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+lint: golangci-lint internal/tools/querylinter/cmd/querylinter.so
 	golangci-lint run $(LINT_ARGS)
+
+%.so:
+	(cd $(@D); go build -o $(@F) -buildmode=plugin .)
 
 .PHONY: docs/api/openapi3.json
 docs/api/openapi3.json:
