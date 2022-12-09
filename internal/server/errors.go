@@ -30,7 +30,6 @@ func sendAPIError(c *gin.Context, err error) {
 
 	var validationError validate.Error
 	var uniqueConstraintError data.UniqueConstraintError
-	var authzError access.AuthorizationError
 	var overLimitError redis.OverLimitError
 	var authnError AuthenticationError
 	var apiError api.Error
@@ -58,9 +57,9 @@ func sendAPIError(c *gin.Context, err error) {
 		// this means the key was once valid, so include some extra details
 		resp.Message = fmt.Sprintf("%s: %s", internal.ErrUnauthorized, err)
 
-	case errors.As(err, &authzError):
+	case errors.Is(err, access.ErrNotAuthorized):
 		resp.Code = http.StatusForbidden
-		resp.Message = authzError.Error()
+		resp.Message = err.Error()
 
 	case errors.As(err, &uniqueConstraintError):
 		*resp = newAPIErrorForUniqueConstraintError(uniqueConstraintError, err.Error())

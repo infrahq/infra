@@ -208,7 +208,7 @@ func TestRequireAccessKey(t *testing.T) {
 				return r
 			},
 			expected: func(t *testing.T, _ access.Authenticated, err error) {
-				assert.ErrorIs(t, err, data.ErrAccessKeyExpired)
+				assert.Error(t, err, "access key has expired")
 			},
 		},
 		"AccessKeyInvalidKey": {
@@ -266,7 +266,7 @@ func TestRequireAccessKey(t *testing.T) {
 				return r
 			},
 			expected: func(t *testing.T, _ access.Authenticated, err error) {
-				assert.ErrorContains(t, err, "valid token not found in request")
+				assert.ErrorContains(t, err, "authentication is required")
 			},
 		},
 		"EmptyAuthentication": {
@@ -276,7 +276,7 @@ func TestRequireAccessKey(t *testing.T) {
 				return r
 			},
 			expected: func(t *testing.T, _ access.Authenticated, err error) {
-				assert.ErrorContains(t, err, "valid token not found in request")
+				assert.ErrorContains(t, err, "authentication is required")
 			},
 		},
 		"EmptySpaceAuthentication": {
@@ -286,7 +286,7 @@ func TestRequireAccessKey(t *testing.T) {
 				return r
 			},
 			expected: func(t *testing.T, _ access.Authenticated, err error) {
-				assert.ErrorContains(t, err, "valid token not found in request")
+				assert.ErrorContains(t, err, "authentication is required")
 			},
 		},
 		"EmptyCookieAuthentication": {
@@ -306,7 +306,7 @@ func TestRequireAccessKey(t *testing.T) {
 				return r
 			},
 			expected: func(t *testing.T, _ access.Authenticated, err error) {
-				assert.ErrorContains(t, err, "skipped validating empty token")
+				assert.ErrorContains(t, err, "bearer token was missing")
 			},
 		},
 	}

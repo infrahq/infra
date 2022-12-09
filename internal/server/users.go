@@ -10,7 +10,6 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
@@ -51,7 +50,7 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 	if r.ID.IsSelf {
 		iden := access.GetRequestContext(c).Authenticated.User
 		if iden == nil {
-			return nil, fmt.Errorf("%w: no user is logged in", internal.ErrUnauthorized)
+			return nil, fmt.Errorf("no authenticated user")
 		}
 		r.ID.ID = iden.ID
 	}

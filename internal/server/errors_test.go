@@ -78,6 +78,13 @@ func TestSendAPIError(t *testing.T) {
 			},
 		},
 		{
+			err: fmt.Errorf("wrapped: %w", access.ErrNotAuthorized),
+			result: api.Error{
+				Code:    http.StatusForbidden,
+				Message: "wrapped: not authorized",
+			},
+		},
+		{
 			err:    internal.ErrNotFound,
 			result: api.Error{Code: http.StatusNotFound, Message: "record not found"},
 		},
