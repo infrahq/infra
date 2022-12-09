@@ -64,11 +64,11 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		return ListGrantsResponse{}, err
 	}
 
-	listenOpts := data.ListenForGrantsOptions{
-		ByDestination: opts.ByDestination,
-		OrgID:         rCtx.DBTxn.OrganizationID(),
+	listenOpts := data.ListenForNotifyOptions{
+		GrantsByDestination: opts.ByDestination,
+		OrgID:               rCtx.DBTxn.OrganizationID(),
 	}
-	listener, err := data.ListenForGrantsNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
+	listener, err := data.ListenForNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 	if err != nil {
 		return ListGrantsResponse{}, fmt.Errorf("listen for notify: %w", err)
 	}

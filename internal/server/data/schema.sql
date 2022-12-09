@@ -4,6 +4,24 @@
 --     go test -run TestMigrations ./internal/server/data -update
 --
 
+CREATE FUNCTION destination_credential_insert_notify() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+				BEGIN
+					-- on insert, we notify connector listeners for this destination
+					PERFORM pg_notify(current_schema() || '.credreq_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.destination_id), NEW.id::TEXT);
+					RETURN NULL;
+				END; $$;
+
+CREATE FUNCTION destination_credential_update_notify() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+				BEGIN
+					-- on update, we notify user listeners for this specific id, waiting to login
+					PERFORM pg_notify(current_schema() || '.credreq_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.id), NEW.id::TEXT);
+					RETURN NULL;
+				END; $$;
+
 CREATE FUNCTION grants_notify() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -115,6 +133,17 @@ CREATE TABLE credentials (
     password_hash bytea,
     one_time_password boolean,
     organization_id bigint
+);
+
+CREATE TABLE destination_credentials (
+    id bigint NOT NULL,
+    organization_id bigint NOT NULL,
+    expires_at timestamp with time zone,
+    update_index bigint NOT NULL,
+    user_id bigint NOT NULL,
+    destination_id bigint NOT NULL,
+    answered boolean DEFAULT false NOT NULL,
+    bearer_token text
 );
 
 CREATE TABLE destinations (
@@ -337,6 +366,8 @@ CREATE UNIQUE INDEX idx_access_keys_issued_for_name ON access_keys USING btree (
 
 CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
 
+CREATE INDEX idx_cred_req_org_dest ON destination_credentials USING btree (organization_id, destination_id);
+
 CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials USING btree (organization_id, identity_id) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_destinations_name ON destinations USING btree (organization_id, name) WHERE (deleted_at IS NULL);
@@ -374,5 +405,9 @@ CREATE UNIQUE INDEX idx_user_public_keys_user_fingerprint ON user_public_keys US
 CREATE UNIQUE INDEX idx_user_ssh_login_name ON identities USING btree (organization_id, ssh_login_name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);
+
+CREATE TRIGGER credreq_notify_insert_trigger AFTER INSERT ON destination_credentials FOR EACH ROW EXECUTE FUNCTION destination_credential_insert_notify();
+
+CREATE TRIGGER credreq_notify_update_trigger AFTER UPDATE ON destination_credentials FOR EACH ROW EXECUTE FUNCTION destination_credential_update_notify();
 
 CREATE TRIGGER grants_notify_trigger AFTER INSERT OR UPDATE ON grants FOR EACH ROW EXECUTE FUNCTION grants_notify();

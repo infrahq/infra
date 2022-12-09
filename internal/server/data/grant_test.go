@@ -83,9 +83,9 @@ func TestCreateGrant(t *testing.T) {
 		})
 		t.Run("notify", func(t *testing.T) {
 			ctx := context.Background()
-			listener, err := ListenForGrantsNotify(ctx, db, ListenForGrantsOptions{
-				ByDestination: "match",
-				OrgID:         defaultOrganizationID,
+			listener, err := ListenForNotify(ctx, db, ListenForNotifyOptions{
+				GrantsByDestination: "match",
+				OrgID:               defaultOrganizationID,
 			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
@@ -212,9 +212,9 @@ func TestDeleteGrants(t *testing.T) {
 			assert.NilError(t, CreateGrant(db, &g))
 
 			ctx := context.Background()
-			listener, err := ListenForGrantsNotify(ctx, db, ListenForGrantsOptions{
-				ByDestination: "match",
-				OrgID:         defaultOrganizationID,
+			listener, err := ListenForNotify(ctx, db, ListenForNotifyOptions{
+				GrantsByDestination: "match",
+				OrgID:               defaultOrganizationID,
 			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
@@ -701,7 +701,7 @@ func TestListenForGrantsNotify(t *testing.T) {
 	}
 	type testCase struct {
 		name string
-		opts ListenForGrantsOptions
+		opts ListenForNotifyOptions
 		ops  []operation
 	}
 
@@ -716,7 +716,7 @@ func TestListenForGrantsNotify(t *testing.T) {
 		assert.NilError(t, CreateOrganization(db, otherOrg))
 
 		run := func(t *testing.T, tc testCase) {
-			listener, err := ListenForGrantsNotify(ctx, db, tc.opts)
+			listener, err := ListenForNotify(ctx, db, tc.opts)
 			assert.NilError(t, err)
 
 			chResult := make(chan struct{})
@@ -762,9 +762,9 @@ func TestListenForGrantsNotify(t *testing.T) {
 		testcases := []testCase{
 			{
 				name: "by destination",
-				opts: ListenForGrantsOptions{
-					ByDestination: "mydest",
-					OrgID:         mainOrg.ID,
+				opts: ListenForNotifyOptions{
+					GrantsByDestination: "mydest",
+					OrgID:               mainOrg.ID,
 				},
 				ops: []operation{
 					{
