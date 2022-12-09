@@ -32,6 +32,7 @@ func sendAPIError(c *gin.Context, err error) {
 	var uniqueConstraintError data.UniqueConstraintError
 	var authzError access.AuthorizationError
 	var overLimitError redis.OverLimitError
+	var authnError AuthenticationError
 	var apiError api.Error
 
 	log := logging.L.Debug()
@@ -47,6 +48,10 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = "unauthorized"
 		// log the error at info because it is not in the response
 		log = logging.L.Info()
+
+	case errors.As(err, &authnError):
+		resp.Code = http.StatusUnauthorized
+		resp.Message = authnError.Message
 
 	case errors.Is(err, data.ErrAccessKeyExpired):
 		resp.Code = http.StatusUnauthorized
@@ -137,4 +142,18 @@ func newAPIErrorForUniqueConstraintError(ucErr data.UniqueConstraintError, msg s
 		Errors:    []string{ucErr.Error()},
 	}}
 	return apiError
+}
+
+// AuthenticationError is used to respond with a 401 Unauthorized response code.
+// Unlike internal.ErrUnauthorized, AuthenticationError includes an error message
+// in the response.
+type AuthenticationError struct {
+	// Message is sent as the api.Error.Message in the response. Message should
+	// always be a hard coded string to ensure that it does not include any
+	// sensitive data.
+	Message string
+}
+
+func (a AuthenticationError) Error() string {
+	return a.Message
 }
