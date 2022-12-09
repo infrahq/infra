@@ -3,7 +3,6 @@ package access
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -60,10 +59,6 @@ func DeleteOrganization(c *gin.Context, id uid.ID) error {
 	}
 
 	return data.DeleteOrganization(db, id)
-}
-
-func SanitizedDomain(subDomain, serverBaseDomain string) string {
-	return strings.ToLower(subDomain) + "." + serverBaseDomain
 }
 
 // DomainAvailable is needed to check if an org domain is available before completing social sign-up
