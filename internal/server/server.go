@@ -202,6 +202,9 @@ func New(options Options) (*Server, error) {
 
 	if options.GoogleClientID != "" {
 		server.Google = &models.Provider{
+			Model: models.Model{
+				ID: models.InternalGoogleProviderID,
+			},
 			Name:         "Google",
 			URL:          "accounts.google.com",
 			ClientID:     options.GoogleClientID,
