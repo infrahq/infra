@@ -114,5 +114,8 @@ jobs:
             argocd-image-updater run --once --match-application-label=ci.infrahq.com/component=${{ matrix.component.name }} && exit 0
             sleep $(( 3 ** $TRY ))
           done
+
+          # all attempts to sync image has failed
+          exit 1
         env:
           MAX_TRIES: 5
