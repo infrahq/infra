@@ -234,6 +234,82 @@ func TestAPI_SignupSocial(t *testing.T) {
 			},
 		},
 		{
+			name: "successful social sign-up, gmail admin email",
+			client: &fakeOIDCImplementation{
+				UserEmail: "example@gmail.com",
+			},
+			setup: func(t *testing.T) api.SignupRequest {
+				return api.SignupRequest{
+					Social: &api.SocialSignup{
+						Code:        "1234",
+						RedirectURL: "example.com/redirect",
+					},
+					OrgName:   "success-gmail-social",
+					Subdomain: "success-gmail-social",
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+				validateTestSignup := validateTestSignup{
+					Routes: routes,
+					Expected: &api.SignupResponse{
+						User: &api.User{
+							Name: "example@gmail.com",
+						},
+						Organization: &api.Organization{
+							Name:           "success-gmail-social",
+							Domain:         "success-gmail-social.exampledomain.com",
+							AllowedDomains: []string{""},
+						},
+					},
+					Response: resp,
+				}
+				tx, err := srv.db.Begin(context.Background(), nil)
+				assert.NilError(t, err)
+				validateSuccessfulSignup(t, tx, validateTestSignup)
+				assert.NilError(t, tx.Commit())
+			},
+		},
+		{
+			name: "successful social sign-up, googlemail admin email",
+			client: &fakeOIDCImplementation{
+				UserEmail: "example@googlemail.com",
+			},
+			setup: func(t *testing.T) api.SignupRequest {
+				return api.SignupRequest{
+					Social: &api.SocialSignup{
+						Code:        "1234",
+						RedirectURL: "example.com/redirect",
+					},
+					OrgName:   "success-googlemail-social",
+					Subdomain: "success-googlemail-social",
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+				validateTestSignup := validateTestSignup{
+					Routes: routes,
+					Expected: &api.SignupResponse{
+						User: &api.User{
+							Name: "example@googlemail.com",
+						},
+						Organization: &api.Organization{
+							Name:           "success-googlemail-social",
+							Domain:         "success-googlemail-social.exampledomain.com",
+							AllowedDomains: []string{""},
+						},
+					},
+					Response: resp,
+				}
+				tx, err := srv.db.Begin(context.Background(), nil)
+				assert.NilError(t, err)
+				validateSuccessfulSignup(t, tx, validateTestSignup)
+				assert.NilError(t, tx.Commit())
+			},
+		},
+		{
 			name: "social sign-up, duplicate org name",
 			client: &fakeOIDCImplementation{
 				UserEmail: "hello@example.com",
