@@ -141,7 +141,7 @@ function PersonalKeys() {
                       onClick={() => {
                         setOpenDeleteModal(true)
                       }}
-                      className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-xs font-medium text-red-500'
+                      className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-xs font-medium text-red-500 hover:text-red-500/50'
                     >
                       <TrashIcon className='mr-2 h-3.5 w-3.5' />
                       <span className='hidden sm:block'>Remove</span>
@@ -297,7 +297,7 @@ function ConnectorKeys() {
                       onClick={() => {
                         setOpenDeleteModal(true)
                       }}
-                      className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-xs font-medium text-red-500'
+                      className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-xs font-medium text-red-500 hover:text-red-500/50'
                     >
                       <TrashIcon className='mr-2 h-3.5 w-3.5' />
                       <span className='hidden sm:block'>Remove</span>
@@ -628,9 +628,12 @@ function Admins() {
                         setDeleteId(info.row.original.id)
                         setOpen(true)
                       }}
-                      className='p-1 text-2xs text-gray-500/75 hover:text-gray-600'
+                      className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
                     >
-                      Revoke
+                      <div className='flex flex-row items-center'>
+                        <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                        Revoke
+                      </div>
                       <span className='sr-only'>{info.row.original.name}</span>
                     </button>
                     <DeleteModal

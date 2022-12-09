@@ -11,6 +11,7 @@ import {
   Bars3Icon,
   UserCircleIcon,
   ArrowLeftOnRectangleIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
@@ -91,6 +92,11 @@ export default function Dashboard({ children }) {
   }
 
   const navigation = [
+    {
+      name: 'Access',
+      href: '/access-control',
+      icon: AdjustmentsHorizontalIcon,
+    },
     {
       name: 'Infrastructure',
       href: '/destinations',
