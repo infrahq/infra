@@ -75,7 +75,7 @@ func TestPaginationSelector(t *testing.T) {
 			Pagination: p,
 			ByNotName:  models.InternalInfraConnectorIdentityName,
 		}
-		actual, err := ListIdentities(context.Background(), db, opts)
+		actual, err := ListIdentities(db, opts)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
@@ -86,7 +86,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page = 2
-		actual, err = ListIdentities(context.Background(), db, opts)
+		actual, err = ListIdentities(db, opts)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
@@ -94,7 +94,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page = 3
-		actual, err = ListIdentities(context.Background(), db, opts)
+		actual, err = ListIdentities(db, opts)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 6)
 
@@ -103,7 +103,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page, p.Limit = 1, 26
-		actual, err = ListIdentities(context.Background(), db, opts)
+		actual, err = ListIdentities(db, opts)
 		assert.NilError(t, err)
 		for i, user := range actual {
 			assert.Equal(t, user.Name, alphabeticalIdentities[i])

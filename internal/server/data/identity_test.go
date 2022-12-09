@@ -1,7 +1,6 @@
 package data
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -45,10 +44,8 @@ func createIdentities(t *testing.T, db WriteTxn, identities ...*models.Identity)
 	for _, user := range identities {
 		err := CreateIdentity(db, user)
 		assert.NilError(t, err, user.Name)
-		for i := range user.Providers {
-			_, err = CreateProviderUser(db, &user.Providers[i], user)
-			assert.NilError(t, err, user.Name)
-		}
+		_, err = CreateProviderUser(db, InfraProvider(db), user)
+		assert.NilError(t, err, user.Name)
 
 		for _, group := range user.Groups {
 			err = AddUsersToGroup(db, group.ID, []uid.ID{user.ID})
@@ -90,7 +87,7 @@ func TestCreateIdentity_DuplicateNameAfterDelete(t *testing.T) {
 			ByProviderID: InfraProvider(db).ID,
 			ByID:         bond.ID,
 		}
-		err := DeleteIdentities(context.Background(), db, opts)
+		err := DeleteIdentities(db, opts)
 		assert.NilError(t, err)
 
 		err = CreateIdentity(db, &models.Identity{Name: bond.Name})
@@ -291,30 +288,26 @@ func TestListIdentities(t *testing.T) {
 		)
 		createGroups(t, db, &everyone, &product)
 
-		google := models.Provider{
-			Name: "google",
-			Kind: models.ProviderKindGoogle,
-		}
-
+		providers := []models.Provider{*InfraProvider(db)}
 		var (
 			bond = models.Identity{
 				Name:      "jbond@infrahq.com",
-				Providers: []models.Provider{*InfraProvider(db)},
+				Providers: providers,
 			}
 			salt = models.Identity{
 				Name:      "salt@infrahq.com",
 				CreatedBy: 1000,
-				Providers: []models.Provider{*InfraProvider(db)},
+				Providers: providers,
 			}
 			bourne = models.Identity{
 				Name:      "jbourne@infrahq.com",
 				Groups:    []models.Group{everyone, product},
-				Providers: []models.Provider{*InfraProvider(db)},
+				Providers: providers,
 			}
 			bauer = models.Identity{
 				Name:      "jbauer@infrahq.com",
 				Groups:    []models.Group{everyone},
-				Providers: []models.Provider{*InfraProvider(db), google},
+				Providers: providers,
 			}
 		)
 		createIdentities(t, db, &bond, &salt, &bourne, &bauer)
@@ -322,89 +315,86 @@ func TestListIdentities(t *testing.T) {
 		connector := InfraConnectorIdentity(db)
 
 		t.Run("list all", func(t *testing.T) {
-			identities, err := ListIdentities(context.Background(), db, ListIdentityOptions{})
+			identities, err := ListIdentities(db, ListIdentityOptions{})
 			assert.NilError(t, err)
 			expected := []models.Identity{*connector, bauer, bond, bourne, salt}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter by ID", func(t *testing.T) {
-			identities, err := ListIdentities(context.Background(), db, ListIdentityOptions{ByID: bond.ID})
+			identities, err := ListIdentities(db, ListIdentityOptions{ByID: bond.ID})
 			assert.NilError(t, err)
 			expected := []models.Identity{bond}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter by IDs", func(t *testing.T) {
-			identities, err := ListIdentities(context.Background(), db, ListIdentityOptions{ByIDs: []uid.ID{bond.ID, salt.ID}})
+			identities, err := ListIdentities(db, ListIdentityOptions{ByIDs: []uid.ID{bond.ID, salt.ID}})
 			assert.NilError(t, err)
 			expected := []models.Identity{bond, salt}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter by name", func(t *testing.T) {
-			identities, err := ListIdentities(context.Background(), db, ListIdentityOptions{ByName: bond.Name})
+			identities, err := ListIdentities(db, ListIdentityOptions{ByName: bond.Name})
 			assert.NilError(t, err)
 			expected := []models.Identity{bond}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter by not name", func(t *testing.T) {
-			identities, err := ListIdentities(context.Background(), db, ListIdentityOptions{ByNotName: bond.Name})
+			identities, err := ListIdentities(db, ListIdentityOptions{ByNotName: bond.Name})
 			assert.NilError(t, err)
 			expected := []models.Identity{*connector, bauer, bourne, salt}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter identities by group", func(t *testing.T) {
-			actual, err := ListIdentities(context.Background(), db, ListIdentityOptions{ByGroupID: everyone.ID})
+			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
 			assert.NilError(t, err)
 			expected := []models.Identity{bauer, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter identities by created by", func(t *testing.T) {
-			actual, err := ListIdentities(context.Background(), db, ListIdentityOptions{CreatedBy: uid.ID(1000)})
+			actual, err := ListIdentities(db, ListIdentityOptions{CreatedBy: uid.ID(1000)})
 			assert.NilError(t, err)
 			expected := []models.Identity{salt}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter by not IDs requires created by", func(t *testing.T) {
-			_, err := ListIdentities(context.Background(), db, ListIdentityOptions{ByNotIDs: []uid.ID{bourne.ID, bauer.ID}})
+			_, err := ListIdentities(db, ListIdentityOptions{ByNotIDs: []uid.ID{bourne.ID, bauer.ID}})
 			assert.ErrorContains(t, err, "ListIdentities by 'not IDs' requires 'created by'")
 		})
 
 		t.Run("filter by not IDs", func(t *testing.T) {
-			identities, err := ListIdentities(context.Background(), db, ListIdentityOptions{CreatedBy: uid.ID(1000), ByNotIDs: []uid.ID{bourne.ID, bauer.ID}})
+			identities, err := ListIdentities(db, ListIdentityOptions{CreatedBy: uid.ID(1000), ByNotIDs: []uid.ID{bourne.ID, bauer.ID}})
 			assert.NilError(t, err)
 			expected := []models.Identity{salt}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter identities by group and name", func(t *testing.T) {
-			actual, err := ListIdentities(context.Background(), db, ListIdentityOptions{ByGroupID: everyone.ID, ByName: bauer.Name})
+			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID, ByName: bauer.Name})
 			assert.NilError(t, err)
 			expected := []models.Identity{bauer}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("load groups", func(t *testing.T) {
-			actual, err := ListIdentities(context.Background(), db, ListIdentityOptions{LoadGroups: true})
+			actual, err := ListIdentities(db, ListIdentityOptions{LoadGroups: true})
 			assert.NilError(t, err)
 			expected := []models.Identity{*connector, bauer, bond, bourne, salt}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityPreloadGroupsShallow)
 		})
 
 		t.Run("load providers", func(t *testing.T) {
-			//nolint:staticcheck
-			ctx := context.WithValue(context.Background(), GoogleProviderContextKey, &google)
-			actual, err := ListIdentities(ctx, db, ListIdentityOptions{LoadProviders: true})
+			actual, err := ListIdentities(db, ListIdentityOptions{LoadProviders: true})
 			assert.NilError(t, err)
 			expected := []models.Identity{*connector, bauer, bond, bourne, salt}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityPreloadProvidersShallow)
 		})
-
 		t.Run("by public key fingerprint", func(t *testing.T) {
 			pubKey := &models.UserPublicKey{
 				UserID:      salt.ID,
@@ -413,7 +403,7 @@ func TestListIdentities(t *testing.T) {
 			}
 			assert.NilError(t, AddUserPublicKey(db, pubKey))
 
-			actual, err := ListIdentities(context.Background(), db, ListIdentityOptions{
+			actual, err := ListIdentities(db, ListIdentityOptions{
 				ByPublicKeyFingerprint: "the-fingerprint",
 				LoadPublicKeys:         true,
 			})
@@ -561,7 +551,7 @@ func TestDeleteIdentities(t *testing.T) {
 		{
 			name: "delete identity in provider outside infra does not delete credentials",
 			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
-				id := &models.Identity{Name: "jbond@infrahq.com", Providers: []models.Provider{*InfraProvider(tx)}}
+				id := &models.Identity{Name: "jbond@infrahq.com"}
 				createIdentities(t, tx, id)
 
 				err := CreateCredential(tx, &models.Credential{IdentityID: id.ID, PasswordHash: []byte("abc")})
@@ -747,7 +737,7 @@ func TestDeleteIdentities(t *testing.T) {
 				tx := txnForTestCase(t, db, org.ID)
 
 				opts, identity := tc.setup(t, tx)
-				err := DeleteIdentities(context.Background(), tx, opts)
+				err := DeleteIdentities(tx, opts)
 
 				tc.verify(t, tx, err, identity)
 			})
@@ -775,7 +765,7 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 			ByProviderID: InfraProvider(db).ID,
 			ByID:         bond.ID,
 		}
-		err = DeleteIdentities(context.Background(), db, opts)
+		err = DeleteIdentities(db, opts)
 		assert.NilError(t, err)
 
 		group, err = GetGroup(db, GetGroupOptions{ByID: group.ID})

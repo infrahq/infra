@@ -81,12 +81,12 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 	return data.DeleteGroup(db, id)
 }
 
-func checkIdentitiesInList(c *gin.Context, db data.ReadTxn, ids []uid.ID) ([]uid.ID, error) {
+func checkIdentitiesInList(db data.ReadTxn, ids []uid.ID) ([]uid.ID, error) {
 	if len(ids) == 0 {
 		return ids, nil
 	}
 
-	identities, err := data.ListIdentities(c, db, data.ListIdentityOptions{ByIDs: ids})
+	identities, err := data.ListIdentities(db, data.ListIdentityOptions{ByIDs: ids})
 	if err != nil {
 		return nil, err
 	}
@@ -123,12 +123,12 @@ func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uids
 		return err
 	}
 
-	addIDList, err := checkIdentitiesInList(c, db, uidsToAdd)
+	addIDList, err := checkIdentitiesInList(db, uidsToAdd)
 	if err != nil {
 		return err
 	}
 
-	rmIDList, err := checkIdentitiesInList(c, db, uidsToRemove)
+	rmIDList, err := checkIdentitiesInList(db, uidsToRemove)
 	if err != nil {
 		return err
 	}

@@ -74,7 +74,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		ByProviderID: data.InfraProvider(db).ID,
 		ByID:         id,
 	}
-	return data.DeleteIdentities(c, db, opts)
+	return data.DeleteIdentities(db, opts)
 }
 
 func ListIdentities(c *gin.Context, opts data.ListIdentityOptions) ([]models.Identity, error) {
@@ -83,8 +83,7 @@ func ListIdentities(c *gin.Context, opts data.ListIdentityOptions) ([]models.Ide
 	if err != nil {
 		return nil, HandleAuthErr(err, "users", "list", roles...)
 	}
-
-	return data.ListIdentities(c, db, opts)
+	return data.ListIdentities(db, opts)
 }
 
 func GetContextProviderIdentity(c RequestContext) (*models.Provider, string, error) {

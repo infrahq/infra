@@ -1,7 +1,6 @@
 package data
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -62,7 +61,7 @@ func TestCreateProvider_RecreateWithDuplicateDomain(t *testing.T) {
 
 		createProviders(t, db, &providerDevelop, &providerProduction)
 
-		err := DeleteProviders(context.Background(), db, DeleteProvidersOptions{ByID: providerDevelop.ID})
+		err := DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 		assert.NilError(t, err)
 
 		err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta})
@@ -342,7 +341,7 @@ func TestDeleteProviders(t *testing.T) {
 
 		t.Run("Deletes work", func(t *testing.T) {
 			tx := setup(t)
-			err := DeleteProviders(context.Background(), tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
+			err := DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetProvider(tx, GetProviderOptions{ByName: providerDevelop.Name})
@@ -372,7 +371,7 @@ func TestDeleteProviders(t *testing.T) {
 			_, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(context.Background(), tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetAccessKeyByKeyID(tx, key.KeyID)
@@ -395,14 +394,14 @@ func TestDeleteProviders(t *testing.T) {
 			_, err = CreateAccessKey(tx, key)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(context.Background(), tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetAccessKeyByKeyID(tx, key.KeyID)
 			assert.NilError(t, err)
 
 			// clean up
-			err = DeleteProviders(context.Background(), tx, DeleteProvidersOptions{ByID: providerProduction.ID})
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerProduction.ID})
 			assert.NilError(t, err)
 		})
 
@@ -412,7 +411,7 @@ func TestDeleteProviders(t *testing.T) {
 			pu, err := CreateProviderUser(tx, &providerProduction, user)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(context.Background(), tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetIdentity(tx, GetIdentityOptions{ByID: pu.IdentityID})
@@ -423,7 +422,7 @@ func TestDeleteProviders(t *testing.T) {
 			tx := setup(t)
 
 			otherOrgTx := tx.WithOrgID(otherOrg.ID)
-			err := DeleteProviders(context.Background(), otherOrgTx, DeleteProvidersOptions{ByID: providerDevelop.ID})
+			err := DeleteProviders(otherOrgTx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetIdentity(tx, GetIdentityOptions{ByID: user.ID})

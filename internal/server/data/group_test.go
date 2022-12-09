@@ -1,7 +1,6 @@
 package data
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -266,7 +265,7 @@ func TestDeleteGroup(t *testing.T) {
 			assert.NilError(t, err)
 
 			// grants and group membership should also be removed.
-			users, err := ListIdentities(context.Background(), tx, ListIdentityOptions{ByGroupID: everyone.ID})
+			users, err := ListIdentities(tx, ListIdentityOptions{ByGroupID: everyone.ID})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, users, []models.Identity{})
 
@@ -327,7 +326,7 @@ func TestAddUsersToGroup(t *testing.T) {
 		createIdentities(t, db, &bond, &bourne, &bauer, &forth)
 
 		t.Run("add identities to group", func(t *testing.T) {
-			actual, err := ListIdentities(context.Background(), db, ListIdentityOptions{ByGroupID: everyone.ID})
+			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
 			assert.NilError(t, err)
 			expected := []models.Identity{forth, bond}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
@@ -335,12 +334,12 @@ func TestAddUsersToGroup(t *testing.T) {
 			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID, forth.ID})
 			assert.NilError(t, err)
 
-			actual, err = ListIdentities(context.Background(), db, ListIdentityOptions{ByGroupID: everyone.ID})
+			actual, err = ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
 			assert.NilError(t, err)
 			expected = []models.Identity{forth, bauer, bond, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 
-			actual, err = ListIdentities(context.Background(), db, ListIdentityOptions{ByGroupID: other.ID})
+			actual, err = ListIdentities(db, ListIdentityOptions{ByGroupID: other.ID})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 0)
 		})
@@ -373,23 +372,23 @@ func TestRemoveUsersFromGroup(t *testing.T) {
 		}
 		createIdentities(t, tx, &bond, &bourne, &bauer, &forth)
 
-		users, err := ListIdentities(context.Background(), tx, ListIdentityOptions{ByGroupID: everyone.ID})
+		users, err := ListIdentities(tx, ListIdentityOptions{ByGroupID: everyone.ID})
 		assert.NilError(t, err)
 		assert.Equal(t, len(users), 4)
 
-		users, err = ListIdentities(context.Background(), tx, ListIdentityOptions{ByGroupID: other.ID})
+		users, err = ListIdentities(tx, ListIdentityOptions{ByGroupID: other.ID})
 		assert.NilError(t, err)
 		assert.Equal(t, len(users), 3)
 
 		err = RemoveUsersFromGroup(tx, everyone.ID, []uid.ID{bond.ID, bourne.ID, forth.ID})
 		assert.NilError(t, err)
 
-		actual, err := ListIdentities(context.Background(), tx, ListIdentityOptions{ByGroupID: everyone.ID})
+		actual, err := ListIdentities(tx, ListIdentityOptions{ByGroupID: everyone.ID})
 		assert.NilError(t, err)
 		expected := []models.Identity{bauer}
 		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 
-		actual, err = ListIdentities(context.Background(), tx, ListIdentityOptions{ByGroupID: other.ID})
+		actual, err = ListIdentities(tx, ListIdentityOptions{ByGroupID: other.ID})
 		assert.NilError(t, err)
 		expected = []models.Identity{bauer, bond, bourne}
 		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)

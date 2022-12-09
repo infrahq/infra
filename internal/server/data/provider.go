@@ -1,7 +1,6 @@
 package data
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -169,7 +168,7 @@ type DeleteProvidersOptions struct {
 	NotIDs []uid.ID
 }
 
-func DeleteProviders(c context.Context, db WriteTxn, opts DeleteProvidersOptions) error {
+func DeleteProviders(db WriteTxn, opts DeleteProvidersOptions) error {
 	var toDelete []models.Provider
 	if opts.ByID != 0 {
 		if provider, _ := GetProvider(db, GetProviderOptions{ByID: opts.ByID}); provider != nil {
@@ -216,7 +215,7 @@ func DeleteProviders(c context.Context, db WriteTxn, opts DeleteProvidersOptions
 				ByProviderID: p.ID,
 				ByIDs:        userIDsToDelete,
 			}
-			if err := DeleteIdentities(c, db, opts); err != nil {
+			if err := DeleteIdentities(db, opts); err != nil {
 				return fmt.Errorf("delete users: %w", err)
 			}
 		}
