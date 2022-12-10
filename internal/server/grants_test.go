@@ -17,6 +17,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -1374,6 +1375,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 	user := &models.Identity{Name: "non-admin"}
 	group := &models.Group{Name: "mygroup"}
 
+	nonAdminToken, _ := createAccessKey(t, srv.DB(), "otheruser@example.com")
+
 	err := data.CreateIdentity(srv.DB(), user)
 	assert.NilError(t, err)
 
@@ -1392,7 +1395,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
 		req := httptest.NewRequest(http.MethodPatch, "/api/grants", body)
-		req.Header.Add("Infra-Version", "0.15.2")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -1405,6 +1408,54 @@ func TestAPI_UpdateGrants(t *testing.T) {
 	}
 
 	testCases := map[string]testCase{
+		"not authenticated": {
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						UserName:  user.Name,
+						Resource:  "infra",
+						Privilege: models.InfraAdminRole,
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		"not authorized": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+nonAdminToken)
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						UserName:  user.Name,
+						Resource:  "infra",
+						Privilege: models.InfraConnectorRole,
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden)
+			},
+		},
+		"not authorized for support-admin grant": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						UserName:  user.Name,
+						Resource:  access.ResourceInfraAPI,
+						Privilege: models.InfraSupportAdminRole,
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden)
+			},
+		},
 		"success add": {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
