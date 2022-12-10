@@ -155,16 +155,10 @@ func userInGroup(db data.ReadTxn, authnUserID uid.ID, groupID uid.ID) bool {
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
 	rCtx := GetRequestContext(c)
-
-	var err error
-	if grant.Privilege == models.InfraSupportAdminRole && grant.Resource == ResourceInfraAPI {
-		_, err = RequireInfraRole(c, models.InfraSupportAdminRole)
-	} else {
-		_, err = RequireInfraRole(c, models.InfraAdminRole)
-	}
-
+	role := requiredInfraRoleForGrantOperation(grant)
+	err := IsAuthorized(rCtx, role)
 	if err != nil {
-		return HandleAuthErr(err, "grant", "create", grant.Privilege)
+		return HandleAuthErr(err, "grant", "create", role)
 	}
 
 	// TODO: CreatedBy should be set automatically
@@ -174,6 +168,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 }
 
 func DeleteGrant(c *gin.Context, id uid.ID) error {
+	// TODO: should support-admin role be required to delete support-admin grant?
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "grant", "delete", models.InfraAdminRole)
@@ -183,10 +178,23 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 }
 
 func UpdateGrants(c *gin.Context, addGrants, rmGrants []*models.Grant) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	all := make([]*models.Grant, 0, len(addGrants)+len(rmGrants))
+	all = append(all, addGrants...)
+	all = append(all, rmGrants...)
+	role := requiredInfraRoleForGrantOperation(all...)
+	db, err := RequireInfraRole(c, role)
 	if err != nil {
-		return HandleAuthErr(err, "grant", "update", "")
+		return HandleAuthErr(err, "grant", "update", role)
 	}
 
 	return data.UpdateGrants(db, addGrants, rmGrants)
+}
+
+func requiredInfraRoleForGrantOperation(grants ...*models.Grant) string {
+	for _, grant := range grants {
+		if grant.Privilege == models.InfraSupportAdminRole && grant.Resource == ResourceInfraAPI {
+			return models.InfraSupportAdminRole
+		}
+	}
+	return models.InfraAdminRole
 }

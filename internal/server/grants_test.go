@@ -17,6 +17,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -1446,7 +1447,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				GrantsToAdd: []api.GrantRequest{
 					{
 						UserName:  user.Name,
-						Resource:  "infra",
+						Resource:  access.ResourceInfraAPI,
 						Privilege: models.InfraSupportAdminRole,
 					},
 				},
