@@ -1131,4 +1131,3 @@ func deviceFlowAuthRequestsAddUserIDProviderID() *migrator.Migration {
 		},
 	}
 }
-
