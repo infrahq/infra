@@ -912,7 +912,6 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 			},
 		},
 		{
-		{
 			label: testCaseLine(addDestinationCredentials().ID),
 			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison

@@ -3,7 +3,6 @@ package data
 import (
 	"time"
 
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -29,7 +28,6 @@ func CreateDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) 
 	q.B("(id, organization_id, expires_at, user_id, destination_id, update_index)")
 	q.B("VALUES (?,?,?,?,?,nextval('seq_update_index'))", cr.ID, cr.OrganizationID, cr.ExpiresAt, cr.UserID, cr.DestinationID)
 
-	logging.Debugf("Should be triggering notification for credreq_%s_%s", cr.OrganizationID.String(), cr.DestinationID.String())
 	_, err := tx.Exec(q.String(), q.Args...) // will trigger destination_credential_insert_notify()
 	if err != nil {
 		return handleError(err)
@@ -38,7 +36,7 @@ func CreateDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) 
 	return nil
 }
 
-func UpdateDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) error {
+func AnswerDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) error {
 	q := querybuilder.New("UPDATE destination_credentials")
 	q.B("SET")
 	q.B("answered = ?,", true)

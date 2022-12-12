@@ -80,7 +80,7 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		dc.ExpiresAt = expiry
 		dc.Answered = true
 
-		err = UpdateDestinationCredential(db, dc)
+		err = AnswerDestinationCredential(db, dc)
 		assert.NilError(t, err)
 
 		dc, err = GetDestinationCredential(db, dcID, orgID)
