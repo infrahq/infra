@@ -74,7 +74,10 @@ export default function Table({
         <div className='absolute left-12 flex h-6 items-center py-4 sm:left-16'>
           <button
             type='button'
-            onClick={() => onDelete(selectedRowIds)}
+            onClick={() => {
+              onDelete(selectedRowIds)
+              setSelectedRowIds([])
+            }}
             className='rounded-md bg-zinc-50 px-4 py-2 text-2xs font-medium  text-red-500 hover:bg-red-100'
           >
             <div className='flex flex-row items-center'>
