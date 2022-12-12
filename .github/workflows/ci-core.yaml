@@ -111,3 +111,21 @@ jobs:
         run: |
           go generate ./...
           git diff --exit-code
+
+  test-acceptance:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_name == 'main' || contains(github.event.pull_request.labels.*.name, 'action/test-acceptance') }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.19"
+          cache: true
+      - uses: goreleaser/goreleaser-action@v3
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --snapshot --skip-publish
+        env:
+          RELEASE_NAME: 0.0.0
+

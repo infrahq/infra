@@ -93,3 +93,6 @@
 - name: "action/race"
   color: "dddddd"
   description: Enable the Go race detector in subsequent test runs of this pull request.
+- name: "action/test-acceptance"
+  color: "dddddd"
+  description: Run the acceptance test suite in subsequent test runs of this pull request.
