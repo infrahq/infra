@@ -574,6 +574,16 @@ func loadIdentitiesProviders(tx ReadTxn, identities []models.Identity) error {
 		providersByID[p.ID] = p
 	}
 
+	// add the google social login which is not stored in the database, only in memory
+	providersByID[models.InternalGoogleProviderID] = models.Provider{
+		Model: models.Model{
+			ID: models.InternalGoogleProviderID,
+		},
+		Name: "Google",
+		URL:  "accounts.google.com",
+		Kind: models.ProviderKindGoogle,
+	}
+
 	// now we have all the info we need, add the providers to each identity
 	for i := range identities {
 		providers := []models.Provider{}

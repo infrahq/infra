@@ -9,6 +9,8 @@ import (
 
 const InternalInfraProviderName = "infra"
 
+const InternalGoogleProviderID = 0 // TODO: #3846, make this a non-zero default value
+
 type ProviderKind string
 
 const (
