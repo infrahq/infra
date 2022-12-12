@@ -1059,6 +1059,7 @@ func addDestinationCredentials() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-11-25T14:46",
 		Migrate: func(tx migrator.DB) error {
+			// Postgres 12 doesn't support CREATE OR REPLACE for triggers.
 			_, err := tx.Exec(`
 				CREATE TABLE IF NOT EXISTS destination_credentials (
 					id 							 	bigint NOT NULL,
@@ -1083,7 +1084,7 @@ func addDestinationCredentials() *migrator.Migration {
 					RETURN NULL;
 				END; $$;
 
-				CREATE OR REPLACE TRIGGER credreq_notify_insert_trigger AFTER insert
+				CREATE TRIGGER credreq_notify_insert_trigger AFTER insert
 					ON destination_credentials
 					FOR EACH ROW EXECUTE FUNCTION destination_credential_insert_notify();
 
@@ -1096,7 +1097,7 @@ func addDestinationCredentials() *migrator.Migration {
 					RETURN NULL;
 				END; $$;
 
-				CREATE OR REPLACE TRIGGER credreq_notify_update_trigger AFTER update
+				CREATE TRIGGER credreq_notify_update_trigger AFTER update
 					ON destination_credentials
 					FOR EACH ROW EXECUTE FUNCTION destination_credential_update_notify();
 			`)

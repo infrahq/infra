@@ -87,7 +87,7 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		assert.NilError(t, err)
 
 		assert.Equal(t, dc.Answered, true)
-		assert.Equal(t, dc.ExpiresAt.UnixNano(), expiry.UnixNano())
+		assert.Equal(t, dc.ExpiresAt.UnixMicro(), expiry.UnixMicro())
 		assert.Equal(t, dc.BearerToken.String, "foo.bar")
 
 	})
@@ -98,7 +98,7 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		dc := &models.DestinationCredential{
 			ID:                 uid.New(),
 			OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
-			ExpiresAt:          time.Now().Add(5 * time.Second),
+			ExpiresAt:          time.Now().Add(5 * time.Second).Truncate(time.Millisecond),
 			DestinationID:      destID,
 			UserID:             uid.New(),
 		}
