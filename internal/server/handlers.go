@@ -129,7 +129,7 @@ func (a *API) signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		Domain:  a.server.options.BaseDomain,
 		Expires: time.Now().Add(1 * time.Minute),
 	}
-	setCookie(c, cookie)
+	setCookie(c.Request, c.Writer, cookie)
 
 	a.t.User(identity.ID.String(), r.Name)
 	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name, suDetails.Org.Domain)
@@ -264,7 +264,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		Domain:  c.Request.Host,
 		Expires: result.AccessKey.ExpiresAt,
 	}
-	setCookie(c, cookie)
+	setCookie(c.Request, c.Writer, cookie)
 
 	key := result.AccessKey
 	a.t.User(key.IssuedFor.String(), result.User.Name)
@@ -291,7 +291,7 @@ func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, e
 		return nil, err
 	}
 
-	deleteCookie(c, cookieAuthorizationName, c.Request.Host)
+	deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
 	return nil, nil
 }
 

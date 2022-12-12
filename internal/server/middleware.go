@@ -274,7 +274,7 @@ func reqBearerToken(c *gin.Context, opts Options) (string, error) {
 		 Signup takes priority over the auth cookie to ensure a new signup always get the correct session.
 		 If this isn't a new org, check for the 'auth' cookie which contains an access key.
 		*/
-		cookie := exchangeSignupCookieForSession(c, opts)
+		cookie := exchangeSignupCookieForSession(c.Request, c.Writer, opts)
 		if cookie == "" {
 			logging.L.Trace().Msg("sign-up cookie not found, falling back to auth cookie")
 

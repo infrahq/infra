@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -25,19 +23,19 @@ type cookieConfig struct {
 	Expires time.Time
 }
 
-func setCookie(c *gin.Context, config cookieConfig) {
+func setCookie(req *http.Request, resp http.ResponseWriter, config cookieConfig) {
 	maxAge := int(time.Until(config.Expires).Seconds())
 	if maxAge == cookieMaxAgeNoExpiry {
 		maxAge = cookieMaxAgeDeleteImmediately
 	}
 
 	secure := true
-	if c.Request.TLS == nil {
+	if req.TLS == nil {
 		// if the request came over HTTP, then the cookie will need to be sent unsecured
 		secure = false
 	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
+	http.SetCookie(resp, &http.Cookie{
 		Name:     config.Name,
 		Value:    url.QueryEscape(config.Value),
 		MaxAge:   maxAge,
@@ -49,8 +47,8 @@ func setCookie(c *gin.Context, config cookieConfig) {
 	})
 }
 
-func deleteCookie(c *gin.Context, name, domain string) {
-	http.SetCookie(c.Writer, &http.Cookie{
+func deleteCookie(resp http.ResponseWriter, name, domain string) {
+	http.SetCookie(resp, &http.Cookie{
 		Name:     name,
 		MaxAge:   cookieMaxAgeDeleteImmediately,
 		Path:     cookiePath,
@@ -61,8 +59,12 @@ func deleteCookie(c *gin.Context, name, domain string) {
 }
 
 // exchangeSignupCookieForSession sets the auth cookie on the current host making the request
-func exchangeSignupCookieForSession(c *gin.Context, opts Options) string {
-	signupCookie, err := getCookie(c.Request, cookieSignupName)
+func exchangeSignupCookieForSession(
+	req *http.Request,
+	resp http.ResponseWriter,
+	opts Options,
+) string {
+	signupCookie, err := getCookie(req, cookieSignupName)
 	if err != nil {
 		logging.L.Trace().Err(err).Msg("failed to find signup cookie, this may be expected")
 		return ""
@@ -73,11 +75,11 @@ func exchangeSignupCookieForSession(c *gin.Context, opts Options) string {
 	conf := cookieConfig{
 		Name:    cookieAuthorizationName,
 		Value:   signupCookie,
-		Domain:  c.Request.Host,
+		Domain:  req.Host,
 		Expires: exp,
 	}
-	setCookie(c, conf)
-	deleteCookie(c, cookieSignupName, opts.BaseDomain)
+	setCookie(req, resp, conf)
+	deleteCookie(resp, cookieSignupName, opts.BaseDomain)
 
 	return signupCookie
 }
