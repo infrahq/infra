@@ -1,0 +1,16 @@
+name: dev
+
+# TODO: use different cert/key from the server
+caCert: internal/server/testdata/pki/ca.crt
+caKey: internal/server/testdata/pki/ca.key
+
+addr:
+  https: localhost:9443
+  http: localhost:8080
+  metrics: localhost:9091
+
+endpointAddr: localhost:9443
+
+server:
+  url: localhost:443
+  trustedCertificate: internal/server/testdata/pki/ca.crt
