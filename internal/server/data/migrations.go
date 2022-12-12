@@ -1084,6 +1084,7 @@ func addDestinationCredentials() *migrator.Migration {
 					RETURN NULL;
 				END; $$;
 
+				DROP TRIGGER IF EXISTS credreq_notify_insert_trigger ON destination_credentials;
 				CREATE TRIGGER credreq_notify_insert_trigger AFTER insert
 					ON destination_credentials
 					FOR EACH ROW EXECUTE FUNCTION destination_credential_insert_notify();
@@ -1097,6 +1098,7 @@ func addDestinationCredentials() *migrator.Migration {
 					RETURN NULL;
 				END; $$;
 
+				DROP TRIGGER IF EXISTS credreq_notify_update_trigger ON destination_credentials;
 				CREATE TRIGGER credreq_notify_update_trigger AFTER update
 					ON destination_credentials
 					FOR EACH ROW EXECUTE FUNCTION destination_credential_update_notify();
