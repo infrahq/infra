@@ -6,7 +6,10 @@ import Tippy from '@tippyjs/react'
 import Cookies from 'universal-cookie'
 
 import { useUser } from '../../lib/hooks'
-import { googleSocialLoginID, providers as providersList } from '../../lib/providers'
+import {
+  googleSocialLoginID,
+  providers as providersList,
+} from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
 import { saveToVisitedOrgs, currentBaseDomain } from '../../lib/login'
 
