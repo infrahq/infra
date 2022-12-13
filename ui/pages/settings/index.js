@@ -156,7 +156,7 @@ function PersonalKeys() {
                             method: 'DELETE',
                           })
                         } catch (e) {
-                          console.log(e)
+                          console.error(e)
                         }
 
                         setOpenDeleteModal(false)

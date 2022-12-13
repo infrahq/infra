@@ -93,7 +93,7 @@ export default function Dashboard({ children }) {
 
   const navigation = [
     {
-      name: 'Access',
+      name: 'Access Control',
       href: '/access-control',
       icon: AdjustmentsHorizontalIcon,
     },

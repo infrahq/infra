@@ -11,7 +11,7 @@ import {
 import { Dialog, Transition, Combobox, Listbox } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
-import { descriptions } from '../../lib/grants'
+import { descriptions, sortByRole } from '../../lib/grants'
 
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
@@ -19,10 +19,12 @@ import Table from '../../components/table'
 const OPTION_SELECT_ALL = 'select all'
 
 function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
-  const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
-    useSWR('/api/users?limit=1000')
-  const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
-    useSWR('/api/groups?limit=1000')
+  const { data: { items: users } = { items: [] } } = useSWR(
+    '/api/users?limit=1000'
+  )
+  const { data: { items: groups } = { items: [] } } = useSWR(
+    '/api/groups?limit=1000'
+  )
   const { data: { items: resources } = { items: [] } } = useSWR(
     '/api/destinations?limit=1000'
   )
@@ -66,11 +68,20 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
   useEffect(() => setSelectedResource(resources[0]), [resources])
 
   useEffect(() => {
-    setRoles(selectedResource?.roles)
+    setRoles(sortByRole(selectedResource?.roles))
   }, [selectedResource])
+
+  useEffect(() => {
+    if (roles.length > 0) {
+      setSelectedRoles([roles[0]])
+    }
+  }, [roles])
 
   async function onSubmit(e) {
     e.preventDefault()
+
+    setErrors({})
+    setError('')
 
     try {
       const GrantsToAdd = []
@@ -96,19 +107,18 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
         })
       }
 
-      await fetch('/api/grants', {
-        method: 'POST',
+      const newGrants = await fetch('/api/grants', {
+        method: 'PATCH',
         body: JSON.stringify({ GrantsToAdd }),
       })
 
-      // await Promise.all(promises)
-
-      onCreated()
+      onCreated(newGrants)
       setOpen(false)
-      // console.log(GrantsToAdd)
-    } catch (e) {}
+    } catch (e) {
+      console.error(e)
 
-    return false
+      return false
+    }
   }
 
   return (
@@ -143,10 +153,6 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
               as='div'
               value={selected?.name || ''}
               onChange={setSelected}
-              // onFocus={() => {
-              //   mutateUsers()
-              //   mutateGroups()
-              // }}
             >
               <Combobox.Input
                 className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
@@ -157,11 +163,6 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                     setSelected(null)
                   }
                 }}
-                // onFocus={() => {
-                //   if (selected === null) {
-                //     identityButton.current?.click()
-                //   }
-                // }}
               />
               {options?.length > 0 && (
                 <div className='relative'>
@@ -221,9 +222,6 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                     setSelectedResource(null)
                   }
                 }}
-                // onFocus={() => {
-                //   resourceButton.current?.click()
-                // }}
               />
               {resourcesOptions?.length > 0 && (
                 <div className='relative'>
@@ -365,11 +363,13 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
               <Listbox
                 value={selectedRoles}
                 onChange={v => {
+                  if (selectedRoles.length === 1 && v.length === 0) {
+                    return
+                  }
+
                   const add = v.filter(x => !selectedRoles.includes(x))
                   const remove = selectedRoles.filter(x => !v.includes(x))
-                  console.log('remove:', remove)
-                  console.log(add)
-                  if (add.length > 0) {
+                  if (add.length) {
                     setSelectedRoles([...selectedRoles, ...add])
                   }
                   if (remove.length) {
@@ -390,9 +390,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                         />
                       </span>
                       <span className='text-gray-700'>
-                        {selectedRoles.length > 0
-                          ? selectedRoles.join(', ')
-                          : 'Select roles'}
+                        {selectedRoles.join(', ')}
                       </span>
                     </div>
                   </Listbox.Button>
@@ -445,9 +443,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
           </button>
           <button
             type='submit'
-            disabled={
-              !selected || !selectedResource || selectedRoles.length === 0
-            }
+            disabled={!selected || !selectedResource}
             className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
           >
             Add
@@ -466,7 +462,7 @@ export default function AccessControl() {
 
   const { data: { items: allGrants } = {}, mutate } = useSWR(() =>
     isAdmin
-      ? `/api/grants?limit=1000`
+      ? '/api/grants?limit=1000'
       : `/api/grants?user=${user.id}&limit=1000`
   )
 

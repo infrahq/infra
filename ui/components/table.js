@@ -62,6 +62,12 @@ export default function Table({
     }
   }, [selectedRowIds])
 
+  useLayoutEffect(() => {
+    setCheckedAll(false)
+    setIndeterminate(false)
+    setSelectedRowIds([])
+  }, [pageIndex])
+
   function toggleAll() {
     setSelectedRowIds(checkedAll || indeterminate ? [] : data.map(d => d.id))
     setCheckedAll(!checkedAll && !indeterminate)
@@ -172,6 +178,16 @@ export default function Table({
         </tbody>
       </table>
 
+      {data && data.length === 0 && empty && (
+        <div className='flex justify-center py-5 text-sm text-gray-500'>
+          {empty}
+        </div>
+      )}
+      {!data && (
+        <div className='flex w-full justify-center'>
+          <Loader className='h-12 w-12' />
+        </div>
+      )}
       {/* Pagination */}
       {data?.length > 0 && (
         <div className='sticky left-0 z-0 flex w-full items-center justify-between border-t border-gray-200/75 py-2 px-5 text-2xs'>
@@ -202,16 +218,6 @@ export default function Table({
               Next
             </button>
           </div>
-        </div>
-      )}
-      {data && data.length === 0 && empty && (
-        <div className='flex justify-center py-5 text-sm text-gray-500'>
-          {empty}
-        </div>
-      )}
-      {!data && (
-        <div className='flex w-full justify-center'>
-          <Loader className='h-12 w-12' />
         </div>
       )}
     </div>
