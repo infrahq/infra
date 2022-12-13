@@ -329,14 +329,19 @@ func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) 
 		if len(existsInProviders) > 0 {
 			var providerIDs []uid.ID
 			for _, relation := range existsInProviders {
-				providerIDs = append(providerIDs, relation.ProviderID)
+				if relation.ProviderID == models.InternalGoogleProviderID {
+					// add the google social login which is not stored in the database, only in memory
+					identity.Providers = []models.Provider{googleProvider()}
+				} else {
+					providerIDs = append(providerIDs, relation.ProviderID)
+				}
 			}
 
 			providers, err := ListProviders(tx, ListProvidersOptions{ByIDs: providerIDs})
 			if err != nil {
 				return nil, fmt.Errorf("list providers for identity: %w", err)
 			}
-			identity.Providers = providers
+			identity.Providers = append(identity.Providers, providers...)
 		}
 	}
 
@@ -575,14 +580,7 @@ func loadIdentitiesProviders(tx ReadTxn, identities []models.Identity) error {
 	}
 
 	// add the google social login which is not stored in the database, only in memory
-	providersByID[models.InternalGoogleProviderID] = models.Provider{
-		Model: models.Model{
-			ID: models.InternalGoogleProviderID,
-		},
-		Name: "Google",
-		URL:  "accounts.google.com",
-		Kind: models.ProviderKindGoogle,
-	}
+	providersByID[models.InternalGoogleProviderID] = googleProvider()
 
 	// now we have all the info we need, add the providers to each identity
 	for i := range identities {
@@ -694,4 +692,16 @@ func deleteReferencesToIdentities(tx WriteTxn, providerID uid.ID, toDelete []mod
 
 func CountAllIdentities(tx ReadTxn) (int64, error) {
 	return countRows(tx, identitiesTable{})
+}
+
+// stub details for google social login provider which is not stored in the database
+func googleProvider() models.Provider {
+	return models.Provider{
+		Model: models.Model{
+			ID: models.InternalGoogleProviderID,
+		},
+		Name: "Google",
+		URL:  "accounts.google.com",
+		Kind: models.ProviderKindGoogle,
+	}
 }
