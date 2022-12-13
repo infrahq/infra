@@ -46,7 +46,7 @@ jobs:
           POSTGRES_PASSWORD: password123
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
+          --health-interval 5s
           --health-timeout 5s
           --health-retries 5
         ports: ["127.0.0.1:5432:5432"]
@@ -128,4 +128,11 @@ jobs:
           args: release --rm-dist --snapshot --skip-publish
         env:
           RELEASE_NAME: 0.0.0
+      - name: Start containers
+        run: |
+          head -c 32 < /dev/urandom > test/root.key
+          docker compose -f test/docker-compose.yaml up -d --wait
 
+      - name: Container output
+        if: always()
+        run: docker compose -f test/docker-compose.yaml logs

@@ -4,7 +4,8 @@
 .vscode
 
 # infra binary
-./dist/
+dist/
 querylinter.so
 
 sendgrid.env
+test/root.key
