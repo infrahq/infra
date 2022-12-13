@@ -89,7 +89,7 @@ func ListIdentities(c *gin.Context, opts data.ListIdentityOptions) ([]models.Ide
 func GetContextProviderIdentity(c RequestContext, google *models.Provider) (*models.Provider, string, error) {
 	// does not need authorization check, this action is limited to the calling user
 	var provider *models.Provider
-	if c.Authenticated.AccessKey.ProviderID == google.ID {
+	if google != nil && c.Authenticated.AccessKey.ProviderID == google.ID {
 		provider = google
 	} else {
 		var err error
