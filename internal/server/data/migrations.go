@@ -83,7 +83,7 @@ func migrations() []*migrator.Migration {
 		makeIdxEmailsProvidersUnique(),
 		addDestinationCredentials(),
 		deviceFlowAuthRequestsAddUserIDProviderID(),
-		// next one here
+		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
 
@@ -1062,15 +1062,15 @@ func addDestinationCredentials() *migrator.Migration {
 			// Postgres 12 doesn't support CREATE OR REPLACE for triggers.
 			_, err := tx.Exec(`
 				CREATE TABLE IF NOT EXISTS destination_credentials (
-					id 							 	bigint NOT NULL,
-					organization_id  	bigint NOT NULL,
-					expires_at 				timestamp with time zone,
-					update_index 			bigint NOT NULL,
-					user_id 					bigint NOT NULL,
-					destination_id 		bigint NOT NULL,
-					answered          bool NOT NULL DEFAULT false,
-					--
-					bearer_token text
+					id                    bigint NOT NULL,
+					organization_id       bigint NOT NULL,
+					request_expires_at    timestamp with time zone NOT NULL,
+					update_index          bigint NOT NULL,
+					user_id               bigint NOT NULL,
+					destination_id        bigint NOT NULL,
+					answered              bool NOT NULL DEFAULT false,
+					credential_expires_at timestamp with time zone,
+					bearer_token          text
 				);
 
 				CREATE INDEX IF NOT EXISTS idx_cred_req_org_dest on destination_credentials (organization_id, destination_id);
@@ -1094,7 +1094,7 @@ func addDestinationCredentials() *migrator.Migration {
 					AS $$
 				BEGIN
 					-- on update, we notify user listeners for this specific id, waiting to login
-					PERFORM pg_notify(current_schema() || '.credreq_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.id), NEW.id::TEXT);
+					PERFORM pg_notify(current_schema() || '.credans_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.id), NEW.id::TEXT);
 					RETURN NULL;
 				END; $$;
 

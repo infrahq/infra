@@ -62,6 +62,8 @@ func (s *EncryptedAtRest) Scan(v interface{}) error {
 		vStr = typ
 	case []byte:
 		vStr = string(typ)
+	case nil:
+		vStr = ""
 	default:
 		return fmt.Errorf("unsupported type: %T", v)
 	}

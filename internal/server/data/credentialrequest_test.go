@@ -2,18 +2,20 @@ package data
 
 import (
 	"context"
-	"database/sql"
 	"sync"
 	"testing"
 	"time"
 
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
+	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func TestPgNotifyWithTriggers(t *testing.T) {
+func TestPgNotifyRequestWithTriggers(t *testing.T) {
 	db := setupDB(t)
 
 	orgID := uid.New()
@@ -47,7 +49,7 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		err := CreateDestinationCredential(tx1, &models.DestinationCredential{
 			ID:                 dcID,
 			OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
-			ExpiresAt:          time.Now().Add(10 * time.Minute),
+			RequestExpiresAt:   time.Now().Add(10 * time.Minute),
 			DestinationID:      destID,
 			UserID:             userID,
 		})
@@ -70,14 +72,102 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		t.Error("test timed out waiting for pg_notify")
 	case <-completed:
 	}
+}
+
+func TestPgNotifyResponseWithTriggers(t *testing.T) {
+	db := setupDB(t)
+
+	orgID := uid.New()
+	destID := uid.New()
+	userID := uid.New()
+	dcID := uid.New()
+
+	dc := &models.DestinationCredential{
+		ID:                 dcID,
+		OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
+		RequestExpiresAt:   time.Now().Add(10 * time.Minute),
+		DestinationID:      destID,
+		UserID:             userID,
+	}
+	err := CreateDestinationCredential(db, dc)
+	assert.NilError(t, err)
+
+	m := sync.Mutex{}
+	m.Lock()
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		listener, err := ListenForNotify(context.Background(), db, ListenForNotifyOptions{
+			OrgID:                      orgID,
+			DestinationCredentialsByID: dcID,
+		})
+		assert.NilError(t, err)
+
+		m.Unlock()
+		err = listener.WaitForNotification(context.Background())
+		assert.NilError(t, err)
+		wg.Done()
+	}()
+
+	go func() {
+		m.Lock() // don't create your new transaction until the previous goroutine is ready
+
+		tx1 := txnForTestCase(t, db, orgID)
+
+		expiry := time.Now().Add(10 * time.Minute)
+		dc.BearerToken = "robin.sparkles"
+		dc.CredentialExpiresAt = &expiry
+
+		err = AnswerDestinationCredential(tx1, dc)
+		assert.NilError(t, err)
+
+		err = tx1.Commit()
+		assert.NilError(t, err)
+		wg.Done()
+	}()
+
+	completed := make(chan bool)
+
+	go func() {
+		wg.Wait()
+		completed <- true
+	}()
+
+	select {
+	case <-time.NewTimer(5 * time.Second).C:
+		t.Error("test timed out waiting for pg_notify")
+	case <-completed:
+	}
+}
+
+func TestDestinationCredentials(t *testing.T) {
+	db := setupDB(t)
+	orgID := uid.New()
+	destID := uid.New()
+	userID := uid.New()
+	dcID := uid.New()
+	requestExpiry := time.Now().Add(10 * time.Minute)
+
+	t.Run("can create credential", func(t *testing.T) {
+		err := CreateDestinationCredential(db, &models.DestinationCredential{
+			ID:                 dcID,
+			OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
+			RequestExpiresAt:   requestExpiry,
+			DestinationID:      destID,
+			UserID:             userID,
+		})
+		assert.NilError(t, err)
+
+	})
 
 	t.Run("can update credential with token", func(t *testing.T) {
 		dc, err := GetDestinationCredential(db, dcID, orgID)
 		assert.NilError(t, err)
 
-		expiry := time.Now().Add(5 * time.Second)
-		dc.BearerToken = sql.NullString{Valid: true, String: "foo.bar"}
-		dc.ExpiresAt = expiry
+		credentialExpiry := time.Now().Add(5 * time.Second)
+		dc.BearerToken = "foo.bar"
+		dc.CredentialExpiresAt = &credentialExpiry
 		dc.Answered = true
 
 		err = AnswerDestinationCredential(db, dc)
@@ -86,10 +176,19 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		dc, err = GetDestinationCredential(db, dcID, orgID)
 		assert.NilError(t, err)
 
-		assert.Equal(t, dc.Answered, true)
-		assert.Equal(t, dc.ExpiresAt.UnixMicro(), expiry.UnixMicro())
-		assert.Equal(t, dc.BearerToken.String, "foo.bar")
+		expected := &models.DestinationCredential{
+			ID:                 dcID,
+			OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
+			RequestExpiresAt:   requestExpiry,
+			UserID:             userID,
+			DestinationID:      destID,
 
+			Answered:            true,
+			CredentialExpiresAt: &credentialExpiry,
+			BearerToken:         "foo.bar",
+		}
+
+		assert.DeepEqual(t, dc, expected, destCredCompareOpts)
 	})
 
 	t.Run("can list credentials", func(t *testing.T) {
@@ -98,7 +197,7 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		dc := &models.DestinationCredential{
 			ID:                 uid.New(),
 			OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
-			ExpiresAt:          time.Now().Add(5 * time.Second).Truncate(time.Millisecond),
+			RequestExpiresAt:   time.Now().Add(5 * time.Second).Truncate(time.Millisecond),
 			DestinationID:      destID,
 			UserID:             uid.New(),
 		}
@@ -113,17 +212,14 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		creds, err := ListDestinationCredentials(tx, destID)
 		assert.NilError(t, err)
 
-		// inject used updateIndex because we don't want to compare it
-		dc.UpdateIndex = creds[0].UpdateIndex
-
-		assert.DeepEqual(t, creds, []models.DestinationCredential{*dc})
+		assert.DeepEqual(t, creds, []models.DestinationCredential{*dc}, destCredCompareOpts)
 	})
 
 	t.Run("can remove expired credentials", func(t *testing.T) {
 		dc := &models.DestinationCredential{
 			ID:                 uid.New(),
 			OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
-			ExpiresAt:          time.Now(),
+			RequestExpiresAt:   time.Now(),
 			DestinationID:      uid.New(),
 			UserID:             uid.New(),
 		}
@@ -137,3 +233,16 @@ func TestPgNotifyWithTriggers(t *testing.T) {
 		assert.ErrorContains(t, err, "not found")
 	})
 }
+
+var destCredCompareOpts = cmp.Options{
+	cmp.FilterPath(opt.PathField(models.DestinationCredential{}, "UpdateIndex"), notZeroInt64),
+	cmp.FilterPath(opt.PathField(models.DestinationCredential{}, "RequestExpiresAt"), opt.TimeWithThreshold(1*time.Second)),
+	cmp.FilterPath(opt.PathField(models.DestinationCredential{}, "CredentialExpiresAt"), opt.TimeWithThreshold(1*time.Second)),
+}
+
+var notZeroInt64 = gocmp.Comparer(func(x, y interface{}) bool {
+	xi, _ := x.(int64)
+	yi, _ := y.(int64)
+
+	return xi != 0 || yi != 0
+})

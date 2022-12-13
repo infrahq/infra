@@ -10,13 +10,13 @@ import (
 
 func GetDestinationCredential(tx ReadTxn, id, organizationID uid.ID) (*models.DestinationCredential, error) {
 	query := querybuilder.New("SELECT")
-	query.B("id, organization_id, expires_at, update_index, user_id, destination_id, answered, bearer_token")
+	query.B("id, organization_id, request_expires_at, update_index, user_id, destination_id, answered, credential_expires_at, bearer_token")
 	query.B("FROM destination_credentials")
 	query.B("WHERE organization_id = ?", organizationID)
 	query.B("AND id = ?", id)
 
 	r := &models.DestinationCredential{}
-	err := tx.QueryRow(query.String(), query.Args...).Scan(&r.ID, &r.OrganizationID, &r.ExpiresAt, &r.UpdateIndex, &r.UserID, &r.DestinationID, &r.Answered, &r.BearerToken)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(&r.ID, &r.OrganizationID, &r.RequestExpiresAt, &r.UpdateIndex, &r.UserID, &r.DestinationID, &r.Answered, &r.CredentialExpiresAt, &r.BearerToken)
 	if err != nil {
 		return nil, handleError(err)
 	}
@@ -25,8 +25,8 @@ func GetDestinationCredential(tx ReadTxn, id, organizationID uid.ID) (*models.De
 
 func CreateDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) error {
 	q := querybuilder.New("INSERT INTO destination_credentials")
-	q.B("(id, organization_id, expires_at, user_id, destination_id, update_index)")
-	q.B("VALUES (?,?,?,?,?,nextval('seq_update_index'))", cr.ID, cr.OrganizationID, cr.ExpiresAt, cr.UserID, cr.DestinationID)
+	q.B("(id, organization_id, request_expires_at, user_id, destination_id, update_index)")
+	q.B("VALUES (?,?,?,?,?,nextval('seq_update_index'))", cr.ID, cr.OrganizationID, cr.RequestExpiresAt, cr.UserID, cr.DestinationID)
 
 	_, err := tx.Exec(q.String(), q.Args...) // will trigger destination_credential_insert_notify()
 	if err != nil {
@@ -41,7 +41,7 @@ func AnswerDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) 
 	q.B("SET")
 	q.B("answered = ?,", true)
 	q.B("bearer_token = ?,", cr.BearerToken)
-	q.B("expires_at = ?", cr.ExpiresAt)
+	q.B("credential_expires_at = ?", cr.CredentialExpiresAt)
 	q.B("WHERE id = ?", cr.ID)
 	q.B("AND organization_id = ?", cr.OrganizationID)
 
@@ -55,11 +55,11 @@ func AnswerDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) 
 
 func ListDestinationCredentials(tx ReadTxn, destinationID uid.ID) ([]models.DestinationCredential, error) {
 	query := querybuilder.New("SELECT")
-	query.B("id, organization_id, expires_at, update_index, user_id, destination_id")
+	query.B("id, organization_id, request_expires_at, update_index, user_id, destination_id")
 	query.B("FROM destination_credentials")
 	query.B("WHERE organization_id = ?", tx.OrganizationID())
 	query.B("AND destination_id = ?", destinationID)
-	query.B("AND expires_at >= ?", time.Now())
+	query.B("AND request_expires_at >= ?", time.Now())
 	query.B("AND answered = ?", false)
 
 	rows, err := tx.Query(query.String(), query.Args...)
@@ -67,7 +67,7 @@ func ListDestinationCredentials(tx ReadTxn, destinationID uid.ID) ([]models.Dest
 		return nil, err
 	}
 	return scanRows(rows, func(r *models.DestinationCredential) []any {
-		return []any{&r.ID, &r.OrganizationID, &r.ExpiresAt, &r.UpdateIndex, &r.UserID, &r.DestinationID}
+		return []any{&r.ID, &r.OrganizationID, &r.RequestExpiresAt, &r.UpdateIndex, &r.UserID, &r.DestinationID}
 	})
 }
 
@@ -85,7 +85,7 @@ func DestinationCredentialsMaxUpdateIndex(tx ReadTxn, destinationID uid.ID) (int
 }
 
 func RemoveExpiredDestinationCredentials(tx WriteTxn) error {
-	_, err := tx.Exec("DELETE FROM destination_credentials WHERE expires_at < ?", time.Now())
+	_, err := tx.Exec("DELETE FROM destination_credentials WHERE request_expires_at < ?", time.Now())
 	if err != nil {
 		return err
 	}

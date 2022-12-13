@@ -18,7 +18,7 @@ CREATE FUNCTION destination_credential_update_notify() RETURNS trigger
     AS $$
 				BEGIN
 					-- on update, we notify user listeners for this specific id, waiting to login
-					PERFORM pg_notify(current_schema() || '.credreq_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.id), NEW.id::TEXT);
+					PERFORM pg_notify(current_schema() || '.credans_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.id), NEW.id::TEXT);
 					RETURN NULL;
 				END; $$;
 
@@ -138,11 +138,12 @@ CREATE TABLE credentials (
 CREATE TABLE destination_credentials (
     id bigint NOT NULL,
     organization_id bigint NOT NULL,
-    expires_at timestamp with time zone,
+    request_expires_at timestamp with time zone NOT NULL,
     update_index bigint NOT NULL,
     user_id bigint NOT NULL,
     destination_id bigint NOT NULL,
     answered boolean DEFAULT false NOT NULL,
+    credential_expires_at timestamp with time zone,
     bearer_token text
 );
 

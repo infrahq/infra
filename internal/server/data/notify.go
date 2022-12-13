@@ -34,18 +34,19 @@ func (l *Listener) WaitForNotification(ctx context.Context) error {
 			return err
 		}
 
-		if l.isMatchingNotify != nil {
-			err = l.isMatchingNotify(notficaition.Payload)
-			switch {
-			case errors.Is(err, errNotificationNoMatch):
-				continue
-			case err != nil:
-				return err
-			default:
-				return nil
-			}
+		if l.isMatchingNotify == nil {
+			return nil
 		}
-		return nil
+
+		err = l.isMatchingNotify(notficaition.Payload)
+		switch {
+		case errors.Is(err, errNotificationNoMatch):
+			continue
+		case err != nil:
+			return err
+		default:
+			return nil
+		}
 	}
 }
 
@@ -98,7 +99,7 @@ func ListenForNotify(ctx context.Context, db *DB, opts ListenForNotifyOptions) (
 	case opts.DestinationCredentialsByDestinationID != 0:
 		channel = fmt.Sprintf("credreq_%s_%s", opts.OrgID.String(), opts.DestinationCredentialsByDestinationID.String())
 	case opts.DestinationCredentialsByID != 0:
-		channel = fmt.Sprintf("credreq_%s_%s", opts.OrgID.String(), opts.DestinationCredentialsByID.String())
+		channel = fmt.Sprintf("credans_%s_%s", opts.OrgID.String(), opts.DestinationCredentialsByID.String())
 	}
 
 	logging.Debugf("listing for notify on %s", channel)
