@@ -80,9 +80,6 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
   async function onSubmit(e) {
     e.preventDefault()
 
-    setErrors({})
-    setError('')
-
     try {
       const GrantsToAdd = []
       if (selectedNamespaces.length === 0) {
@@ -276,7 +273,9 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                       selectedNamespaces.length !==
                       selectedResource?.resources?.length
                     ) {
-                      setSelectedNamespaces([...selectedResource?.resources])
+                      if (selectedResource !== undefined) {
+                        setSelectedNamespaces([...selectedResource.resources])
+                      }
                     } else {
                       setSelectedNamespaces([])
                     }
