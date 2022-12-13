@@ -258,7 +258,7 @@ func cmpTimePtr(threshold time.Duration) func(x, y *time.Time) bool {
 		if x == nil || y == nil {
 			return false
 		}
-		if (*x).IsZero() || (*y).IsZero() {
+		if x.IsZero() || y.IsZero() {
 			return false
 		}
 		delta := x.Sub(*y)
