@@ -83,6 +83,7 @@ func migrations() []*migrator.Migration {
 		makeIdxEmailsProvidersUnique(),
 		deviceFlowAuthRequestsAddUserIDProviderID(),
 		addDestinationCredentials(),
+		setGoogleSocialLoginDefaultID(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1129,6 +1130,30 @@ func deviceFlowAuthRequestsAddUserIDProviderID() *migrator.Migration {
 					ADD COLUMN IF NOT EXISTS user_id bigint,
 					ADD COLUMN IF NOT EXISTS provider_id bigint;
 			`)
+
+			return err
+		},
+	}
+}
+
+func setGoogleSocialLoginDefaultID() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-12-13T13:13",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`
+				UPDATE provider_users
+					SET provider_id = ?
+					WHERE provider_id = 0;
+			`, models.InternalGoogleProviderID)
+			if err != nil {
+				return err
+			}
+
+			_, err = tx.Exec(`
+				UPDATE access_keys
+					SET provider_id = ?
+					WHERE provider_id = 0;
+			`, models.InternalGoogleProviderID)
 
 			return err
 		},

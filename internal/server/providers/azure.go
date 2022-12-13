@@ -166,3 +166,7 @@ func checkMemberOfGraphGroups(ctx context.Context, accessToken string) ([]string
 
 	return groups, nil
 }
+
+func (a *azure) Provider() *models.Provider {
+	return a.OIDCClient.Provider()
+}

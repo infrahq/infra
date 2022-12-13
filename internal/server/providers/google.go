@@ -151,3 +151,7 @@ func (g *google) checkGoogleWorkspaceGroups(ctx context.Context, providerUser *m
 
 	return groupNames, nil
 }
+
+func (g *google) Provider() *models.Provider {
+	return g.OIDCClient.Provider()
+}

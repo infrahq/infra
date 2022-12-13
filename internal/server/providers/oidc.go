@@ -13,7 +13,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
-	"github.com/infrahq/infra/uid"
 )
 
 const oidcProviderRequestTimeout = time.Second * 10
@@ -43,6 +42,7 @@ type OIDCClient interface {
 	ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (*IdentityProviderAuth, error)
 	RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error)
 	GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error)
+	Provider() *models.Provider // returns the provider this client was created for
 }
 
 type key struct{}
@@ -61,20 +61,20 @@ func WithOIDCClient(ctx context.Context, client OIDCClient) context.Context {
 }
 
 type oidcClientImplementation struct {
-	ProviderID   uid.ID
-	Domain       string
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
+	ProviderModel models.Provider
+	Domain        string
+	ClientID      string
+	ClientSecret  string
+	RedirectURL   string
 }
 
 func NewOIDCClient(provider models.Provider, clientSecret, redirectURL string) OIDCClient {
 	oidcClient := &oidcClientImplementation{
-		ProviderID:   provider.ID,
-		Domain:       provider.URL,
-		ClientID:     provider.ClientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURL,
+		ProviderModel: provider,
+		Domain:        provider.URL,
+		ClientID:      provider.ClientID,
+		ClientSecret:  clientSecret,
+		RedirectURL:   redirectURL,
 	}
 
 	// nolint:exhaustive
@@ -319,4 +319,9 @@ func (o *oidcClientImplementation) GetUserInfo(ctx context.Context, providerUser
 	}
 
 	return claims, nil
+}
+
+// Provider returns the provider that this OIDC client was initialized for
+func (o *oidcClientImplementation) Provider() *models.Provider {
+	return &o.ProviderModel
 }

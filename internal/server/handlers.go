@@ -202,7 +202,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
 		var provider *models.Provider
-		if r.OIDC.ProviderID == 0 {
+		if r.OIDC.ProviderID == models.InternalGoogleProviderID {
 			if a.server.Google == nil {
 				return nil, fmt.Errorf("%w: google login is not configured, provider id must be specified for oidc login", internal.ErrBadRequest)
 			}
@@ -300,7 +300,7 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func (a *API) UpdateIdentityInfoFromProvider(rCtx access.RequestContext) error {
-	provider, redirectURL, err := access.GetContextProviderIdentity(rCtx)
+	provider, redirectURL, err := access.GetContextProviderIdentity(rCtx, a.server.Google)
 	if err != nil {
 		return err
 	}

@@ -60,6 +60,9 @@ func validateProviderUserPatch(u *models.ProviderUser) error {
 }
 
 func CreateProviderUser(db WriteTxn, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
+	if provider.ID == 0 || ident.ID == 0 {
+		return nil, fmt.Errorf("creating identity provider user with a zero value for provider or identity ID")
+	}
 	// check if we already track this provider user
 	pu, err := GetProviderUser(db, provider.ID, ident.ID)
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
@@ -293,8 +296,8 @@ func ProvisionProviderUser(tx WriteTxn, user *models.ProviderUser) error {
 	return insert(tx, (*providerUserTable)(user))
 }
 
-func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
-	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
+func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, oidcClient providers.OIDCClient) error {
+	providerUser, err := GetProviderUser(tx, oidcClient.Provider().ID, user.ID)
 	if err != nil {
 		return err
 	}
@@ -322,7 +325,7 @@ func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, p
 		return fmt.Errorf("oidc user sync failed: %w", err)
 	}
 
-	if err := AssignIdentityToGroups(tx, user, provider, info.Groups); err != nil {
+	if err := AssignIdentityToGroups(tx, user, oidcClient.Provider(), info.Groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
 	}
 

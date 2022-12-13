@@ -760,6 +760,7 @@ func TestAPI_PatchProvider(t *testing.T) {
 // mockOIDC is a fake oidc identity provider
 type fakeOIDCImplementation struct {
 	UserInfoRevoked bool // when true returns an error fromt the user info endpoint
+	ProviderModel   models.Provider
 }
 
 func (m *fakeOIDCImplementation) Validate(_ context.Context) error {
@@ -789,4 +790,8 @@ func (m *fakeOIDCImplementation) GetUserInfo(_ context.Context, _ *models.Provid
 		return nil, fmt.Errorf("user revoked")
 	}
 	return &providers.UserInfoClaims{}, nil
+}
+
+func (m *fakeOIDCImplementation) Provider() *models.Provider {
+	return &m.ProviderModel
 }

@@ -147,7 +147,7 @@ func TestAPI_CreateToken(t *testing.T) {
 				accessKey, err := data.CreateAccessKey(srv.DB(), key)
 				assert.NilError(t, err)
 
-				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{ProviderModel: *provider})
 				*req = *req.WithContext(ctx)
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 			},
@@ -186,7 +186,7 @@ func TestAPI_CreateToken(t *testing.T) {
 				accessKey, err := data.CreateAccessKey(srv.DB(), key)
 				assert.NilError(t, err)
 
-				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{UserInfoRevoked: true})
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{UserInfoRevoked: true, ProviderModel: *provider})
 				*req = *req.WithContext(ctx)
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 			},

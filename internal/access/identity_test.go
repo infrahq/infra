@@ -124,6 +124,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 // mockOIDC is a fake oidc identity provider
 type fakeOIDCImplementation struct {
 	UserInfoRevoked bool // when true returns an error fromt the user info endpoint
+	ProviderModel   models.Provider
 }
 
 func (m *fakeOIDCImplementation) Validate(_ context.Context) error {
@@ -155,6 +156,10 @@ func (m *fakeOIDCImplementation) GetUserInfo(_ context.Context, _ *models.Provid
 	return &providers.UserInfoClaims{}, nil
 }
 
+func (m *fakeOIDCImplementation) Provider() *models.Provider {
+	return &m.ProviderModel
+}
+
 func TestUpdateIdentityInfoFromProvider(t *testing.T) {
 	// create the identity
 	c, db, infraProvider := setupAccessTestContext(t)
@@ -173,12 +178,47 @@ func TestUpdateIdentityInfoFromProvider(t *testing.T) {
 	err := data.CreateProvider(db, provider)
 	assert.NilError(t, err)
 
+	google := &models.Provider{
+		Model: models.Model{
+			ID: models.InternalGoogleProviderID,
+		},
+		Name:         "moogle",
+		URL:          "moogle.example.com",
+		ClientID:     "aaa",
+		ClientSecret: "bbb",
+		Kind:         models.ProviderKindGoogle,
+	}
+
 	t.Run("a revoked OIDC session revokes access keys created by provider login", func(t *testing.T) {
 		_, err = data.CreateProviderUser(db, provider, rCtx.Authenticated.User)
 		assert.NilError(t, err)
-		oidc := &fakeOIDCImplementation{UserInfoRevoked: true}
+		oidc := &fakeOIDCImplementation{UserInfoRevoked: true, ProviderModel: *provider}
 
 		toBeRevoked := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: provider.ID}
+		_, err := data.CreateAccessKey(db, toBeRevoked)
+		assert.NilError(t, err)
+		shouldStayValid := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: infraProvider.ID}
+		_, err = data.CreateAccessKey(db, shouldStayValid)
+		assert.NilError(t, err)
+
+		rCtx.Authenticated.AccessKey = toBeRevoked
+
+		err = UpdateIdentityInfoFromProvider(rCtx, oidc)
+		assert.ErrorContains(t, err, "user revoked")
+
+		_, err = data.GetAccessKeyByKeyID(db, toBeRevoked.KeyID)
+		assert.ErrorIs(t, err, internal.ErrNotFound)
+
+		_, err = data.GetAccessKeyByKeyID(db, shouldStayValid.KeyID)
+		assert.NilError(t, err)
+	})
+
+	t.Run("a revoked OIDC session revokes access keys created by social login", func(t *testing.T) {
+		_, err = data.CreateProviderUser(db, google, rCtx.Authenticated.User)
+		assert.NilError(t, err)
+		oidc := &fakeOIDCImplementation{UserInfoRevoked: true, ProviderModel: *google}
+
+		toBeRevoked := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: google.ID}
 		_, err := data.CreateAccessKey(db, toBeRevoked)
 		assert.NilError(t, err)
 		shouldStayValid := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: infraProvider.ID}
@@ -200,7 +240,7 @@ func TestUpdateIdentityInfoFromProvider(t *testing.T) {
 	t.Run("a valid OIDC session does not result in an error", func(t *testing.T) {
 		_, err = data.CreateProviderUser(db, provider, rCtx.Authenticated.User)
 		assert.NilError(t, err)
-		oidc := &fakeOIDCImplementation{}
+		oidc := &fakeOIDCImplementation{ProviderModel: *provider}
 
 		key := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: provider.ID}
 		_, err := data.CreateAccessKey(db, key)

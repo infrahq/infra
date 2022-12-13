@@ -28,3 +28,5 @@ export const providers = [
     kind: 'gitlab',
   },
 ]
+
+export const googleSocialLoginID = '45xp' // == 600613 (snowflake ID), the ID we reserve for the google social login provider

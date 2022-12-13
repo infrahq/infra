@@ -19,6 +19,7 @@ import (
 type mockOIDCImplementation struct {
 	UserEmailResp  string
 	UserGroupsResp []string
+	ProviderModel  models.Provider
 }
 
 func (m *mockOIDCImplementation) Validate(_ context.Context) error {
@@ -47,6 +48,10 @@ func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *mo
 	return &providers.UserInfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
 }
 
+func (m *mockOIDCImplementation) Provider() *models.Provider {
+	return &m.ProviderModel
+}
+
 func TestOIDCAuthenticate(t *testing.T) {
 	// setup
 	db := setupDB(t)
@@ -58,6 +63,7 @@ func TestOIDCAuthenticate(t *testing.T) {
 	oidc := &mockOIDCImplementation{
 		UserEmailResp:  "bruce@example.com",
 		UserGroupsResp: []string{"Everyone", "developers"},
+		ProviderModel:  *mocktaProvider,
 	}
 
 	t.Run("nil provider", func(t *testing.T) {
@@ -90,16 +96,17 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 	sessionExpiry := time.Now().Add(5 * time.Minute)
 
 	type testCase struct {
-		setup    func(t *testing.T, db data.WriteTxn) providers.OIDCClient
+		setup    func(t *testing.T, db data.WriteTxn, provider *models.Provider) providers.OIDCClient
 		expected func(t *testing.T, authnIdentity AuthenticatedIdentity)
 	}
 
 	testCases := map[string]testCase{
 		"NewUserNewGroups": {
-			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn, provider *models.Provider) providers.OIDCClient {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "newusernewgroups@example.com",
 					UserGroupsResp: []string{"Everyone", "developers"},
+					ProviderModel:  *provider,
 				}
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity) {
@@ -109,7 +116,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"NewUserExistingGroups": {
-			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn, provider *models.Provider) providers.OIDCClient {
 				existingGroup1 := &models.Group{Name: "existing1"}
 				existingGroup2 := &models.Group{Name: "existing2"}
 
@@ -122,6 +129,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "newuserexistinggroups@example.com",
 					UserGroupsResp: []string{"existing1", "existing2"},
+					ProviderModel:  *provider,
 				}
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity) {
@@ -140,13 +148,14 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserNewGroups": {
-			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn, provider *models.Provider) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com"})
 				assert.NilError(t, err)
 
 				return &mockOIDCImplementation{
 					UserEmailResp:  "existingusernewgroups@example.com",
 					UserGroupsResp: []string{"existingusernewgroups1", "existingusernewgroups2"},
+					ProviderModel:  *provider,
 				}
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity) {
@@ -165,7 +174,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserExistingGroups": {
-			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn, provider *models.Provider) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com"})
 				assert.NilError(t, err)
 
@@ -178,6 +187,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "existinguserexistinggroups@example.com",
 					UserGroupsResp: []string{"existinguserexistinggroups1", "existinguserexistinggroups2"},
+					ProviderModel:  *provider,
 				}
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity) {
@@ -196,7 +206,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserGroupsWithNewGroups": {
-			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn, provider *models.Provider) providers.OIDCClient {
 				user := &models.Identity{Name: "eugwnw@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -230,6 +240,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "eugwnw@example.com",
 					UserGroupsResp: []string{"existinguserexistinggroups1", "existinguserexistinggroups2"},
+					ProviderModel:  *provider,
 				}
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity) {
@@ -259,7 +270,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			err := data.CreateProvider(db, provider)
 			assert.NilError(t, err)
 
-			mockOIDC := tc.setup(t, db)
+			mockOIDC := tc.setup(t, db, provider)
 			loginMethod, err := NewOIDCAuthentication(provider, "mockOIDC.example.com/redirect", "AAA", mockOIDC, []string{})
 			assert.NilError(t, err)
 
@@ -286,6 +297,16 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 	}
 	assert.NilError(t, data.CreateIdentity(db, existing))
 
+	// setup fake social login provider
+	provider := &models.Provider{
+		Model: models.Model{
+			ID: models.InternalGoogleProviderID,
+		},
+		Name: "mockoidc",
+		URL:  "mockOIDC.example.com",
+		Kind: models.ProviderKindOIDC,
+	}
+
 	sessionExpiry := time.Now().Add(5 * time.Minute)
 
 	type testCase struct {
@@ -297,6 +318,7 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 		"User With Allowed Email Domain Succeeds": {
 			client: &mockOIDCImplementation{
 				UserEmailResp: "user@example.com",
+				ProviderModel: *provider,
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
 				assert.NilError(t, err)
@@ -308,6 +330,7 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 		"User With Email Domain Not Allowed Fails": {
 			client: &mockOIDCImplementation{
 				UserEmailResp: "user@infra.app",
+				ProviderModel: *provider,
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
 				assert.ErrorContains(t, err, "infra.app is not an allowed email domain")
@@ -316,6 +339,7 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 		"User Identifier With No At Sign Fails": {
 			client: &mockOIDCImplementation{
 				UserEmailResp: "example.com",
+				ProviderModel: *provider,
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
 				assert.ErrorContains(t, err, "example.com is an invalid email address")
@@ -324,6 +348,7 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 		"User Without Allowed Domain But Existing Identity Succeeds": {
 			client: &mockOIDCImplementation{
 				UserEmailResp: existing.Name,
+				ProviderModel: *provider,
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
 				assert.NilError(t, err)
@@ -336,13 +361,6 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			// setup fake identity provider with allowed domains specified
-			provider := &models.Provider{
-				Name: "mockoidc",
-				URL:  "mockOIDC.example.com",
-				Kind: models.ProviderKindOIDC,
-			}
-
 			loginMethod, err := NewOIDCAuthentication(provider, "mockOIDC.example.com/redirect", "AAA", tc.client, []string{"example.com", "infrahq.com"})
 			assert.NilError(t, err)
 

@@ -9,7 +9,7 @@ import (
 
 const InternalInfraProviderName = "infra"
 
-const InternalGoogleProviderID = 0 // TODO: #3846, make this a non-zero default value
+const InternalGoogleProviderID = 600613 // static ID used to identify the "in-memory" google social login provider
 
 type ProviderKind string
 

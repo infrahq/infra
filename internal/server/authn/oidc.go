@@ -47,7 +47,7 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 		return AuthenticatedIdentity{}, fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	if a.Provider.ID == 0 {
+	if a.Provider.ID == models.InternalGoogleProviderID {
 		// this is a social login, check if they can access this org
 		domain, err := email.Domain(idpAuth.Email)
 		if err != nil {
@@ -94,7 +94,7 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 	}
 
 	// update users attributes (such as groups) from the IDP
-	err = data.SyncProviderUser(ctx, db, identity, a.Provider, a.OIDCProviderClient)
+	err = data.SyncProviderUser(ctx, db, identity, a.OIDCProviderClient)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("sync user on login: %w", err)
 	}
