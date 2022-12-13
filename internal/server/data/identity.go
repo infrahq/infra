@@ -342,7 +342,7 @@ func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) 
 
 	// TODO: use a join?
 	if opts.LoadPublicKeys {
-		identity.PublicKeys, err = userPublicKeys(tx, identity.ID)
+		identity.PublicKeys, err = listUserPublicKeys(tx, identity.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -458,7 +458,7 @@ func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, er
 	// TODO: use a join?
 	if opts.LoadPublicKeys {
 		for i, identity := range result {
-			result[i].PublicKeys, err = userPublicKeys(tx, identity.ID)
+			result[i].PublicKeys, err = listUserPublicKeys(tx, identity.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -648,6 +648,10 @@ func deleteReferencesToIdentities(tx WriteTxn, providerID uid.ID, toDelete []mod
 		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: i.ID, ByProviderID: providerID}); err != nil {
 			return nil, fmt.Errorf("delete identity access keys: %w", err)
 		}
+		if err := DeleteUserPublicKeys(tx, i.ID); err != nil {
+			return nil, fmt.Errorf("delete identity public keys: %w", err)
+		}
+
 		if providerID == InfraProvider(tx).ID {
 			// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
 			credential, err := GetCredentialByUserID(tx, i.ID)

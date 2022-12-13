@@ -400,6 +400,7 @@ func TestListIdentities(t *testing.T) {
 				UserID:      salt.ID,
 				Fingerprint: "the-fingerprint",
 				KeyType:     "ssh-rsa",
+				PublicKey:   "the-public-key",
 			}
 			assert.NilError(t, AddUserPublicKey(db, pubKey))
 
@@ -587,6 +588,16 @@ func TestDeleteIdentities(t *testing.T) {
 			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
 				id := &models.Identity{Name: "name@infrahq.com"}
 				createIdentities(t, tx, id)
+
+				key1 := &models.UserPublicKey{
+					UserID:      id.ID,
+					Name:        "testing",
+					PublicKey:   "the-pub-key",
+					KeyType:     "ssh-rsa",
+					Fingerprint: "the-fingerprint",
+				}
+				assert.NilError(t, AddUserPublicKey(tx, key1))
+
 				return DeleteIdentitiesOptions{
 					ByProviderID: InfraProvider(tx).ID,
 					ByID:         id.ID,
@@ -596,6 +607,10 @@ func TestDeleteIdentities(t *testing.T) {
 				assert.NilError(t, err)
 				_, err = GetIdentity(tx, GetIdentityOptions{ByID: identity.ID})
 				assert.Error(t, err, "record not found")
+
+				keys, err := listUserPublicKeys(tx, identity.ID)
+				assert.NilError(t, err)
+				assert.Equal(t, len(keys), 0)
 			},
 		},
 		{
