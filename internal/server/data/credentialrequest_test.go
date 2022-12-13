@@ -236,7 +236,7 @@ func TestDestinationCredentials(t *testing.T) {
 var destCredCompareOpts = cmp.Options{
 	cmp.FilterPath(opt.PathField(models.DestinationCredential{}, "UpdateIndex"), notZeroInt64),
 	cmp.FilterPath(opt.PathField(models.DestinationCredential{}, "RequestExpiresAt"), opt.TimeWithThreshold(1*time.Second)),
-	cmp.FilterPath(opt.PathField(models.DestinationCredential{}, "CredentialExpiresAt"), opt.TimeWithThreshold(1*time.Second)),
+	cmp.FilterPath(opt.PathField(models.DestinationCredential{}, "CredentialExpiresAt"), TimePtrWithThreshold(1*time.Second)),
 }
 
 var notZeroInt64 = cmp.Comparer(func(x, y interface{}) bool {
@@ -245,3 +245,23 @@ var notZeroInt64 = cmp.Comparer(func(x, y interface{}) bool {
 
 	return xi != 0 || yi != 0
 })
+
+func TimePtrWithThreshold(threshold time.Duration) cmp.Option {
+	return cmp.Comparer(cmpTimePtr(threshold))
+}
+
+func cmpTimePtr(threshold time.Duration) func(x, y *time.Time) bool {
+	return func(x, y *time.Time) bool {
+		if x == nil && y == nil {
+			return true
+		}
+		if x == nil || y == nil {
+			return false
+		}
+		if (*x).IsZero() || (*y).IsZero() {
+			return false
+		}
+		delta := x.Sub(*y)
+		return delta <= threshold && delta >= -threshold
+	}
+}
