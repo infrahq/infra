@@ -145,15 +145,13 @@ func userGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]api
 	rows := make([]row, 0, len(items))
 	for _, item := range items {
 		user, ok := mapUsers[item.User]
-		if !ok {
-			return 0, fmt.Errorf("unknown user for ID %v", item.ID)
+		if ok {
+			rows = append(rows, row{
+				User:     user.Name,
+				Role:     item.Privilege,
+				Resource: item.Resource,
+			})
 		}
-
-		rows = append(rows, row{
-			User:     user.Name,
-			Role:     item.Privilege,
-			Resource: item.Resource,
-		})
 	}
 
 	if len(rows) > 0 {
@@ -185,15 +183,13 @@ func groupGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]ap
 	rows := make([]row, 0, len(items))
 	for _, item := range items {
 		group, ok := mapGroups[item.Group]
-		if !ok {
-			return 0, fmt.Errorf("unknown group for ID %v", item.ID)
+		if ok {
+			rows = append(rows, row{
+				Group:    group.Name,
+				Role:     item.Privilege,
+				Resource: item.Resource,
+			})
 		}
-
-		rows = append(rows, row{
-			Group:    group.Name,
-			Role:     item.Privilege,
-			Resource: item.Resource,
-		})
 	}
 
 	if len(rows) > 0 {
