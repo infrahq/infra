@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
