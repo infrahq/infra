@@ -19,6 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/exp/slices"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
@@ -158,7 +159,11 @@ func setupDestinationSSHConfig(ctx context.Context, cli *CLI, destination *api.D
 	infraSSHDir := filepath.Join(homeDir, ".ssh/infra")
 	_ = os.MkdirAll(infraSSHDir, 0o700)
 
-	opts, err := defaultClientOpts()
+	hostCfg, err := currentHostConfig()
+	if err != nil {
+		return err
+	}
+	opts, err := apiClientFromHostConfig(hostCfg)
 	if err != nil {
 		return err
 	}
@@ -167,7 +172,19 @@ func setupDestinationSSHConfig(ctx context.Context, cli *CLI, destination *api.D
 		return err
 	}
 
-	if err := provisionSSHKey(ctx, cli, client, infraSSHDir); err != nil {
+	user, err := client.GetUserSelf(ctx)
+	if err != nil {
+		return err
+	}
+
+	keyFilename, err := provisionSSHKey(ctx, provisionSSHKeyOptions{
+		cli:         cli,
+		client:      client,
+		hostConfig:  hostCfg,
+		infraSSHDir: infraSSHDir,
+		user:        user,
+	})
+	if err != nil {
 		return fmt.Errorf("create ssh keypair: %w", err)
 	}
 
@@ -175,64 +192,114 @@ func setupDestinationSSHConfig(ctx context.Context, cli *CLI, destination *api.D
 		return fmt.Errorf("write known hosts: %w", err)
 	}
 
-	user, err := client.GetUserSelf(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err := writeDestinationSSHConfig(infraSSHDir, destination, user); err != nil {
+	if err := writeDestinationSSHConfig(infraSSHDir, destination, user, keyFilename); err != nil {
 		return fmt.Errorf("write infra ssh config: %w", err)
 	}
 	return nil
 }
 
-func provisionSSHKey(ctx context.Context, cli *CLI, client *api.Client, infraSSHDir string) error {
-	keyFilename := filepath.Join(infraSSHDir, "key")
+type provisionSSHKeyOptions struct {
+	cli         *CLI
+	client      *api.Client
+	infraSSHDir string
+	hostConfig  *ClientHostConfig
+	user        *api.User
+}
 
-	// TODO: check expiration
-	// TODO: check the key exists in the API
-	if fileExists(keyFilename) {
-		return nil
+func provisionSSHKey(ctx context.Context, opts provisionSSHKeyOptions) (string, error) {
+	keysCfg, err := readKeysConfig(opts.infraSSHDir)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		keysCfg = &keysConfig{}
+	case err != nil:
+		return "", err
 	}
 
-	fmt.Fprintf(cli.Stderr, "Creating a new RSA 4096 bit key pair in %v\n", keyFilename)
+	org, err := opts.client.GetOrganizationSelf(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	keysDir := filepath.Join(opts.infraSSHDir, "keys")
+	existingKeys := matchingPublicKeys(keysCfg, opts.hostConfig, org.ID)
+	for i, existing := range existingKeys {
+		filename := filepath.Join(keysDir, existing.PublicKeyID)
+		if !fileExists(filename) || !fileExists(filename+".pub") {
+			// key doesn't exist locally
+			keysCfg.Keys = slices.Delete(keysCfg.Keys, i, i+1)
+			continue
+		}
+
+		if userPublicKeyContains(opts.user.PublicKeys, existing.PublicKeyID) {
+			// TODO: check expiration when expiry is added
+			// key exists locally and in the API
+			return filename, nil
+		}
+
+		// key doesn't exist in the API
+		fmt.Fprintf(opts.cli.Stderr,
+			"Removing %v because it was expired or deleted from Infra", filename)
+		if err := os.Remove(filename); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("removing deleted key %w", err)
+		}
+		if err := os.Remove(filename + ".pub"); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("removing deleted key %w", err)
+		}
+		keysCfg.Keys = slices.Delete(keysCfg.Keys, i, i+1)
+	}
+
+	_ = os.MkdirAll(keysDir, 0o700)
+	fmt.Fprintf(opts.cli.Stderr, "Creating a new RSA 4096 bit key pair in %v\n", keysDir)
 
 	priv, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return fmt.Errorf("generate key pair: %w", err)
+		return "", fmt.Errorf("generate key pair: %w", err)
 	}
 
+	sshPubKey, err := ssh.NewPublicKey(&priv.PublicKey)
+	if err != nil {
+		return "", err
+	}
+
+	pubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
+	hostname, _ := os.Hostname()
+	resp, err := opts.client.AddUserPublicKey(ctx, &api.AddUserPublicKeyRequest{
+		Name:      hostname,
+		PublicKey: string(pubKeyBytes),
+	})
+	if err != nil {
+		return "", fmt.Errorf("upload public key: %w", err)
+	}
+
+	keyFilename := filepath.Join(keysDir, resp.ID.String())
 	fh, err := os.OpenFile(keyFilename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0o600)
 	if err != nil {
-		return err
+		return "", err
 	}
 	block := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(priv),
 	}
 	if err := pem.Encode(fh, block); err != nil {
-		return err
+		return "", err
 	}
 	if err := fh.Close(); err != nil {
-		return err
+		return "", err
 	}
-
-	sshPubKey, err := ssh.NewPublicKey(&priv.PublicKey)
-	if err != nil {
-		return err
-	}
-
-	pubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
 	if err := os.WriteFile(keyFilename+".pub", pubKeyBytes, 0o600); err != nil {
-		return err
+		return "", err
 	}
 
-	hostname, _ := os.Hostname()
-	_, err = client.AddUserPublicKey(ctx, &api.AddUserPublicKeyRequest{
-		Name:      hostname,
-		PublicKey: string(pubKeyBytes),
+	keysCfg.Keys = append(keysCfg.Keys, localPublicKey{
+		Server:         opts.hostConfig.Host,
+		OrganizationID: org.ID.String(),
+		UserID:         opts.hostConfig.UserID.String(),
+		PublicKeyID:    resp.ID.String(),
 	})
-	return err
+	if err := writeKeysConfig(opts.infraSSHDir, keysCfg); err != nil {
+		return "", fmt.Errorf("write keys config: %w", err)
+	}
+	return keyFilename, nil
 }
 
 func fileExists(filename string) bool {
@@ -328,7 +395,7 @@ const infraDestinationSSHConfig = `
 # This file is managed by Infra. Do not edit!
 
 Host {{ .Hostname }}
-    IdentityFile ~/.ssh/infra/key
+    IdentityFile {{ .KeyFilename }}
     IdentitiesOnly yes
     UserKnownHostsFile ~/.ssh/infra/known_hosts
     User {{ .Username }}
@@ -369,7 +436,12 @@ func hasInfraMatchLine(sshConfig io.Reader) bool {
 	return false
 }
 
-func writeDestinationSSHConfig(infraSSHDir string, destination *api.Destination, user *api.User) error {
+func writeDestinationSSHConfig(
+	infraSSHDir string,
+	destination *api.Destination,
+	user *api.User,
+	keyFilename string,
+) error {
 	filename := filepath.Join(infraSSHDir, "config")
 	fh, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
@@ -378,9 +450,10 @@ func writeDestinationSSHConfig(infraSSHDir string, destination *api.Destination,
 
 	host, port := splitHostPortSSH(destination.Connection.URL)
 	data := map[string]any{
-		"Username": user.SSHLoginName,
-		"Hostname": host,
-		"Port":     port,
+		"Username":    user.SSHLoginName,
+		"Hostname":    host,
+		"Port":        port,
+		"KeyFilename": keyFilename,
 	}
 	if err := infraDestinationSSHConfigTemplate.Execute(fh, data); err != nil {
 		return err
