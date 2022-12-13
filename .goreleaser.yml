@@ -29,7 +29,7 @@ builds:
 nfpms:
   - id: packages
     package_name: infra
-    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Arch }}"
+    file_name_template: "{{ .ConventionalFileName }}"
     builds:
       - infra
     vendor: Infra Technologies, Inc.
@@ -39,18 +39,33 @@ nfpms:
     formats:
       - deb
       - rpm
-    bindir: /usr/bin
+    bindir: /usr/local/sbin
+    contents:
+      - src: package-files/systemd/infra.service
+        dst: /usr/lib/systemd/system/infra.service
+        type: config
+      - src: package-files/connector.example.yaml
+        dst: /etc/infra/connector.example.yaml
+        type: config
+    scripts:
+      preinstall: package-files/preinstall.sh
+      postinstall: package-files/postinstall.sh
+      preremove: package-files/preremove.sh
     overrides:
       deb:
-        file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
-      apk:
-        replacements:
-          amd64: x86_64
-          arm64: aarch64
+        dependencies:
+          - passwd
+          - procps
+        suggests:
+          - openssh-client
+          - openssh-server
       rpm:
-        replacements:
-          amd64: x86_64
-          arm64: aarch64
+        dependencies:
+          - shadow-utils
+          - procps-ng
+        suggests:
+          - openssh-clients
+          - openssh-server
 archives:
   - id: zip
     format: zip
