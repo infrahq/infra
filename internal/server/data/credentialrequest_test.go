@@ -10,7 +10,6 @@ import (
 	"gotest.tools/v3/assert/opt"
 
 	"github.com/google/go-cmp/cmp"
-	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -240,7 +239,7 @@ var destCredCompareOpts = cmp.Options{
 	cmp.FilterPath(opt.PathField(models.DestinationCredential{}, "CredentialExpiresAt"), opt.TimeWithThreshold(1*time.Second)),
 }
 
-var notZeroInt64 = gocmp.Comparer(func(x, y interface{}) bool {
+var notZeroInt64 = cmp.Comparer(func(x, y interface{}) bool {
 	xi, _ := x.(int64)
 	yi, _ := y.(int64)
 
