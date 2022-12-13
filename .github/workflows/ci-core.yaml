@@ -135,4 +135,4 @@ jobs:
 
       - name: Container output
         if: always()
-        run: docker compose -f test/docker-compose.yaml logs
+        run: docker compose --ansi always -f test/docker-compose.yaml logs
