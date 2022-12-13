@@ -133,6 +133,9 @@ jobs:
           head -c 32 < /dev/urandom > test/root.key
           docker compose -f test/docker-compose.yaml up -d --wait
 
+      - name: Setup destinations
+        run: ./test/setup.sh
+
       - name: Container output
         if: always()
         run: docker compose --ansi always -f test/docker-compose.yaml logs

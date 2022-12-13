@@ -33,3 +33,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  destination_ubuntu:
+    build:
+      context: ./test
+      dockerfile: dockerfiles/Dockerfile.ubuntu
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - ..:/work
+    privileged: true
+    depends_on: [server]
