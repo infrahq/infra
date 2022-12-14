@@ -81,8 +81,8 @@ func migrations() []*migrator.Migration {
 		addUserPubicKeysTable(),
 		addUserSSHLoginName(),
 		makeIdxEmailsProvidersUnique(),
-		addDestinationCredentials(),
 		deviceFlowAuthRequestsAddUserIDProviderID(),
+		addDestinationCredentials(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }

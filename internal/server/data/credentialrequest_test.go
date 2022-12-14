@@ -14,7 +14,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func TestPgNotifyRequestWithTriggers(t *testing.T) {
+func TestCreateDestinationCredentialPgNotifyRequest(t *testing.T) {
 	db := setupDB(t)
 
 	orgID := uid.New()
@@ -73,7 +73,7 @@ func TestPgNotifyRequestWithTriggers(t *testing.T) {
 	}
 }
 
-func TestPgNotifyResponseWithTriggers(t *testing.T) {
+func TestAnswerDestinationCredentialPgNotifyResponse(t *testing.T) {
 	db := setupDB(t)
 
 	orgID := uid.New()
