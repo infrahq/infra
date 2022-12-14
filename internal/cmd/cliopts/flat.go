@@ -67,6 +67,13 @@ func (w *flatSourceWalker) Exit(loc reflectwalk.Location) error {
 	return nil
 }
 
+func (w *flatSourceWalker) SliceElem(_ int, value reflect.Value) error {
+	if value.Type().Kind() == reflect.Struct || isPtrToStruct(value) {
+		w.location = append(w.location, "")
+	}
+	return nil
+}
+
 func (w *flatSourceWalker) Struct(value reflect.Value) error {
 	if !value.CanAddr() {
 		// TODO: what is this case?
@@ -95,6 +102,10 @@ func (w *flatSourceWalker) StructField(field reflect.StructField, value reflect.
 		w.location = append(w.location, w.fieldNameFormat(field.Name))
 	}
 	return nil
+}
+
+func (w *flatSourceWalker) Slice(reflect.Value) error {
+	return nil // no-op to satisfy an interface
 }
 
 func (w *flatSourceWalker) matchName(key string, fieldName string) bool {

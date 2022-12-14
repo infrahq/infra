@@ -121,6 +121,48 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 			},
 		},
 		{
+			name: "env vars with config file",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				content := `
+grants:
+  - user: user1
+    resource: infra
+    role: admin
+  - user: user2
+    resource: infra
+    role: admin
+
+users:
+  - name: username
+    accessKey: access-key
+    password: the-password
+`
+				dir := fs.NewDir(t, t.Name(),
+					fs.WithFile("cfg.yaml", content))
+				cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
+				t.Setenv("INFRA_SERVER_TLS_CA", "foo/ca.crt")
+				t.Setenv("INFRA_SERVER_TLS_CA_PRIVATE_KEY", "file:foo/ca.key")
+				t.Setenv("INFRA_SERVER_DB_CONNECTION_STRING", "host=db port=5432 user=postgres dbname=postgres password=postgres")
+				t.Setenv("INFRA_SERVER_DB_ENCRYPTION_KEY", "/root.key")
+
+			},
+			expected: func(t *testing.T) server.Options {
+				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
+				expected.TLS.CA = "foo/ca.crt"
+				expected.TLS.CAPrivateKey = "file:foo/ca.key"
+				expected.DBConnectionString = "host=db port=5432 user=postgres dbname=postgres password=postgres"
+				expected.DBEncryptionKey = "/root.key"
+				expected.Config.Users = []server.User{
+					{Name: "username", AccessKey: "access-key", Password: "the-password"},
+				}
+				expected.Config.Grants = []server.Grant{
+					{User: "user1", Resource: "infra", Role: "admin"},
+					{User: "user2", Resource: "infra", Role: "admin"},
+				}
+				return expected
+			},
+		},
+		{
 			name: "all options from config",
 			setup: func(t *testing.T, cmd *cobra.Command) {
 				content := `
