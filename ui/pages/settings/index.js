@@ -441,7 +441,11 @@ function Password() {
             type='password'
             autoComplete='off'
             value={oldPassword}
-            onChange={e => setOldPassword(e.target.value)}
+            onChange={e => {
+              setOldPassword(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
               errors.oldpassword ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -463,7 +467,11 @@ function Password() {
             type='password'
             autoComplete='off'
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={e => {
+              setPassword(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
               errors.password ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -482,7 +490,11 @@ function Password() {
             type='password'
             autoComplete='off'
             value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
+            onChange={e => {
+              setConfirmPassword(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
               errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
             }`}
