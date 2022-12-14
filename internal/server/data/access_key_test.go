@@ -265,6 +265,23 @@ func TestDeleteAccessKeys(t *testing.T) {
 			}
 			assert.DeepEqual(t, remaining, expected, cmpModelByID)
 		})
+
+		t.Run("already deleted", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			key1 := &models.AccessKey{
+				IssuedFor:  otherUser.ID,
+				ProviderID: provider.ID,
+			}
+			key1.DeletedAt.Valid = true
+			key1.DeletedAt.Time = time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC)
+			createAccessKeys(t, tx, key1)
+
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByID: key1.ID})
+			assert.NilError(t, err)
+
+			deletedAt := getAccessKeyDeletedAtByID(t, tx, key1.ID)
+			assert.DeepEqual(t, key1.DeletedAt.Time, deletedAt, cmpTimeWithDBPrecision)
+		})
 	})
 }
 
@@ -707,18 +724,21 @@ func TestRemoveExpiredAccessKeys(t *testing.T) {
 			IssuedFor: user.ID,
 			ExpiresAt: time.Now().Add(-2 * time.Hour),
 		}
-		_, err := CreateAccessKey(tx, ak)
-		assert.NilError(t, err)
-
 		ak2 := &models.AccessKey{
 			Name:      "foo expiry2",
 			IssuedFor: user.ID,
 			ExpiresAt: time.Now().Add(10 * time.Minute),
 		}
-		_, err = CreateAccessKey(tx, ak2)
-		assert.NilError(t, err)
+		ak3 := &models.AccessKey{
+			Name:      "already deleted",
+			IssuedFor: user.ID,
+			ExpiresAt: time.Now().Add(-2 * time.Hour),
+		}
+		ak3.DeletedAt.Valid = true
+		ak3.DeletedAt.Time = time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC)
+		createAccessKeys(t, tx, ak, ak2, ak3)
 
-		err = RemoveExpiredAccessKeys(tx)
+		err := RemoveExpiredAccessKeys(tx)
 		assert.NilError(t, err)
 
 		_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak.ID})
@@ -726,5 +746,17 @@ func TestRemoveExpiredAccessKeys(t *testing.T) {
 
 		_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak2.ID})
 		assert.NilError(t, err)
+
+		deletedAt := getAccessKeyDeletedAtByID(t, tx, ak3.ID)
+		assert.DeepEqual(t, deletedAt, ak3.DeletedAt.Time, cmpTimeWithDBPrecision)
 	})
+}
+
+func getAccessKeyDeletedAtByID(t *testing.T, tx ReadTxn, id uid.ID) time.Time {
+	t.Helper()
+	var deletedAt time.Time
+	stmt := `SELECT deleted_at FROM access_keys WHERE id = ?`
+	err := tx.QueryRow(stmt, id).Scan(&deletedAt)
+	assert.NilError(t, err)
+	return deletedAt
 }

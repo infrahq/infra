@@ -254,6 +254,7 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 	query := querybuilder.New("UPDATE access_keys")
 	query.B("SET deleted_at = ?", time.Now())
 	query.B("WHERE organization_id = ?", tx.OrganizationID())
+	query.B("AND deleted_at is null")
 	if opts.ByID != 0 {
 		query.B("AND id = ?", opts.ByID)
 	}
@@ -314,7 +315,8 @@ func ValidateRequestAccessKey(tx *Transaction, authnKey string) (*models.AccessK
 func RemoveExpiredAccessKeys(tx WriteTxn) error {
 	query := querybuilder.New("UPDATE access_keys")
 	query.B("SET deleted_at = ?", time.Now().UTC())
-	query.B("WHERE expires_at <= ?", time.Now().UTC().Add(-1*time.Hour)) // leave buffer so keys aren't immediately deleted on expiry.
+	query.B("WHERE deleted_at is null")
+	query.B("AND expires_at <= ?", time.Now().UTC().Add(-1*time.Hour)) // leave buffer so keys aren't immediately deleted on expiry.
 
 	_, err := tx.Exec(query.String(), query.Args...)
 	return err
