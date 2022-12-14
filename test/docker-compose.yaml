@@ -8,7 +8,7 @@ services:
       - INFRA_SERVER_TLS_CA_PRIVATE_KEY=file:/work/internal/server/testdata/pki/ca.key
       - INFRA_SERVER_DB_CONNECTION_STRING=host=db port=5432 user=postgres dbname=postgres password=postgres
       - INFRA_SERVER_DB_ENCRYPTION_KEY=/work/test/root.key
-    command: /work/dist/infra_linux_amd64_v1/infra server
+    command: /work/dist/infra_linux_amd64_v1/infra server --config-file /work/test/dockerfiles/server.yaml
     volumes:
       - ..:/work
     ports:

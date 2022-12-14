@@ -7,7 +7,7 @@ echo "Running Infra connector install on Ubuntu"
 PACKAGE_PATH=/work/dist/infra_0.0.0_amd64.deb
 DESTINATION_ADDR="$(hostname -I)"
 INFRA_SERVER_URL=test-server-1
-INFRA_ACCESS_KEY= #TODO: 
+INFRA_ACCESS_KEY=dest000001.ubuntuubuntuubuntuubuntu
 
 
 # step=install-package
@@ -34,8 +34,8 @@ endpointAddr: "$DESTINATION_ADDR"
 server:
   url: "$INFRA_SERVER_URL"
   accessKey: "$INFRA_ACCESS_KEY"
+  trustedCertificate: /work/internal/server/testdata/pki/ca.crt
 EOF
-
 
 echo "Starting infra service"
 
