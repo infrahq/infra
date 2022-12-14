@@ -42,7 +42,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist --snapshot ${{ startsWith(github.ref, 'refs/tags/') || '--skip-publish' }}
+          args: release --rm-dist --snapshot --skip-publish=${{ !startsWith(github.ref, 'refs/tags/') }}
         env:
           RELEASE_NAME: ${{ needs.prepare.outputs.release-name }}
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
