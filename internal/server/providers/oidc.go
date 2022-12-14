@@ -60,11 +60,10 @@ func WithOIDCClient(ctx context.Context, client OIDCClient) context.Context {
 }
 
 type oidcClientImplementation struct {
-	ProviderModel models.Provider
-	Domain        string
-	ClientID      string
-	ClientSecret  string
-	RedirectURL   string
+	Domain       string
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
 }
 
 func NewOIDCClient(provider models.Provider, clientSecret, redirectURL string) OIDCClient {
