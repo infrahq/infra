@@ -31,7 +31,7 @@ func (s *Settings) ToAPI() *api.Settings {
 }
 
 func (s *Settings) SetFromAPI(a *api.Settings) {
-	s.LengthMin = a.PasswordRequirements.LowercaseMin
+	s.LengthMin = a.PasswordRequirements.LengthMin
 	s.UppercaseMin = a.PasswordRequirements.UppercaseMin
 	s.LowercaseMin = a.PasswordRequirements.LowercaseMin
 	s.SymbolMin = a.PasswordRequirements.SymbolMin
