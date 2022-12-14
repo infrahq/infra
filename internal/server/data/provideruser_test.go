@@ -21,7 +21,6 @@ import (
 type mockOIDCImplementation struct {
 	UserEmailResp  string
 	UserGroupsResp []string
-	ProviderModel  models.Provider
 }
 
 func (m *mockOIDCImplementation) Validate(_ context.Context) error {
@@ -51,10 +50,6 @@ func (m *mockOIDCImplementation) RefreshAccessToken(_ context.Context, providerU
 
 func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *models.ProviderUser) (*providers.UserInfoClaims, error) {
 	return &providers.UserInfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
-}
-
-func (m *mockOIDCImplementation) Provider() *models.Provider {
-	return &m.ProviderModel
 }
 
 var cmpEncryptedAtRestNotZero = cmp.Comparer(func(x, y models.EncryptedAtRest) bool {
@@ -103,7 +98,6 @@ func TestSyncProviderUser(t *testing.T) {
 				oidcClient: &mockOIDCImplementation{
 					UserEmailResp:  "hello@example.com",
 					UserGroupsResp: []string{"Everyone", "Developers"},
-					ProviderModel:  *provider,
 				},
 				verifyFunc: func(t *testing.T, err error, user *models.Identity) {
 					assert.NilError(t, err)
@@ -165,7 +159,6 @@ func TestSyncProviderUser(t *testing.T) {
 				oidcClient: &mockOIDCImplementation{
 					UserEmailResp:  "sync@example.com",
 					UserGroupsResp: []string{"Everyone", "Developers"},
-					ProviderModel:  *provider,
 				},
 				verifyFunc: func(t *testing.T, err error, user *models.Identity) {
 					assert.NilError(t, err)
@@ -229,7 +222,7 @@ func TestSyncProviderUser(t *testing.T) {
 			t.Run(test.name, func(t *testing.T) {
 				oidc := test.oidcClient
 				user := test.setupProviderUser(t)
-				err = SyncProviderUser(context.Background(), db, user, oidc)
+				err = SyncProviderUser(context.Background(), db, user, provider, oidc)
 				test.verifyFunc(t, err, user)
 			})
 		}

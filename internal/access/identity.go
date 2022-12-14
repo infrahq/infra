@@ -86,42 +86,8 @@ func ListIdentities(c *gin.Context, opts data.ListIdentityOptions) ([]models.Ide
 	return data.ListIdentities(db, opts)
 }
 
-func GetContextProviderIdentity(c RequestContext, google *models.Provider) (*models.Provider, string, error) {
-	// does not need authorization check, this action is limited to the calling user
-	var provider *models.Provider
-	if google != nil && c.Authenticated.AccessKey.ProviderID == google.ID {
-		provider = google
-	} else {
-		var err error
-		provider, err = data.GetProvider(c.DBTxn, data.GetProviderOptions{
-			ByID: c.Authenticated.AccessKey.ProviderID,
-		})
-		if err != nil {
-			return nil, "", fmt.Errorf("user info provider: %w", err)
-		}
-
-		if provider.Kind == models.ProviderKindInfra {
-			// no external verification needed
-			logging.L.Trace().Msg("skipped verifying identity within infra provider, not required")
-			return provider, "", nil
-		}
-	}
-
-	identity := c.Authenticated.User
-	if identity == nil {
-		return nil, "", errors.New("user does not have session with an identity provider")
-	}
-
-	providerUser, err := data.GetProviderUser(c.DBTxn, c.Authenticated.AccessKey.ProviderID, identity.ID)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return provider, providerUser.RedirectURL, nil
-}
-
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func UpdateIdentityInfoFromProvider(c RequestContext, oidc providers.OIDCClient) error {
+func UpdateIdentityInfoFromProvider(c RequestContext, provider *models.Provider, oidc providers.OIDCClient) error {
 	// does not need authorization check, this action is limited to the calling user
 	ctx := c.Request.Context()
 
@@ -134,17 +100,17 @@ func UpdateIdentityInfoFromProvider(c RequestContext, oidc providers.OIDCClient)
 	db := c.DBTxn
 
 	// get current identity provider groups and account status
-	err := data.SyncProviderUser(ctx, db, identity, oidc)
+	err := data.SyncProviderUser(ctx, db, identity, provider, oidc)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
 			return err
 		}
 
-		if nestedErr := data.DeleteAccessKeys(db, data.DeleteAccessKeysOptions{ByIssuedForID: identity.ID, ByProviderID: oidc.Provider().ID}); nestedErr != nil {
+		if nestedErr := data.DeleteAccessKeys(db, data.DeleteAccessKeysOptions{ByIssuedForID: identity.ID, ByProviderID: provider.ID}); nestedErr != nil {
 			logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
 		}
 
-		if nestedErr := data.DeleteProviderUsers(db, data.DeleteProviderUsersOptions{ByIdentityID: identity.ID, ByProviderID: oidc.Provider().ID}); nestedErr != nil {
+		if nestedErr := data.DeleteProviderUsers(db, data.DeleteProviderUsersOptions{ByIdentityID: identity.ID, ByProviderID: provider.ID}); nestedErr != nil {
 			logging.Errorf("failed to delete provider user: %s", nestedErr)
 		}
 

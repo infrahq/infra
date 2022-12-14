@@ -296,8 +296,8 @@ func ProvisionProviderUser(tx WriteTxn, user *models.ProviderUser) error {
 	return insert(tx, (*providerUserTable)(user))
 }
 
-func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, oidcClient providers.OIDCClient) error {
-	providerUser, err := GetProviderUser(tx, oidcClient.Provider().ID, user.ID)
+func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
+	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
 	}
@@ -325,7 +325,7 @@ func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, o
 		return fmt.Errorf("oidc user sync failed: %w", err)
 	}
 
-	if err := AssignIdentityToGroups(tx, user, oidcClient.Provider(), info.Groups); err != nil {
+	if err := AssignIdentityToGroups(tx, user, provider, info.Groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
 	}
 

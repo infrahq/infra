@@ -300,21 +300,42 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func (a *API) UpdateIdentityInfoFromProvider(rCtx access.RequestContext) error {
-	provider, redirectURL, err := access.GetContextProviderIdentity(rCtx, a.server.Google)
+	// does not need access check, this action is limited to the calling user
+	identity := rCtx.Authenticated.User
+	if identity == nil {
+		return errors.New("user does not have session with an identity provider")
+	}
+
+	var provider *models.Provider
+	if a.server.Google != nil && rCtx.Authenticated.AccessKey.ProviderID == a.server.Google.ID {
+		provider = a.server.Google
+	} else {
+		var err error
+		provider, err = data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{
+			ByID: rCtx.Authenticated.AccessKey.ProviderID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to get provider for user info: %w", err)
+		}
+
+		if provider.Kind == models.ProviderKindInfra {
+			// no external verification needed
+			logging.L.Trace().Msg("skipped verifying identity within infra provider, not required")
+			return nil
+		}
+	}
+
+	providerUser, err := data.GetProviderUser(rCtx.DBTxn, rCtx.Authenticated.AccessKey.ProviderID, identity.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get provider user to update: %w", err)
 	}
 
-	if provider.Kind == models.ProviderKindInfra {
-		return nil
-	}
-
-	oidc, err := a.providerClient(rCtx.Request.Context(), provider, redirectURL)
+	oidc, err := a.providerClient(rCtx.Request.Context(), provider, providerUser.RedirectURL)
 	if err != nil {
 		return fmt.Errorf("update provider client: %w", err)
 	}
 
-	return access.UpdateIdentityInfoFromProvider(rCtx, oidc)
+	return access.UpdateIdentityInfoFromProvider(rCtx, provider, oidc)
 }
 
 func (a *API) providerClient(ctx context.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
