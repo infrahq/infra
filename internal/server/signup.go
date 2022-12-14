@@ -40,7 +40,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	case r.Social != nil:
 		// do social sign-up
 		if a.server.Google == nil {
-			return nil, fmt.Errorf("%w: google login is not configured, provider id must be specified for oidc login", internal.ErrBadRequest)
+			return nil, fmt.Errorf("%w: google login is not configured", internal.ErrBadRequest)
 		}
 		// check if an org exists with their desired sub-domain
 		// this has to be done here since the auth code is single-use
