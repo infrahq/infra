@@ -14,6 +14,7 @@ import { Menu } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
 import { sortBySubject } from '../../lib/grants'
+import { formatPasswordRequirements } from '../../lib/login'
 import Notification from '../../components/notification'
 import GrantForm from '../../components/grant-form'
 import Dashboard from '../../components/layouts/dashboard'
@@ -415,8 +416,12 @@ function Password() {
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
-          errors[error.fieldName.toLowerCase()] =
-            error.errors[0] || 'invalid value'
+          const fieldName = error.fieldName.toLowerCase()
+          if (fieldName === 'password') {
+            errors[fieldName] = formatPasswordRequirements(error.errors)
+          } else {
+            errors[fieldName] = error.errors[0] || 'invalid value'
+          }
         }
         setErrors(errors)
       } else {

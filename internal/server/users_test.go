@@ -926,7 +926,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "password", Errors: []string{"needs minimum length of 8"}},
+					{FieldName: "password", Errors: []string{"8 characters"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},

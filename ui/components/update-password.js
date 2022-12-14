@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 
+import { formatPasswordRequirements } from '../lib/login'
+
 export default function UpdatePassword({ oldPassword, user }) {
   const router = useRouter()
   const { next } = router.query
@@ -33,8 +35,12 @@ export default function UpdatePassword({ oldPassword, user }) {
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
-          errors[error.fieldName.toLowerCase()] =
-            error.errors[0] || 'invalid value'
+          const fieldName = error.fieldName.toLowerCase()
+          if (fieldName === 'password') {
+            errors[fieldName] = formatPasswordRequirements(error.errors)
+          } else {
+            errors[fieldName] = error.errors[0] || 'invalid value'
+          }
         }
         setErrors(errors)
       } else {

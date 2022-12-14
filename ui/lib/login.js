@@ -23,5 +23,23 @@ export function currentBaseDomain() {
   if (parts.length > 2) {
     parts.shift() // remove the org
   }
+
   return parts.join('.') // return the domain without the org
+}
+
+export function formatPasswordRequirements(requirements) {
+  return (
+    'needs at least ' +
+    requirements.reduce((value, currentValue, currentIndex) => {
+      return (
+        value +
+        (currentIndex === requirements.length - 1
+          ? requirements.length > 2
+            ? ', and '
+            : ' and '
+          : ', ') +
+        currentValue
+      )
+    })
+  )
 }
