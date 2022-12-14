@@ -3,7 +3,6 @@ package access
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"unicode"
 
 	"github.com/gin-gonic/gin"
@@ -169,10 +168,10 @@ func GetRequestContext(c *gin.Context) RequestContext {
 	return RequestContext{}
 }
 
-// list of valid special chars is from OWASP, wikipedia
-func isValidSymbol(letter rune) bool {
-	match, _ := regexp.MatchString(fmt.Sprintf(`(.*[ !"#$%%&'()*+,-./\:;<=>?@^_{}|~%s%s]){1,}`, regexp.QuoteMeta(`/\[]`), "`"), string(letter))
-	return match
+// list of special charaters from OWASP:
+// https://owasp.org/www-community/password-special-characters
+func isSymbol(r rune) bool {
+	return (r >= '\u0020' && r <= '\u002F') || (r >= '\u003A' && r <= '\u0040') || (r >= '\u005B' && r <= '\u0060') || (r >= '\u007B' && r <= '\u007E')
 }
 
 func hasMinimumCount(min int, password string, check func(rune) bool) bool {
@@ -204,7 +203,7 @@ func checkPasswordRequirements(db data.ReadTxn, password string) error {
 		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d numbers", settings.NumberMin))
 	}
 
-	if !hasMinimumCount(settings.SymbolMin, password, isValidSymbol) {
+	if !hasMinimumCount(settings.SymbolMin, password, isSymbol) {
 		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d symbols", settings.SymbolMin))
 	}
 

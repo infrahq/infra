@@ -154,211 +154,26 @@ func TestUpdateCredentials(t *testing.T) {
 	})
 }
 
-func TestLowercaseRequirements(t *testing.T) {
-	result := hasMinimumCount(2, "a", unicode.IsLower)
-	assert.Equal(t, result, false)
+func TestHasMinimumCount(t *testing.T) {
+	assert.Assert(t, !hasMinimumCount(2, "aB1!", unicode.IsLower))
+	assert.Assert(t, !hasMinimumCount(2, "aB1!", unicode.IsUpper))
+	assert.Assert(t, !hasMinimumCount(2, "aB1!", unicode.IsNumber))
+	assert.Assert(t, !hasMinimumCount(2, "aB1!", isSymbol))
 
-	result = hasMinimumCount(2, "A", unicode.IsLower)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "ab", unicode.IsLower)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "AB", unicode.IsLower)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "Ab", unicode.IsLower)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "abc", unicode.IsLower)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "abC", unicode.IsLower)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "AbC", unicode.IsLower)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "aBc", unicode.IsLower)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "", unicode.IsLower)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "!$!@#23", unicode.IsLower)
-	assert.Equal(t, result, false)
+	assert.Assert(t, hasMinimumCount(2, "aaBB11!!", unicode.IsLower))
+	assert.Assert(t, hasMinimumCount(2, "aaBB11!!", unicode.IsUpper))
+	assert.Assert(t, hasMinimumCount(2, "aaBB11!!", unicode.IsNumber))
+	assert.Assert(t, hasMinimumCount(2, "aaBB11!!", isSymbol))
 }
 
-func TestUppercaseRequirements(t *testing.T) {
-	result := hasMinimumCount(2, "a", unicode.IsUpper)
-	assert.Equal(t, result, false)
+func TestIsSymbol(t *testing.T) {
+	symbols := " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+	for _, s := range symbols {
+		assert.Assert(t, isSymbol(s))
+	}
 
-	result = hasMinimumCount(2, "A", unicode.IsUpper)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "ab", unicode.IsUpper)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "AB", unicode.IsUpper)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "Ab", unicode.IsUpper)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "abc", unicode.IsUpper)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "abC", unicode.IsUpper)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "AbC", unicode.IsUpper)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "aBc", unicode.IsUpper)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "", unicode.IsUpper)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "!$!@#23", unicode.IsUpper)
-	assert.Equal(t, result, false)
-}
-
-func TestNumberRequirements(t *testing.T) {
-	result := hasMinimumCount(2, "abc", unicode.IsNumber)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "aBc", unicode.IsNumber)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "", unicode.IsNumber)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "!$!@#", unicode.IsNumber)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "!$!@#23", unicode.IsNumber)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "!$!@#23123", unicode.IsNumber)
-	assert.Equal(t, result, true)
-}
-
-func TestSymbolRequirements(t *testing.T) {
-	result := hasMinimumCount(2, "", isValidSymbol)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "abAB", isValidSymbol)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "abc!", isValidSymbol)
-	assert.Equal(t, result, false)
-
-	result = hasMinimumCount(2, "  ", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "!!", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `""`, isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `##`, isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `$$`, isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `%%`, isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "&&", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "''", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "((", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "))", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "**", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "++", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, ",,", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "--", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "..", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "))", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "//", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "::", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, ";;", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "<<", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "==", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, ">>", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "??", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "@@", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "^^", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "__", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "{{", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "}}", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "||", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "~~", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, "~~", isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `//`, isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `\\`, isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `[[`, isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `]]`, isValidSymbol)
-	assert.Equal(t, result, true)
-
-	result = hasMinimumCount(2, `@$%@#ss`, isValidSymbol)
-	assert.Equal(t, result, true)
+	notSymbols := "abcABC123"
+	for _, ns := range notSymbols {
+		assert.Assert(t, !isSymbol(ns))
+	}
 }
