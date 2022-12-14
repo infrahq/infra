@@ -41,6 +41,10 @@ func TestSendAPIError(t *testing.T) {
 			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized"},
 		},
 		{
+			err:    AuthenticationError{Message: "this message is ok"},
+			result: api.Error{Code: http.StatusUnauthorized, Message: "this message is ok"},
+		},
+		{
 			err: validate.Error{"fieldname": []string{"is required"}},
 			result: api.Error{
 				Code:    http.StatusBadRequest,
@@ -71,6 +75,13 @@ func TestSendAPIError(t *testing.T) {
 			result: api.Error{
 				Code:    http.StatusForbidden,
 				Message: "you do not have permission to create provider, requires role admin",
+			},
+		},
+		{
+			err: fmt.Errorf("wrapped: %w", access.ErrNotAuthorized),
+			result: api.Error{
+				Code:    http.StatusForbidden,
+				Message: "wrapped: not authorized",
 			},
 		},
 		{

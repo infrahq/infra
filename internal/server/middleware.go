@@ -162,7 +162,7 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 	accessKey, err := data.ValidateRequestAccessKey(db, bearer)
 	if err != nil {
 		if errors.Is(err, data.ErrAccessKeyExpired) {
-			return u, err
+			return u, AuthenticationError{Message: "access key has expired"}
 		}
 		return u, fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}
@@ -170,7 +170,7 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 	if accessKey.Scopes.Includes(models.ScopePasswordReset) {
 		// PUT /api/users/:id only
 		if c.Request.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || c.Request.Method != http.MethodPut {
-			return u, fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
+			return u, fmt.Errorf("%w: temporary passwords can only be used to set new passwords", access.ErrNotAuthorized)
 		}
 	}
 
@@ -281,7 +281,7 @@ func reqBearerToken(c *gin.Context, opts Options) (string, error) {
 			var err error
 			cookie, err = getCookie(c.Request, cookieAuthorizationName)
 			if err != nil {
-				return "", fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
+				return "", AuthenticationError{Message: "authentication is required"}
 			}
 		}
 
@@ -290,7 +290,7 @@ func reqBearerToken(c *gin.Context, opts Options) (string, error) {
 
 	// this will get caught by key validation, but check to be safe
 	if strings.TrimSpace(bearer) == "" {
-		return "", fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
+		return "", AuthenticationError{Message: "bearer token was missing"}
 	}
 
 	return bearer, nil

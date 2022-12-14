@@ -38,7 +38,7 @@ func TestServerLimitsAccessWithTemporaryPassword(t *testing.T) {
 	}
 
 	resp1 := tryOtherURL()
-	assert.Equal(t, http.StatusUnauthorized, resp1.Code)
+	assert.Equal(t, http.StatusForbidden, resp1.Code)
 
 	// change password
 	changePassword(t, routes, key, loginResp.UserID, resp.OneTimePassword, "balloons")

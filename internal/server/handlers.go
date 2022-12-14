@@ -34,22 +34,21 @@ type API struct {
 func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
 	rCtx := getRequestContext(c)
 
-	if rCtx.Authenticated.User != nil {
-		err := a.UpdateIdentityInfoFromProvider(rCtx)
-		if err != nil {
-			// this will fail if the user was removed from the IDP, which means they no longer are a valid user
-			return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
-		}
-
-		token, err := access.CreateToken(rCtx)
-		if err != nil {
-			return nil, err
-		}
-
-		return &api.CreateTokenResponse{Token: token.Token, Expires: api.Time(token.Expires)}, nil
+	if rCtx.Authenticated.User == nil {
+		return nil, fmt.Errorf("no authenticated user")
+	}
+	err := a.UpdateIdentityInfoFromProvider(rCtx)
+	if err != nil {
+		// this will fail if the user was removed from the IDP, which means they no longer are a valid user
+		return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
 	}
 
-	return nil, fmt.Errorf("%w: no identity found in access key", internal.ErrUnauthorized)
+	token, err := access.CreateToken(rCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.CreateTokenResponse{Token: token.Token, Expires: api.Time(token.Expires)}, nil
 }
 
 var wellKnownJWKsRoute = route[api.EmptyRequest, WellKnownJWKResponse]{

@@ -108,7 +108,7 @@ func TestDeviceFlow(t *testing.T) {
 	resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", keyNotscoped, api.ApproveDeviceFlowRequest{
 		UserCode: dfResp.UserCode,
 	}, nil)
-	assert.Assert(t, resp.Result().StatusCode == http.StatusUnauthorized, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
+	assert.Equal(t, resp.Result().StatusCode, http.StatusForbidden, (*responseDebug)(resp))
 
 	// approve with scopes
 	resp = request(t, "POST", "http://"+org.Domain+"/api/device/approve", key, api.ApproveDeviceFlowRequest{

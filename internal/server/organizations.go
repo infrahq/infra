@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -29,7 +28,7 @@ func (a *API) GetOrganization(c *gin.Context, r *api.GetOrganizationRequest) (*a
 	if r.ID.IsSelf {
 		iden := access.GetRequestContext(c).Authenticated.Organization
 		if iden == nil {
-			return nil, fmt.Errorf("%w: no user is logged in", internal.ErrUnauthorized)
+			return nil, fmt.Errorf("no authenticated user")
 		}
 		r.ID.ID = iden.ID
 	}

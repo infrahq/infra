@@ -912,13 +912,13 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 			},
 		},
 		{
-			label: testCaseLine(addDestinationCredentials().ID),
+			label: testCaseLine(deviceFlowAuthRequestsAddUserIDProviderID().ID),
 			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison
 			},
 		},
 		{
-			label: testCaseLine(deviceFlowAuthRequestsAddUserIDProviderID().ID),
+			label: testCaseLine(addDestinationCredentials().ID),
 			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison
 			},

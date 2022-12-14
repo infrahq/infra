@@ -150,7 +150,7 @@ func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowReques
 	rctx := getRequestContext(c)
 
 	if !rctx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
-		return nil, fmt.Errorf("%w: access key missing scope '%s'", internal.ErrUnauthorized, models.ScopeAllowCreateAccessKey)
+		return nil, fmt.Errorf("%w: access key missing scope '%s'", access.ErrNotAuthorized, models.ScopeAllowCreateAccessKey)
 	}
 
 	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: strings.Replace(req.UserCode, "-", "", 1)})
