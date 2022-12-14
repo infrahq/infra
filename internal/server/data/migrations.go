@@ -82,7 +82,8 @@ func migrations() []*migrator.Migration {
 		addUserSSHLoginName(),
 		makeIdxEmailsProvidersUnique(),
 		deviceFlowAuthRequestsAddUserIDProviderID(),
-		// next one here
+		addDestinationCredentials(),
+		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
 
@@ -1049,6 +1050,59 @@ func makeIdxEmailsProvidersUnique() *migrator.Migration {
 				DROP INDEX IF EXISTS idx_emails_providers;
 				CREATE UNIQUE INDEX IF NOT EXISTS idx_emails_providers_identities ON provider_users (email, provider_id, identity_id)`
 			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func addDestinationCredentials() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-25T14:46",
+		Migrate: func(tx migrator.DB) error {
+			// Postgres 12 doesn't support CREATE OR REPLACE for triggers.
+			_, err := tx.Exec(`
+				CREATE TABLE IF NOT EXISTS destination_credentials (
+					id                    bigint NOT NULL,
+					organization_id       bigint NOT NULL,
+					request_expires_at    timestamp with time zone NOT NULL,
+					update_index          bigint NOT NULL,
+					user_id               bigint NOT NULL,
+					destination_id        bigint NOT NULL,
+					answered              bool NOT NULL DEFAULT false,
+					credential_expires_at timestamp with time zone,
+					bearer_token          text
+				);
+
+				CREATE INDEX IF NOT EXISTS idx_cred_req_org_dest on destination_credentials (organization_id, destination_id);
+
+				CREATE OR REPLACE FUNCTION destination_credential_insert_notify() RETURNS trigger
+					LANGUAGE PLPGSQL
+					AS $$
+				BEGIN
+					-- on insert, we notify connector listeners for this destination
+					PERFORM pg_notify(current_schema() || '.credreq_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.destination_id), NEW.id::TEXT);
+					RETURN NULL;
+				END; $$;
+
+				DROP TRIGGER IF EXISTS credreq_notify_insert_trigger ON destination_credentials;
+				CREATE TRIGGER credreq_notify_insert_trigger AFTER insert
+					ON destination_credentials
+					FOR EACH ROW EXECUTE FUNCTION destination_credential_insert_notify();
+
+				CREATE OR REPLACE FUNCTION destination_credential_update_notify() RETURNS trigger
+					LANGUAGE PLPGSQL
+					AS $$
+				BEGIN
+					-- on update, we notify user listeners for this specific id, waiting to login
+					PERFORM pg_notify(current_schema() || '.credans_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.id), NEW.id::TEXT);
+					RETURN NULL;
+				END; $$;
+
+				DROP TRIGGER IF EXISTS credreq_notify_update_trigger ON destination_credentials;
+				CREATE TRIGGER credreq_notify_update_trigger AFTER update
+					ON destination_credentials
+					FOR EACH ROW EXECUTE FUNCTION destination_credential_update_notify();
+			`)
 			return err
 		},
 	}
