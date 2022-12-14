@@ -63,7 +63,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details *
 		return nil, fmt.Errorf("allowed login domain from admin email: %w", err)
 	}
 	if allowedLoginDomain != "gmail.com" && allowedLoginDomain != "googlemail.com" {
-		// if gmail or goolemal the admin will have to manually specify this later
+		// if gmail or googlemail the admin will have to manually specify this later
 		details.Org.AllowedDomains = []string{allowedLoginDomain}
 	}
 
