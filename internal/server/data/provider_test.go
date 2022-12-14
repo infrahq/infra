@@ -418,6 +418,19 @@ func TestDeleteProviders(t *testing.T) {
 			assert.NilError(t, err)
 		})
 
+		t.Run("user is not removed if there are social providerUsers", func(t *testing.T) {
+			tx := setup(t)
+
+			pu, err := CreateProviderUser(tx, &models.Provider{Model: models.Model{ID: models.InternalGoogleProviderID}}, user)
+			assert.NilError(t, err)
+
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
+			assert.NilError(t, err)
+
+			_, err = GetIdentity(tx, GetIdentityOptions{ByID: pu.IdentityID})
+			assert.NilError(t, err)
+		})
+
 		t.Run("delete in wrong org", func(t *testing.T) {
 			tx := setup(t)
 
