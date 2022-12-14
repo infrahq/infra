@@ -13,7 +13,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
-	"github.com/infrahq/infra/uid"
 )
 
 const oidcProviderRequestTimeout = time.Second * 10
@@ -61,7 +60,6 @@ func WithOIDCClient(ctx context.Context, client OIDCClient) context.Context {
 }
 
 type oidcClientImplementation struct {
-	ProviderID   uid.ID
 	Domain       string
 	ClientID     string
 	ClientSecret string
@@ -70,7 +68,6 @@ type oidcClientImplementation struct {
 
 func NewOIDCClient(provider models.Provider, clientSecret, redirectURL string) OIDCClient {
 	oidcClient := &oidcClientImplementation{
-		ProviderID:   provider.ID,
 		Domain:       provider.URL,
 		ClientID:     provider.ClientID,
 		ClientSecret: clientSecret,

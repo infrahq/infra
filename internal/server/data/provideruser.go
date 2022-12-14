@@ -60,6 +60,9 @@ func validateProviderUserPatch(u *models.ProviderUser) error {
 }
 
 func CreateProviderUser(db WriteTxn, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
+	if provider.ID == 0 || ident.ID == 0 {
+		return nil, fmt.Errorf("creating identity provider user with a zero value for provider or identity ID")
+	}
 	// check if we already track this provider user
 	pu, err := GetProviderUser(db, provider.ID, ident.ID)
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {

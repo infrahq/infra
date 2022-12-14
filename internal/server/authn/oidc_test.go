@@ -286,6 +286,16 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 	}
 	assert.NilError(t, data.CreateIdentity(db, existing))
 
+	// setup fake social login provider
+	provider := &models.Provider{
+		Model: models.Model{
+			ID: models.InternalGoogleProviderID,
+		},
+		Name: "mockoidc",
+		URL:  "mockOIDC.example.com",
+		Kind: models.ProviderKindOIDC,
+	}
+
 	sessionExpiry := time.Now().Add(5 * time.Minute)
 
 	type testCase struct {
@@ -336,13 +346,6 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			// setup fake identity provider with allowed domains specified
-			provider := &models.Provider{
-				Name: "mockoidc",
-				URL:  "mockOIDC.example.com",
-				Kind: models.ProviderKindOIDC,
-			}
-
 			loginMethod, err := NewOIDCAuthentication(provider, "mockOIDC.example.com/redirect", "AAA", tc.client, []string{"example.com", "infrahq.com"})
 			assert.NilError(t, err)
 

@@ -923,6 +923,80 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine(setGoogleSocialLoginDefaultID().ID),
+			setup: func(t *testing.T, tx WriteTxn) {
+				user := models.Identity{
+					Model: models.Model{
+						ID: 1,
+					},
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 2,
+					},
+					Name: "lucy@example.com",
+				}
+				stmt := `
+					INSERT INTO identities(id, name, organization_id)
+					VALUES (?, ?, ?)
+				`
+				_, err := tx.Exec(stmt, user.ID, user.Name, user.OrganizationID)
+				assert.NilError(t, err)
+				// add the zeroed Google social login provider user and access key
+				stmt = `
+					INSERT INTO provider_users(identity_id, provider_id, email)
+					VALUES (?, ?, ?)
+				`
+				_, err = tx.Exec(stmt, user.ID, 0, user.Name)
+				assert.NilError(t, err)
+				key := models.AccessKey{
+					Model: models.Model{
+						ID: 3,
+					},
+					Name:           "google-access",
+					IssuedFor:      user.ID,
+					ProviderID:     0, // old google ID
+					ExpiresAt:      time.Now().Add(1 * time.Minute),
+					KeyID:          "key_id",
+					SecretChecksum: []byte{},
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 2,
+					},
+				}
+				stmt = `
+					INSERT INTO access_keys(id, name, issued_for, provider_id, expires_at, key_id, secret_checksum, organization_id)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+				`
+				_, err = tx.Exec(stmt, key.ID, key.Name, key.IssuedFor, key.ProviderID, key.ExpiresAt, key.KeyID, key.SecretChecksum, key.OrganizationID)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE from identities`)
+				assert.NilError(t, err)
+				_, err = tx.Exec(`DELETE from provider_users`)
+				assert.NilError(t, err)
+				_, err = tx.Exec(`DELETE from access_keys`)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				var providerUser providerUserTable
+				err := tx.QueryRow(`SELECT identity_id, provider_id FROM provider_users`).Scan(&providerUser.IdentityID, &providerUser.ProviderID)
+				assert.NilError(t, err)
+				expectedUser := providerUserTable{
+					IdentityID: 1,
+					ProviderID: models.InternalGoogleProviderID,
+				}
+				assert.DeepEqual(t, expectedUser, providerUser)
+
+				var accessKey accessKeyTable
+				err = tx.QueryRow(`SELECT issued_for, provider_id FROM access_keys`).Scan(&accessKey.IssuedFor, &accessKey.ProviderID)
+				assert.NilError(t, err)
+				expectedKey := accessKeyTable{
+					IssuedFor:  1,
+					ProviderID: models.InternalGoogleProviderID,
+				}
+				assert.DeepEqual(t, expectedKey, accessKey)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

@@ -173,6 +173,17 @@ func TestUpdateIdentityInfoFromProvider(t *testing.T) {
 	err := data.CreateProvider(db, provider)
 	assert.NilError(t, err)
 
+	google := &models.Provider{
+		Model: models.Model{
+			ID: models.InternalGoogleProviderID,
+		},
+		Name:         "moogle",
+		URL:          "moogle.example.com",
+		ClientID:     "aaa",
+		ClientSecret: "bbb",
+		Kind:         models.ProviderKindGoogle,
+	}
+
 	t.Run("a revoked OIDC session revokes access keys created by provider login", func(t *testing.T) {
 		_, err = data.CreateProviderUser(db, provider, rCtx.Authenticated.User)
 		assert.NilError(t, err)
@@ -187,7 +198,31 @@ func TestUpdateIdentityInfoFromProvider(t *testing.T) {
 
 		rCtx.Authenticated.AccessKey = toBeRevoked
 
-		err = UpdateIdentityInfoFromProvider(rCtx, oidc)
+		err = UpdateIdentityInfoFromProvider(rCtx, provider, oidc)
+		assert.ErrorContains(t, err, "user revoked")
+
+		_, err = data.GetAccessKeyByKeyID(db, toBeRevoked.KeyID)
+		assert.ErrorIs(t, err, internal.ErrNotFound)
+
+		_, err = data.GetAccessKeyByKeyID(db, shouldStayValid.KeyID)
+		assert.NilError(t, err)
+	})
+
+	t.Run("a revoked OIDC session revokes access keys created by social login", func(t *testing.T) {
+		_, err = data.CreateProviderUser(db, google, rCtx.Authenticated.User)
+		assert.NilError(t, err)
+		oidc := &fakeOIDCImplementation{UserInfoRevoked: true}
+
+		toBeRevoked := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: google.ID}
+		_, err := data.CreateAccessKey(db, toBeRevoked)
+		assert.NilError(t, err)
+		shouldStayValid := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: infraProvider.ID}
+		_, err = data.CreateAccessKey(db, shouldStayValid)
+		assert.NilError(t, err)
+
+		rCtx.Authenticated.AccessKey = toBeRevoked
+
+		err = UpdateIdentityInfoFromProvider(rCtx, google, oidc)
 		assert.ErrorContains(t, err, "user revoked")
 
 		_, err = data.GetAccessKeyByKeyID(db, toBeRevoked.KeyID)
@@ -208,7 +243,7 @@ func TestUpdateIdentityInfoFromProvider(t *testing.T) {
 
 		rCtx.Authenticated.AccessKey = key
 
-		err = UpdateIdentityInfoFromProvider(rCtx, oidc)
+		err = UpdateIdentityInfoFromProvider(rCtx, provider, oidc)
 		assert.NilError(t, err)
 	})
 }

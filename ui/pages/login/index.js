@@ -6,7 +6,10 @@ import Tippy from '@tippyjs/react'
 import Cookies from 'universal-cookie'
 
 import { useUser } from '../../lib/hooks'
-import { providers as providersList } from '../../lib/providers'
+import {
+  googleSocialLoginID,
+  providers as providersList,
+} from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
 import { saveToVisitedOrgs, currentBaseDomain } from '../../lib/login'
 
@@ -34,7 +37,7 @@ function oidcLogin(
   }
 
   let redirectURL = window.location.origin + '/login/callback'
-  if (id === '') {
+  if (id === googleSocialLoginID) {
     // managed oidc providers (social login) need to be sent to the base redirect URL before they are redirected to org login
     const cookies = new Cookies()
     cookies.set('finishLogin', window.location.host, {
