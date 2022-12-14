@@ -102,7 +102,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		Domain:  a.server.options.BaseDomain,
 		Expires: time.Now().Add(1 * time.Minute),
 	}
-	setCookie(c, cookie)
+	setCookie(c.Request, c.Writer, cookie)
 
 	a.t.User(created.Identity.ID.String(), created.Identity.Name)
 	a.t.Org(created.Organization.ID.String(), created.Identity.ID.String(), created.Organization.Name, created.Organization.Domain)
