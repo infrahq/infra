@@ -21,6 +21,7 @@ func (s *Server) SetupBackgroundJobs(ctx context.Context) {
 	s.registerJob(ctx, jobs.RemoveOldDeviceFlowRequests, 10*time.Minute)
 	s.registerJob(ctx, jobs.RemoveExpiredAccessKeys, 12*time.Hour)
 	s.registerJob(ctx, jobs.RemoveExpiredPasswordResetTokens, 15*time.Minute)
+	s.registerJob(ctx, jobs.RemoveExpiredDestinationCredentials, 14*time.Minute)
 }
 
 func (s *Server) registerJob(ctx context.Context, job BackgroundJobFunc, every time.Duration) {

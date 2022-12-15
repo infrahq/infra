@@ -398,6 +398,22 @@ func (c Client) DeleteDestination(ctx context.Context, id uid.ID) error {
 	return delete(ctx, c, fmt.Sprintf("/api/destinations/%s", id), Query{})
 }
 
+func (c Client) CreateDestinationCredential(ctx context.Context, r *CreateDestinationCredential) (*DestinationCredential, error) {
+	return post[DestinationCredential](ctx, c, "/api/credentials", r)
+}
+
+func (c Client) ListDestinationCredentials(ctx context.Context, req ListDestinationCredential) (*ListDestinationCredentialResponse, error) {
+	resp, err := get[ListDestinationCredentialResponse](ctx, c, "/api/credentials", Query{
+		"destination":     []string{req.Destination},
+		"lastUpdateIndex": []string{strconv.FormatInt(req.LastUpdateIndex, 10)},
+	})
+	return resp, err
+}
+
+func (c Client) AnswerDestinationCredential(ctx context.Context, r *AnswerDestinationCredential) (*EmptyResponse, error) {
+	return put[EmptyResponse](ctx, c, "/api/credentials", r)
+}
+
 func (c Client) ListAccessKeys(ctx context.Context, req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
 	return get[ListResponse[AccessKey]](ctx, c, "/api/access-keys", Query{
 		"userID":       {req.UserID.String()},

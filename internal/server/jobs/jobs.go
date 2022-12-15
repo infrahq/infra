@@ -17,3 +17,7 @@ func RemoveExpiredAccessKeys(ctx context.Context, tx *data.Transaction) error {
 func RemoveExpiredPasswordResetTokens(ctx context.Context, tx *data.Transaction) error {
 	return data.RemoveExpiredPasswordResetTokens(tx)
 }
+
+func RemoveExpiredDestinationCredentials(ctx context.Context, tx *data.Transaction) error {
+	return data.RemoveExpiredDestinationCredentials(tx)
+}

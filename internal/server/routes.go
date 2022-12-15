@@ -95,6 +95,8 @@ func (s *Server) GenerateRoutes() Routes {
 	del(a, authn, "/api/destinations/:id", a.DeleteDestination)
 
 	post(a, authn, "/api/tokens", a.CreateToken)
+	add(a, authn, http.MethodPost, "/api/credentials", createDestinationCredentialRoute)
+	put(a, authn, "/api/credentials", a.AnswerDestinationCredential)
 	post(a, authn, "/api/logout", a.Logout)
 
 	// SCIM inbound provisioning
@@ -130,6 +132,9 @@ func (s *Server) GenerateRoutes() Routes {
 
 	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", wellKnownJWKsRoute)
 
+	// routes only interesting to connectors
+	add(a, authn, http.MethodGet, "/api/credentials", listDestinationCredentialRoute)
+
 	// Device flow
 	post(a, noAuthnNoOrg, "/api/device", a.StartDeviceFlow)
 	post(a, noAuthnWithOrg, "/api/device/status", a.GetDeviceFlowStatus)
@@ -159,6 +164,7 @@ type routeSettings struct {
 	infraVersionHeaderOptional bool
 	authenticationOptional     bool
 	organizationOptional       bool
+	transactionCommitsEarly    bool
 	txnOptions                 *sql.TxOptions
 }
 
@@ -262,7 +268,15 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			completeTx = tx.Rollback
 		}
 		if err := completeTx(); err != nil {
-			return err
+			if route.transactionCommitsEarly {
+				if false {
+
+				} else {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 
 		if !route.omitFromTelemetry {

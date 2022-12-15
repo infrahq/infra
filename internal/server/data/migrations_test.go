@@ -918,12 +918,6 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 			},
 		},
 		{
-			label: testCaseLine(addDestinationCredentials().ID),
-			expected: func(t *testing.T, db WriteTxn) {
-				// schema changes are tested with schema comparison
-			},
-		},
-		{
 			label: testCaseLine(setGoogleSocialLoginDefaultID().ID),
 			setup: func(t *testing.T, tx WriteTxn) {
 				user := models.Identity{
@@ -995,6 +989,12 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 					ProviderID: models.InternalGoogleProviderID,
 				}
 				assert.DeepEqual(t, expectedKey, accessKey)
+			},
+		},
+		{
+			label: testCaseLine(addDestinationCredentials().ID),
+			expected: func(t *testing.T, db WriteTxn) {
+				// schema changes are tested with schema comparison
 			},
 		},
 	}
