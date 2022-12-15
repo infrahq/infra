@@ -479,7 +479,6 @@ export default function AccessControl() {
       : `/api/grants?user=${user.id}&limit=1000`
   )
 
-  const [listDestinationsName, setListDestinationsName] = useState([])
   const [grants, setGrants] = useState({})
   const [openCreateAccess, setOpenCreateAccess] = useState(false)
   const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
@@ -502,10 +501,6 @@ export default function AccessControl() {
         })
     )
   }, [allGrants])
-
-  useEffect(() => {
-    setListDestinationsName(destinations?.map(d => d.name))
-  }, [destinations])
 
   const columns = []
   if (isAdmin) {
