@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -87,6 +88,7 @@ func runSSHDAuthKeys(cli *CLI, logger zerolog.Logger, opts sshAuthKeysOptions) e
 
 	client := config.APIClient()
 	client.Name = "ssh-auth-keys-cmd"
+	client.HTTP.Timeout = time.Minute
 
 	user, err := verifyUsernameAndFingerprint(ctx, logger, client, opts)
 	if err != nil {
