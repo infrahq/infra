@@ -121,6 +121,7 @@ jobs:
         with:
           go-version: "1.19"
           cache: true
+      - run: go install gotest.tools/gotestsum@v1.8.2
       - uses: goreleaser/goreleaser-action@v3
         with:
           distribution: goreleaser
@@ -135,6 +136,10 @@ jobs:
 
       - name: Setup destinations
         run: ./test/setup.sh
+
+      - name: Run tests
+        working-directory: test
+        run: ~/go/bin/gotestsum -ftestname -- ./...
 
       - name: Container output
         if: always()

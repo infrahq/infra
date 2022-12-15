@@ -5,7 +5,7 @@ set -eu -o pipefail
 echo "Running Infra connector install on Ubuntu"
 
 PACKAGE_PATH=/work/dist/infra_0.0.0_amd64.deb
-DESTINATION_ADDR="$(hostname -I)"
+DESTINATION_ADDR=127.0.0.1:8220
 INFRA_SERVER_URL=test-server-1
 INFRA_ACCESS_KEY=dest000001.ubuntuubuntuubuntuubuntu
 

@@ -12,7 +12,7 @@ services:
     volumes:
       - ..:/work
     ports:
-      - "127.0.0.1:443:443"
+      - "127.0.0.1:4443:443"
     depends_on:
       db:
         condition: service_healthy
@@ -43,3 +43,5 @@ services:
       - ..:/work
     privileged: true
     depends_on: [server]
+    ports:
+      - "127.0.0.1:8220:22"
