@@ -53,6 +53,11 @@ func TestSSHDestination(t *testing.T) {
 	userHome := t.TempDir()
 	t.Setenv("HOME", userHome)
 	t.Setenv("USERPROFILE", userHome) // for windows
+
+	// ssh uses /etc/passwd to find the home directory, not the HOME env
+	// variable. So we have to specify the config path explicitly in testing.
+	sshConfig := filepath.Join(userHome, ".ssh/config")
+
 	// TODO: what's the right path on darwin?
 	infraBin, err := filepath.Abs("../dist/infra_linux_amd64_v1/infra")
 	assert.NilError(t, err)
@@ -71,9 +76,11 @@ func TestSSHDestination(t *testing.T) {
 			"-p", "8220",
 			"-o", "StrictHostKeyChecking=yes",
 			"-o", "PasswordAuthentication=no",
+			"-F", sshConfig,
 			"127.0.0.1", "echo", "not ok")
 		expected := icmd.Expected{
 			ExitCode: 255,
+			Err:      "Permission denied",
 		}
 		res.Assert(t, expected)
 	})
@@ -95,8 +102,10 @@ func TestSSHDestination(t *testing.T) {
 		grantID = resp.ID
 
 		res := icmd.RunCommand("ssh",
-			"-p", "8220", "-o", "StrictHostKeyChecking=yes", "127.0.0.1",
-			"echo", "ok")
+			"-p", "8220",
+			"-o", "StrictHostKeyChecking=yes",
+			"-F", sshConfig,
+			"127.0.0.1", "echo", "ok")
 		expected := icmd.Expected{Out: "ok"}
 		res.Assert(t, expected)
 	})
@@ -109,9 +118,11 @@ func TestSSHDestination(t *testing.T) {
 			"-p", "8220",
 			"-o", "StrictHostKeyChecking=yes",
 			"-o", "PasswordAuthentication=no",
+			"-F", sshConfig,
 			"127.0.0.1", "echo", "not ok")
 		expected := icmd.Expected{
 			ExitCode: 255,
+			Err:      "Permission denied",
 		}
 		res.Assert(t, expected)
 	})
