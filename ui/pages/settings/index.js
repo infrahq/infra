@@ -697,8 +697,18 @@ function Authentication() {
 
     return true
   }
+
   async function updateAllowedDomains(allowedDomains) {
     setError('')
+    // check if anything has changed, since onChange gets called when allowed domains loads
+    const compareDomains = [...allowedDomains]
+    if (
+      org?.allowedDomains.sort().toString() == compareDomains.sort().toString()
+    ) {
+      // dont need to update
+      return
+    }
+
     try {
       const res = await fetch('/api/organizations/' + org.id, {
         method: 'PUT',
