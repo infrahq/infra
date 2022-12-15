@@ -17,6 +17,8 @@ export default function Table({
   deleteText = 'Delete selected',
   count = data?.length,
   allowDelete = false,
+  selectedRowIds = [],
+  setSelectedRowIds = () => {},
   // TODO: default to something better – i.e. automatic pagination
   pageSize = 999,
   pageIndex = 0,
@@ -49,13 +51,12 @@ export default function Table({
 
   const [checkedAll, setCheckedAll] = useState(false)
   const [indeterminate, setIndeterminate] = useState(false)
-  const [selectedRowIds, setSelectedRowIds] = useState([])
 
   useLayoutEffect(() => {
     const isIndeterminate =
       selectedRowIds.length > 0 && selectedRowIds.length < data.length
 
-    if (allowDelete) {
+    if (allowDelete && data?.length > 0) {
       setCheckedAll(selectedRowIds.length === data?.length)
       setIndeterminate(isIndeterminate)
       checkbox.current.indeterminate = isIndeterminate
@@ -82,7 +83,6 @@ export default function Table({
             type='button'
             onClick={() => {
               onDelete(selectedRowIds)
-              setSelectedRowIds([])
             }}
             className='rounded-md bg-zinc-50 px-4 py-2 text-2xs font-medium  text-red-500 hover:bg-red-100'
           >
@@ -97,7 +97,7 @@ export default function Table({
         <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
-              {allowDelete && (
+              {allowDelete && data?.length > 0 && (
                 <th scope='col' className='relative w-12 px-6 sm:w-16 sm:px-8'>
                   <input
                     type='checkbox'
@@ -133,7 +133,7 @@ export default function Table({
                 }`}
                 key={row.id}
               >
-                {allowDelete && (
+                {allowDelete && data?.length > 0 && (
                   <th scope='col'>
                     <input
                       type='checkbox'

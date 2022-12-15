@@ -213,7 +213,6 @@ function ConnectorKeys() {
       <div className='mt-3 flex min-h-0 flex-1 flex-col'>
         <Table
           data={accessKeys}
-          allowDelete
           empty='No connector keys'
           columns={[
             {

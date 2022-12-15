@@ -15,6 +15,7 @@ import { descriptions, sortByRole } from '../../lib/grants'
 
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
+import DeleteModal from '../../components/delete-modal'
 
 const OPTION_SELECT_ALL = 'select all'
 
@@ -120,7 +121,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
 
   return (
     <div className='w-full 2xl:m-auto'>
-      <h1 className='py-1 font-display text-lg font-medium'>Create access</h1>
+      <h1 className='py-1 font-display text-lg font-medium'>Grant access</h1>
       <h3 className='mt-3 text-sm font-medium'>
         Grant access to{' '}
         <span className='font-bold'>
@@ -142,6 +143,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
       </h3>
       <form className='flex flex-col space-y-4' onSubmit={onSubmit}>
         <div className='mb-4 flex flex-col space-y-4'>
+          {/* Identity dropdown selection */}
           <div className='mt-4 space-y-1'>
             <label className='text-2xs font-medium text-gray-700'>
               User or group
@@ -158,6 +160,11 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                   setQuery(e.target.value)
                   if (e.target.value.length === 0) {
                     setSelected(null)
+                  }
+                }}
+                onFocus={() => {
+                  if (!selected) {
+                    identityButton.current?.click()
                   }
                 }}
               />
@@ -201,9 +208,10 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
               <Combobox.Button className='hidden' ref={identityButton} />
             </Combobox>
           </div>
+          {/* Resource / Infrastructure dropdown selection */}
           <div className='relative mt-4 space-y-1'>
             <label className='text-2xs font-medium text-gray-700'>
-              Resource
+              Infrastructure
             </label>
             <Combobox
               as='div'
@@ -337,7 +345,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                         className={({ active }) =>
                           `${
                             active ? 'bg-gray-50' : 'bg-white'
-                          } group flex w-full items-center border-t border-gray-100 px-2 py-1.5 text-xs font-medium text-blue-500 hover:cursor-pointer`
+                          } group flex w-full items-center border-t border-gray-100 px-3 py-1.5 text-xs font-medium text-blue-500 hover:cursor-pointer`
                         }
                         value={OPTION_SELECT_ALL}
                       >
@@ -456,17 +464,26 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
 export default function AccessControl() {
   const { user, isAdmin } = useUser()
 
-  const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
-  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
-
+  const { data: { items: users } = {} } = useSWR(() =>
+    isAdmin ? '/api/users?limit=1000' : ''
+  )
+  const { data: { items: groups } = {} } = useSWR(() =>
+    isAdmin ? '/api/groups?limit=1000' : ''
+  )
+  const { data: { items: destinations } = {} } = useSWR(
+    '/api/destinations?limit=1000'
+  )
   const { data: { items: allGrants } = {}, mutate } = useSWR(() =>
     isAdmin
       ? '/api/grants?limit=1000'
       : `/api/grants?user=${user.id}&limit=1000`
   )
 
+  const [listDestinationsName, setListDestinationsName] = useState([])
   const [grants, setGrants] = useState({})
   const [openCreateAccess, setOpenCreateAccess] = useState(false)
+  const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
+  const [selectedDeleteIds, setSelectedDeleteIds] = useState([])
 
   useEffect(() => {
     setGrants(
@@ -485,6 +502,10 @@ export default function AccessControl() {
         })
     )
   }, [allGrants])
+
+  useEffect(() => {
+    setListDestinationsName(destinations?.map(d => d.name))
+  }, [destinations])
 
   const columns = []
   if (isAdmin) {
@@ -524,7 +545,7 @@ export default function AccessControl() {
               onClick={() => setOpenCreateAccess(true)}
               className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
             >
-              Create access
+              Grant access
             </button>
             <Transition.Root show={openCreateAccess} as={Fragment}>
               <Dialog as='div' className='relative z-50' onClose={() => {}}>
@@ -570,18 +591,16 @@ export default function AccessControl() {
       <Table
         data={grants}
         allowDelete={isAdmin}
-        onDelete={async selectedIds => {
-          const promises = selectedIds.map(
-            async selectedId =>
-              await fetch(`/api/grants/${selectedId}`, { method: 'DELETE' })
-          )
-
-          await Promise.all(promises)
-          mutate()
+        selectedRowIds={selectedDeleteIds}
+        setSelectedRowIds={setSelectedDeleteIds}
+        onDelete={selectedIds => {
+          setSelectedDeleteIds(selectedIds)
+          setOpenSelectedDeleteModal(true)
         }}
         columns={[
           ...columns,
           {
+            id: 'resource',
             cell: info => <span>{info.getValue()}</span>,
             header: () => <span>Resource</span>,
             accessorKey: 'resource',
@@ -605,24 +624,49 @@ export default function AccessControl() {
             cell: function Cell(info) {
               return (
                 isAdmin && (
-                  <button
-                    type='button'
-                    onClick={async () => {
-                      await fetch(`/api/grants/${info.row.original.id}`, {
-                        method: 'DELETE',
-                      })
-                      mutate()
-                    }}
-                    className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-right text-xs font-medium text-red-500 hover:text-red-500/50'
-                  >
-                    <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                    <span className='hidden sm:block'>Remove</span>
-                  </button>
+                  <div className='group hidden justify-end rounded-md bg-white group-hover:flex'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setSelectedDeleteIds([info.row.original.id])
+                        setOpenSelectedDeleteModal(true)
+                      }}
+                      className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
+                    >
+                      <TrashIcon className='mr-2 h-3.5 w-3.5' />
+                      <span className='hidden sm:block'>Remove</span>
+                    </button>
+                  </div>
                 )
               )
             },
           },
         ]}
+      />
+      <DeleteModal
+        open={openSelectedDeleteModal}
+        setOpen={setOpenSelectedDeleteModal}
+        onSubmit={async () => {
+          console.log(selectedDeleteIds)
+          const promises = selectedDeleteIds.map(
+            async selectedId =>
+              await fetch(`/api/grants/${selectedId}`, { method: 'DELETE' })
+          )
+
+          await Promise.all(promises)
+
+          mutate()
+          setSelectedDeleteIds([])
+          setOpenSelectedDeleteModal(false)
+        }}
+        title={selectedDeleteIds.length > 1 ? 'Remove grants' : 'Remove grant'}
+        message={
+          selectedDeleteIds.length > 1 ? (
+            <>are you sure you want to remove all the selected grants?</>
+          ) : (
+            <>are you sure you want to remove this grant?</>
+          )
+        }
       />
     </div>
   )
