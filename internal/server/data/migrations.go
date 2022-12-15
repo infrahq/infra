@@ -82,8 +82,8 @@ func migrations() []*migrator.Migration {
 		addUserSSHLoginName(),
 		makeIdxEmailsProvidersUnique(),
 		deviceFlowAuthRequestsAddUserIDProviderID(),
-		addDestinationCredentials(),
 		setGoogleSocialLoginDefaultID(),
+		addDestinationCredentials(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
