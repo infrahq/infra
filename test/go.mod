@@ -6,13 +6,14 @@ replace github.com/infrahq/infra => ../
 
 require (
 	github.com/infrahq/infra v0.0.0-00010101000000-000000000000
+	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.4.0
 )
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
-	github.com/getkin/kin-openapi v0.110.0 // indirect
+	github.com/getkin/kin-openapi v0.111.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
@@ -27,5 +28,4 @@ require (
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/term v0.3.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

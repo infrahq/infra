@@ -59,25 +59,30 @@ func TestSSHDestination(t *testing.T) {
 	sshConfig := filepath.Join(userHome, ".ssh/config")
 
 	// TODO: what's the right path on darwin?
-	infraBin, err := filepath.Abs("../dist/infra_linux_amd64_v1/infra")
+	infra, err := filepath.Abs("../dist/infra_linux_amd64_v1/infra")
 	assert.NilError(t, err)
-	t.Setenv("PATH", filepath.Dir(infraBin)+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("PATH", filepath.Dir(infra)+string(os.PathListSeparator)+os.Getenv("PATH"))
 	userKey := "ababababab.000000000000000000000001"
 
 	runStep(t, "login as user", func(t *testing.T) {
-		res := icmd.RunCommand(infraBin,
+		res := icmd.RunCommand(infra,
 			"login", "--key="+userKey, "--enable-ssh", infraServerURL,
 			"--tls-trusted-cert", infraServerCAFile)
 		res.Assert(t, icmd.Success)
 	})
 
-	runStep(t, "fails without grant", func(t *testing.T) {
-		res := icmd.RunCommand("ssh",
+	sshArgs := func(args ...string) []string {
+		return append([]string{
 			"-p", "8220",
 			"-o", "StrictHostKeyChecking=yes",
 			"-o", "PasswordAuthentication=no",
 			"-F", sshConfig,
-			"127.0.0.1", "echo", "not ok")
+			"127.0.0.1",
+		}, args...)
+	}
+
+	runStep(t, "fails without grant", func(t *testing.T) {
+		res := icmd.RunCommand("ssh", sshArgs("echo", "not ok")...)
 		expected := icmd.Expected{
 			ExitCode: 255,
 			Err:      "Permission denied",
@@ -101,11 +106,7 @@ func TestSSHDestination(t *testing.T) {
 		assert.NilError(t, err)
 		grantID = resp.ID
 
-		res := icmd.RunCommand("ssh",
-			"-p", "8220",
-			"-o", "StrictHostKeyChecking=yes",
-			"-F", sshConfig,
-			"127.0.0.1", "echo", "ok")
+		res := icmd.RunCommand("ssh", sshArgs("echo", "ok")...)
 		expected := icmd.Expected{Out: "ok"}
 		res.Assert(t, expected)
 	})
@@ -114,12 +115,7 @@ func TestSSHDestination(t *testing.T) {
 		err := adminClient.DeleteGrant(ctx, grantID)
 		assert.NilError(t, err)
 
-		res := icmd.RunCommand("ssh",
-			"-p", "8220",
-			"-o", "StrictHostKeyChecking=yes",
-			"-o", "PasswordAuthentication=no",
-			"-F", sshConfig,
-			"127.0.0.1", "echo", "not ok")
+		res := icmd.RunCommand("ssh", sshArgs("echo", "not ok")...)
 		expected := icmd.Expected{
 			ExitCode: 255,
 			Err:      "Permission denied",
