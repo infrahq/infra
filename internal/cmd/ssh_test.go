@@ -108,11 +108,14 @@ func TestSSHHostsCmd(t *testing.T) {
 Host 127.12.12.1
     IdentityFile %[1]v
     IdentitiesOnly yes
-    UserKnownHostsFile ~/.ssh/infra/known_hosts
+    UserKnownHostsFile %[2]v/.ssh/infra/known_hosts
     User anyuser
     Port 22
 
-`, filepath.Join(home, ".ssh/infra/keys/"+pubKeyID)),
+`,
+					filepath.Join(home, ".ssh/infra/keys/"+pubKeyID),
+					home,
+				),
 					fs.WithMode(0o600)),
 				fs.WithFile("known_hosts",
 					"127.12.12.1 "+hostKey,
