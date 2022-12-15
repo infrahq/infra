@@ -470,9 +470,6 @@ export default function AccessControl() {
   const { data: { items: groups } = {} } = useSWR(() =>
     isAdmin ? '/api/groups?limit=1000' : ''
   )
-  const { data: { items: destinations } = {} } = useSWR(
-    '/api/destinations?limit=1000'
-  )
   const { data: { items: allGrants } = {}, mutate } = useSWR(() =>
     isAdmin
       ? '/api/grants?limit=1000'
