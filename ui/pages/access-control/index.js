@@ -600,8 +600,17 @@ export default function AccessControl() {
         columns={[
           ...columns,
           {
+            id: 'infrastructure',
+            cell: info => <span>{info.getValue().split('.')[0]}</span>,
+            header: () => <span>Infrastructure</span>,
+            accessorKey: 'resource',
+          },
+          {
             id: 'resource',
-            cell: info => <span>{info.getValue()}</span>,
+            cell: function Cell(info) {
+              const resource = info.getValue().split('.')[1]
+              return resource !== undefined && <span>{resource}</span>
+            },
             header: () => <span>Resource</span>,
             accessorKey: 'resource',
           },
@@ -624,7 +633,7 @@ export default function AccessControl() {
             cell: function Cell(info) {
               return (
                 isAdmin && (
-                  <div className='group hidden justify-end rounded-md bg-white group-hover:flex'>
+                  <div className='group invisible rounded-md bg-white group-hover:visible'>
                     <button
                       type='button'
                       onClick={() => {
@@ -647,7 +656,6 @@ export default function AccessControl() {
         open={openSelectedDeleteModal}
         setOpen={setOpenSelectedDeleteModal}
         onSubmit={async () => {
-          console.log(selectedDeleteIds)
           const promises = selectedDeleteIds.map(
             async selectedId =>
               await fetch(`/api/grants/${selectedId}`, { method: 'DELETE' })
