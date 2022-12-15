@@ -1256,22 +1256,28 @@
           "passwordRequirements": {
             "properties": {
               "lengthMin": {
+                "description": "Minimum password length. Must be at least 8 characters.",
                 "format": "int",
+                "minimum": 8,
                 "type": "integer"
               },
               "lowercaseMin": {
+                "description": "Minimum number of lowercase ASCII letters.",
                 "format": "int",
                 "type": "integer"
               },
               "numberMin": {
+                "description": "Minimum number of numbers.",
                 "format": "int",
                 "type": "integer"
               },
               "symbolMin": {
+                "description": "Minimum number of symbols.",
                 "format": "int",
                 "type": "integer"
               },
               "uppercaseMin": {
+                "description": "Minimum number of uppercase ASCII letters.",
                 "format": "int",
                 "type": "integer"
               }
@@ -6372,22 +6378,28 @@
                   "passwordRequirements": {
                     "properties": {
                       "lengthMin": {
+                        "description": "Minimum password length. Must be at least 8 characters.",
                         "format": "int",
+                        "minimum": 8,
                         "type": "integer"
                       },
                       "lowercaseMin": {
+                        "description": "Minimum number of lowercase ASCII letters.",
                         "format": "int",
                         "type": "integer"
                       },
                       "numberMin": {
+                        "description": "Minimum number of numbers.",
                         "format": "int",
                         "type": "integer"
                       },
                       "symbolMin": {
+                        "description": "Minimum number of symbols.",
                         "format": "int",
                         "type": "integer"
                       },
                       "uppercaseMin": {
+                        "description": "Minimum number of uppercase ASCII letters.",
                         "format": "int",
                         "type": "integer"
                       }
