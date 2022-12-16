@@ -2,6 +2,8 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
+import Tippy from '@tippyjs/react'
+import Cookies from 'universal-cookie'
 
 import { useUser } from '../../lib/hooks'
 import {
@@ -9,7 +11,7 @@ import {
   providers as providersList,
 } from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
-import { saveToVisitedOrgs } from '../../lib/login'
+import { saveToVisitedOrgs, currentBaseDomain } from '../../lib/login'
 
 import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
