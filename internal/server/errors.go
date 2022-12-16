@@ -89,20 +89,12 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 
-	case errors.Is(err, internal.ErrNotImplemented):
-		resp.Code = http.StatusNotImplemented
-		resp.Message = internal.ErrNotImplemented.Error()
-
 	case errors.Is(err, internal.ErrNotModified):
 		resp.Code = http.StatusNotModified
 		resp.Message = err.Error()
 
 	case errors.Is(err, internal.ErrBadGateway):
 		resp.Code = http.StatusBadGateway
-		resp.Message = err.Error()
-
-	case errors.Is(err, internal.ErrConflict):
-		resp.Code = http.StatusConflict
 		resp.Message = err.Error()
 
 	case errors.As(err, &overLimitError):

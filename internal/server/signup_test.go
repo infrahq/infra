@@ -330,8 +330,7 @@ func TestAPI_SignupSocial(t *testing.T) {
 				respBody := &api.Error{}
 				err := json.Unmarshal(resp.Body.Bytes(), respBody)
 				assert.NilError(t, err)
-
-				assert.Assert(t, strings.Contains(respBody.Message, "already in use"))
+				assert.Equal(t, respBody.Message, "an organization with domain bmacd.exampledomain.com already exists")
 			},
 		},
 	}

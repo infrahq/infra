@@ -45,7 +45,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		// check if an org exists with their desired sub-domain
 		// this has to be done here since the auth code is single-use
 		if err := access.DomainAvailable(c, fmt.Sprintf("%s.%s", r.Subdomain, a.server.options.BaseDomain)); err != nil {
-			return nil, fmt.Errorf("%w: %s", internal.ErrConflict, err)
+			return nil, err
 		}
 		// perform OIDC authentication
 		provider := a.server.Google

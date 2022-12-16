@@ -76,5 +76,5 @@ func DomainAvailable(c *gin.Context, domain string) error {
 		}
 		return nil // not found, so available
 	}
-	return fmt.Errorf("%s is already in use", domain)
+	return data.UniqueConstraintError{Table: "organization", Column: "domain", Value: domain}
 }

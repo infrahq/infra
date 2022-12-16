@@ -89,10 +89,6 @@ func TestSendAPIError(t *testing.T) {
 			result: api.Error{Code: http.StatusNotFound, Message: "record not found"},
 		},
 		{
-			err:    internal.ErrNotImplemented,
-			result: api.Error{Code: http.StatusNotImplemented, Message: "not implemented"},
-		},
-		{
 			err: fmt.Errorf("with context: %w",
 				data.UniqueConstraintError{Table: "user", Column: "name"}),
 			result: api.Error{
