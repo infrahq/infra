@@ -16,15 +16,15 @@ func (a *API) RequestForgotDomains(c *gin.Context, r *api.ForgotDomainRequest) (
 		return nil, err
 	}
 
-	domains, err := data.GetForgottenDomainsForEmail(rCtx.DBTxn, r.Email)
+	orgs, err := data.GetForgottenDomainsForEmail(rCtx.DBTxn, r.Email)
 	switch {
 	case err != nil:
 		return nil, err
-	case len(domains) == 0:
+	case len(orgs) == 0:
 		return nil, nil // This is okay. we don't notify the user if we failed to find the email.
 	}
 
-	err = email.SendForgotDomainsEmail("", r.Email, email.ForgottenDomainData{Organizations: domains})
+	err = email.SendForgotDomainsEmail("", r.Email, email.ForgottenDomainData{Organizations: orgs})
 	if err != nil {
 		return nil, err
 	}

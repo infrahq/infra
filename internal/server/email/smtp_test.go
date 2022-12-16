@@ -278,6 +278,11 @@ func TestSendForgotDomainsEmail(t *testing.T) {
 	err := SendForgotDomainsEmail("", "hannibal@ateam.org", ForgottenDomainData{
 		Organizations: []models.ForgottenDomain{
 			{
+				OrganizationName:   "B Team",
+				OrganizationDomain: "bteam.infrahq.com",
+				LastSeenAt:         time.Now().Add(-time.Hour),
+			},
+			{
 				OrganizationName:   "A Team",
 				OrganizationDomain: "ateam.infrahq.com",
 				LastSeenAt:         time.Now(),
@@ -293,12 +298,14 @@ func TestSendForgotDomainsEmail(t *testing.T) {
 
 You can sign in to your organization here:
   A Team	https://ateam.infrahq.com/login 	(last seen less than a second ago)
+  B Team	https://bteam.infrahq.com/login 	(last seen about an hour ago)
 
 `
 	expectedHTML := `
 <p>Someone has requested links to each of the organizations associated with your Infra account. If this was not you, you can safely ignore this email.</p>
 
 <p>A Team <a href="https://ateam.infrahq.com/login">https://ateam.infrahq.com/login</a> (last seen less than a second ago)</p>
+<p>B Team <a href="https://bteam.infrahq.com/login">https://bteam.infrahq.com/login</a> (last seen about an hour ago)</p>
 
 `
 	assert.Equal(t, result.Text, expectedText)
