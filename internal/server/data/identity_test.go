@@ -48,8 +48,8 @@ func createIdentities(t *testing.T, db WriteTxn, identities ...*models.Identity)
 			_, err = CreateProviderUser(db, InfraProvider(db), user)
 			assert.NilError(t, err, user.Name)
 		} else {
-			for _, p := range user.Providers {
-				_, err = CreateProviderUser(db, &p, user)
+			for i := range user.Providers {
+				_, err = CreateProviderUser(db, &user.Providers[i], user)
 				assert.NilError(t, err, user.Name)
 			}
 		}
