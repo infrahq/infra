@@ -95,7 +95,8 @@ func withMultiOrgEnabled(_ *testing.T, opts *Options) {
 
 func createAdmin(t *testing.T, db data.WriteTxn) *models.Identity {
 	user := &models.Identity{
-		Name: "admin+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),
+		Name:               "admin+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),
+		OrganizationMember: models.OrganizationMember{OrganizationID: db.OrganizationID()},
 	}
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
@@ -128,6 +129,23 @@ func createAccessKey(t *testing.T, db data.WriteTxn, email string) (string, *mod
 	assert.NilError(t, err)
 
 	return body, user
+}
+
+func createAccessKeyForUser(t *testing.T, db data.WriteTxn, user *models.Identity) string {
+	t.Helper()
+	provider := data.InfraProvider(db)
+
+	token := &models.AccessKey{
+		IssuedFor:          user.ID,
+		ProviderID:         provider.ID,
+		ExpiresAt:          time.Now().Add(10 * time.Second),
+		OrganizationMember: models.OrganizationMember{OrganizationID: user.OrganizationID},
+	}
+
+	body, err := data.CreateAccessKey(db, token)
+	assert.NilError(t, err)
+
+	return body
 }
 
 func createIdentities(t *testing.T, db data.WriteTxn, identities ...*models.Identity) {

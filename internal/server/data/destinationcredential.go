@@ -3,6 +3,7 @@ package data
 import (
 	"time"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -28,6 +29,7 @@ func CreateDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) 
 	q.B("(id, organization_id, request_expires_at, user_id, destination_id, update_index)")
 	q.B("VALUES (?,?,?,?,?,nextval('seq_update_index'))", cr.ID, cr.OrganizationID, cr.RequestExpiresAt, cr.UserID, cr.DestinationID)
 
+	logging.Debugf("Posting credential notification for credreq_%s_%s", cr.OrganizationID.String(), cr.DestinationID.String())
 	_, err := tx.Exec(q.String(), q.Args...) // will trigger destination_credential_insert_notify()
 	if err != nil {
 		return handleError(err)
@@ -45,7 +47,8 @@ func AnswerDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) 
 	q.B("WHERE id = ?", cr.ID)
 	q.B("AND organization_id = ?", cr.OrganizationID)
 
-	_, err := tx.Exec(q.String(), q.Args...)
+	logging.Debugf("Posting credential notification for cred_ans_%s_%s", cr.OrganizationID.String(), cr.ID.String())
+	_, err := tx.Exec(q.String(), q.Args...) // will trigger destination_credential_update_notify()
 	if err != nil {
 		return handleError(err)
 	}

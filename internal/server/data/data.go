@@ -219,6 +219,15 @@ func (t *Transaction) Rollback() error {
 	return err
 }
 
+// SoftCommit commits the transaction if it has not already been committed.
+// if it has been committed, it does not error.
+func (t *Transaction) SoftCommit() error {
+	if t.completed.Load() {
+		return nil
+	}
+	return t.Commit()
+}
+
 func (t *Transaction) Commit() error {
 	err := t.Tx.Commit()
 	if err == nil {

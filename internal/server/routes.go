@@ -96,7 +96,7 @@ func (s *Server) GenerateRoutes() Routes {
 
 	post(a, authn, "/api/tokens", a.CreateToken)
 	add(a, authn, http.MethodPost, "/api/credentials", createDestinationCredentialRoute)
-	put(a, authn, "/api/credentials", a.AnswerDestinationCredential)
+	put(a, authn, "/api/credentials", AnswerDestinationCredential)
 	post(a, authn, "/api/logout", a.Logout)
 
 	// SCIM inbound provisioning
@@ -263,20 +263,15 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 
 		completeTx := tx.Commit
+		if route.transactionCommitsEarly {
+			completeTx = tx.SoftCommit
+		}
 		if route.txnOptions != nil && route.txnOptions.ReadOnly {
 			// use rollback to avoid an error when the request handler already completed the txn
 			completeTx = tx.Rollback
 		}
 		if err := completeTx(); err != nil {
-			if route.transactionCommitsEarly {
-				if false {
-
-				} else {
-					return err
-				}
-			} else {
-				return err
-			}
+			return err
 		}
 
 		if !route.omitFromTelemetry {

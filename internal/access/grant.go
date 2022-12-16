@@ -1,15 +1,11 @@
 package access
 
 import (
-	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -30,12 +26,12 @@ type ListGrantsResponse struct {
 	MaxUpdateIndex int64
 }
 
-type updateIndexable interface {
-	UpdateIndex() int64
-}
-
 func (l ListGrantsResponse) UpdateIndex() int64 {
 	return l.MaxUpdateIndex
+}
+
+func (l ListGrantsResponse) ItemCount() int {
+	return len(l.Grants)
 }
 
 func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int64) (ListGrantsResponse, error) {
@@ -80,52 +76,6 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		return listGrantsWithMaxUpdateIndex(rCtx, opts)
 	}
 	return blockingRequest(rCtx, listenOpts, query, lastUpdateIndex)
-}
-
-func blockingRequest[Result updateIndexable](rCtx RequestContext, listenOpts data.ListenForNotifyOptions, query func() (Result, error), lastUpdateIndex int64) (Result, error) {
-
-	listener, err := data.ListenForNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
-	if err != nil {
-		// nolint: gocritic
-		return *new(Result), fmt.Errorf("listen for notify: %w", err)
-	}
-	defer func() {
-		// use a context with a separate deadline so that we still release
-		// when the request timeout is reached
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
-		if err := listener.Release(ctx); err != nil {
-			logging.L.Error().Err(err).Msg("failed to release listener conn")
-		}
-	}()
-
-	result, err := query()
-	if err != nil {
-		return result, err
-	}
-
-	// The query returned results that are new to the client
-	if result.UpdateIndex() > lastUpdateIndex {
-		return result, nil
-	}
-
-	err = listener.WaitForNotification(rCtx.Request.Context())
-	switch {
-	case errors.Is(err, context.DeadlineExceeded):
-		return result, internal.ErrNotModified
-	case err != nil:
-		return result, fmt.Errorf("waiting for notify: %w", err)
-	}
-
-	result, err = query()
-	if err != nil {
-		return result, err
-	}
-
-	// TODO: check if the maxIndex > lastUpdateIndex, and start waiting for
-	// notification again when it's false. When we include group membership
-	// changes in the query this will be an optimization.
-	return result, nil
 }
 
 func listGrantsWithMaxUpdateIndex(rCtx RequestContext, opts data.ListGrantsOptions) (ListGrantsResponse, error) {
