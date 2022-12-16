@@ -19,6 +19,7 @@ import GrantForm from '../../components/grant-form'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
+import { googleSocialLoginID } from '../../lib/providers'
 
 const CREATE_ACCESS_KEY_SCOPE = 'create-key'
 const CONNECTOR_USER = 'connector'
@@ -675,7 +676,7 @@ function Providers() {
       <div className='mt-3 flex min-h-0 flex-1 flex-col'>
         <Table
           href={row => `/settings/providers/${row.original.id}`}
-          data={providers?.filter(p => p.id !== '')} // remove google login provider
+          data={providers?.filter(p => p.id !== googleSocialLoginID)} // remove google login provider
           empty='No providers'
           columns={[
             {
