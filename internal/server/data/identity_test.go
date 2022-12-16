@@ -44,8 +44,15 @@ func createIdentities(t *testing.T, db WriteTxn, identities ...*models.Identity)
 	for _, user := range identities {
 		err := CreateIdentity(db, user)
 		assert.NilError(t, err, user.Name)
-		_, err = CreateProviderUser(db, InfraProvider(db), user)
-		assert.NilError(t, err, user.Name)
+		if len(user.Providers) == 0 {
+			_, err = CreateProviderUser(db, InfraProvider(db), user)
+			assert.NilError(t, err, user.Name)
+		} else {
+			for _, p := range user.Providers {
+				_, err = CreateProviderUser(db, &p, user)
+				assert.NilError(t, err, user.Name)
+			}
+		}
 
 		for _, group := range user.Groups {
 			err = AddUsersToGroup(db, group.ID, []uid.ID{user.ID})
@@ -222,9 +229,10 @@ func TestGetIdentity(t *testing.T) {
 			bond   = models.Identity{Name: "jbond@infrahq.com", SSHLoginName: "jbond"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com", Groups: []models.Group{group}}
 			bauer  = models.Identity{Name: "jbauer@infrahq.com", Providers: []models.Provider{*InfraProvider(db)}}
+			salt   = models.Identity{Name: "salt@infrahq.com", Providers: []models.Provider{googleProvider()}}
 		)
 
-		createIdentities(t, db, &bond, &bourne, &bauer)
+		createIdentities(t, db, &bond, &bourne, &bauer, &salt)
 
 		bondKey := &models.UserPublicKey{
 			UserID:      bond.ID,
@@ -259,6 +267,11 @@ func TestGetIdentity(t *testing.T) {
 			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bauer.Name, LoadProviders: true})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, *identity, bauer, cmpTimeWithDBPrecision)
+		})
+		t.Run("load providers only exists in social", func(t *testing.T) {
+			identity, err := GetIdentity(db, GetIdentityOptions{ByName: salt.Name, LoadProviders: true})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, *identity, salt, cmpTimeWithDBPrecision)
 		})
 		t.Run("load public keys", func(t *testing.T) {
 			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bond.Name, LoadPublicKeys: true})

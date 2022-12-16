@@ -337,11 +337,13 @@ func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) 
 				}
 			}
 
-			providers, err := ListProviders(tx, ListProvidersOptions{ByIDs: providerIDs})
-			if err != nil {
-				return nil, fmt.Errorf("list providers for identity: %w", err)
+			if len(providerIDs) > 0 {
+				providers, err := ListProviders(tx, ListProvidersOptions{ByIDs: providerIDs})
+				if err != nil {
+					return nil, fmt.Errorf("list providers for identity: %w", err)
+				}
+				identity.Providers = append(identity.Providers, providers...)
 			}
-			identity.Providers = append(identity.Providers, providers...)
 		}
 	}
 
