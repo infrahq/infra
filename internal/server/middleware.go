@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -203,6 +204,14 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 			if err = data.UpdateIdentity(db, identity); err != nil {
 				return u, fmt.Errorf("identity update fail: %w", err)
 			}
+		}
+
+		// sync the identity info here to keep the UI session in sync with IDP session validity
+		if err := srv.syncIdentityInfo(context.Background(), db, identity, accessKey.ProviderID); err != nil {
+			deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
+			// TODO: log error here if not expected
+			logging.L.Debug().Err(err)
+			return u, AuthenticationError{Message: "session in identity provider expired or revoked"}
 		}
 
 		u.User = identity

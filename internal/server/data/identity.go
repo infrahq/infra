@@ -34,39 +34,41 @@ func (i *identitiesTable) ScanFields() []any {
 	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, &i.SSHLoginName, &i.UpdatedAt, &i.VerificationToken, &i.Verified}
 }
 
-func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
-	pu, err := GetProviderUser(tx, provider.ID, user.ID)
+// AssignIdentityToGroups updates the identity's group membership relations based on the provider user's groups
+// and returns the identity's current groups after the update has persisted them
+func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []string) ([]models.Group, error) {
+	identity, err := GetIdentity(tx, GetIdentityOptions{ByID: user.IdentityID, LoadGroups: true})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	oldGroups := pu.Groups
+	oldGroups := user.Groups
 	groupsToBeRemoved := slice.Subtract(oldGroups, newGroups)
 	groupsToBeAdded := slice.Subtract(newGroups, oldGroups)
 
-	pu.Groups = newGroups
-	pu.LastUpdate = time.Now().UTC()
-	if err := UpdateProviderUser(tx, pu); err != nil {
-		return fmt.Errorf("save: %w", err)
+	user.Groups = newGroups
+	user.LastUpdate = time.Now().UTC()
+	if err := UpdateProviderUser(tx, user); err != nil {
+		return nil, fmt.Errorf("save: %w", err)
 	}
 
 	// remove user from groups
 	if len(groupsToBeRemoved) > 0 {
 		query := querybuilder.New(`DELETE FROM identities_groups`)
-		query.B(`WHERE identity_id = ?`, user.ID)
+		query.B(`WHERE identity_id = ?`, user.IdentityID)
 		query.B(`AND group_id in (`)
 		query.B(`SELECT id FROM groups WHERE organization_id = ?`, tx.OrganizationID())
 		query.B(`AND name IN`)
 		queryInClause(query, groupsToBeRemoved)
 		query.B(`)`)
 		if _, err := tx.Exec(query.String(), query.Args...); err != nil {
-			return err
+			return nil, err
 		}
 		for _, name := range groupsToBeRemoved {
-			for i, g := range user.Groups {
+			for i, g := range identity.Groups {
 				if g.Name == name {
 					// remove from list
-					user.Groups = append(user.Groups[:i], user.Groups[i+1:]...)
+					identity.Groups = append(identity.Groups[:i], identity.Groups[i+1:]...)
 				}
 			}
 		}
@@ -84,13 +86,13 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models
 	queryInClause(query, groupsToBeAdded)
 	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	addIDs, err := scanRows(rows, func(item *idNamePair) []any {
 		return []any{&item.ID, &item.Name}
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, name := range groupsToBeAdded {
@@ -107,38 +109,44 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models
 		if !found {
 			group := &models.Group{
 				Name:              name,
-				CreatedByProvider: provider.ID,
+				CreatedByProvider: user.ProviderID,
 			}
 
 			if err = CreateGroup(tx, group); err != nil {
-				return fmt.Errorf("create group: %w", err)
+				return nil, fmt.Errorf("create group: %w", err)
 			}
 			groupID = group.ID
 		}
 
-		rows, err := tx.Query("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.ID, groupID)
+		rows, err := tx.Query("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.IdentityID, groupID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		ids, err := scanRows(rows, func(item *uid.ID) []any {
 			return []any{item}
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if len(ids) == 0 {
 			// add user to group
-			_, err = tx.Exec("INSERT INTO identities_groups (identity_id, group_id) VALUES (?, ?)", user.ID, groupID)
+			_, err = tx.Exec("INSERT INTO identities_groups (identity_id, group_id) VALUES (?, ?)", user.IdentityID, groupID)
 			if err != nil {
-				return fmt.Errorf("insert: %w", handleError(err))
+				return nil, fmt.Errorf("insert: %w", handleError(err))
 			}
+			identity.Groups = append(identity.Groups,
+				models.Group{
+					Model: models.Model{ID: groupID},
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: identity.OrganizationID,
+					},
+					Name: name,
+				})
 		}
-
-		user.Groups = append(user.Groups, models.Group{Model: models.Model{ID: groupID}, Name: name})
 	}
 
-	return nil
+	return identity.Groups, nil
 }
 
 func CreateIdentity(tx WriteTxn, identity *models.Identity) error {

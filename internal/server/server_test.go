@@ -22,8 +22,12 @@ import (
 	"gotest.tools/v3/golden"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/internal/testing/database"
 )
 
@@ -416,4 +420,134 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	// retry the authenticated endpoint
 	checkAuthenticated()
+}
+
+func TestSyncIdentityInfo(t *testing.T) {
+	srv := setupServer(t)
+	db := txnForTestCase(t, srv.db, srv.db.DefaultOrg.ID)
+	infraProvider := data.InfraProvider(srv.DB())
+
+	identity := &models.Identity{Name: "user-to-sync"}
+	assert.NilError(t, data.CreateIdentity(srv.DB(), identity))
+
+	provider := &models.Provider{
+		Name:         "mockta",
+		URL:          "example.com",
+		ClientID:     "aaa",
+		ClientSecret: "bbb",
+		Kind:         models.ProviderKindOIDC,
+	}
+
+	assert.NilError(t, data.CreateProvider(db, provider))
+
+	google := &models.Provider{
+		Model: models.Model{
+			ID: models.InternalGoogleProviderID,
+		},
+		Name:         "moogle",
+		URL:          "moogle.example.com",
+		ClientID:     "aaa",
+		ClientSecret: "bbb",
+		Kind:         models.ProviderKindGoogle,
+	}
+	srv.Google = google
+
+	t.Run("a revoked OIDC session revokes access keys created by provider login", func(t *testing.T) {
+		user, err := data.CreateProviderUser(db, provider, identity)
+		assert.NilError(t, err)
+		// need to directly update set lastUpdate to the past, provider user functions explicitly set lastUpdate to now
+		stmt := `
+			UPDATE provider_users
+			SET last_update = ?
+			WHERE provider_id = ? AND identity_id = ?
+		`
+		_, err = db.Exec(stmt, time.Now().UTC().Add(-121*time.Minute), user.ProviderID, user.IdentityID)
+		assert.NilError(t, err)
+		ctx := providers.WithOIDCClient(context.Background(), &fakeOIDCImplementation{UserInfoRevoked: true})
+
+		toBeRevoked := &models.AccessKey{
+			IssuedFor:  identity.ID,
+			ProviderID: provider.ID,
+		}
+		_, err = data.CreateAccessKey(db, toBeRevoked)
+		assert.NilError(t, err)
+		shouldStayValid := &models.AccessKey{
+			IssuedFor:  identity.ID,
+			ProviderID: infraProvider.ID,
+		}
+		_, err = data.CreateAccessKey(db, shouldStayValid)
+		assert.NilError(t, err)
+
+		err = srv.syncIdentityInfo(ctx, db, identity, provider.ID)
+		assert.ErrorContains(t, err, "user revoked")
+
+		_, err = data.GetAccessKeyByKeyID(db, toBeRevoked.KeyID)
+		assert.ErrorIs(t, err, internal.ErrNotFound)
+
+		_, err = data.GetAccessKeyByKeyID(db, shouldStayValid.KeyID)
+		assert.NilError(t, err)
+	})
+
+	t.Run("a revoked OIDC session revokes access keys created by social login", func(t *testing.T) {
+		user, err := data.CreateProviderUser(db, google, identity)
+		assert.NilError(t, err)
+		// need to directly update set lastUpdate to the past, provider user functions explicitly set lastUpdate to now
+		stmt := `
+			UPDATE provider_users
+			SET last_update = ?
+			WHERE provider_id = ? AND identity_id = ?
+		`
+		_, err = db.Exec(stmt, time.Now().UTC().Add(-121*time.Minute), user.ProviderID, user.IdentityID)
+		assert.NilError(t, err)
+		ctx := providers.WithOIDCClient(context.Background(), &fakeOIDCImplementation{UserInfoRevoked: true})
+
+		toBeRevoked := &models.AccessKey{
+			IssuedFor:  identity.ID,
+			ProviderID: google.ID,
+		}
+		_, err = data.CreateAccessKey(db, toBeRevoked)
+		assert.NilError(t, err)
+		shouldStayValid := &models.AccessKey{
+			IssuedFor:  identity.ID,
+			ProviderID: infraProvider.ID,
+		}
+		_, err = data.CreateAccessKey(db, shouldStayValid)
+		assert.NilError(t, err)
+
+		err = srv.syncIdentityInfo(ctx, db, identity, google.ID)
+		assert.ErrorContains(t, err, "user revoked")
+
+		_, err = data.GetAccessKeyByKeyID(db, toBeRevoked.KeyID)
+		assert.ErrorIs(t, err, internal.ErrNotFound)
+
+		_, err = data.GetAccessKeyByKeyID(db, shouldStayValid.KeyID)
+		assert.NilError(t, err)
+	})
+
+	t.Run("a valid OIDC session does not result in an error", func(t *testing.T) {
+		user, err := data.CreateProviderUser(db, provider, identity)
+		assert.NilError(t, err)
+		// need to directly update set lastUpdate to the past, provider user functions explicitly set lastUpdate to now
+		stmt := `
+			UPDATE provider_users
+			SET last_update = ?
+			WHERE provider_id = ? AND identity_id = ?
+		`
+		_, err = db.Exec(stmt, time.Now().UTC().Add(-121*time.Minute), user.ProviderID, user.IdentityID)
+		assert.NilError(t, err)
+		ctx := providers.WithOIDCClient(context.Background(), &fakeOIDCImplementation{})
+
+		key := &models.AccessKey{
+			IssuedFor:  identity.ID,
+			ProviderID: provider.ID,
+		}
+		_, err = data.CreateAccessKey(db, key)
+		assert.NilError(t, err)
+
+		err = srv.syncIdentityInfo(ctx, db, identity, provider.ID)
+		assert.NilError(t, err)
+
+		_, err = data.GetAccessKeyByKeyID(db, key.KeyID)
+		assert.NilError(t, err)
+	})
 }

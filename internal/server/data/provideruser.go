@@ -259,6 +259,7 @@ func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.Provide
 	query.B(columnsForSelect(pu))
 	query.B("FROM")
 	query.B(pu.Table())
+	query.B("LEFT OUTER JOIN providers ON provider_users.provider_id = providers.id AND providers.organization_id = ?", tx.OrganizationID())
 	query.B("WHERE provider_id = ? and identity_id = ?", providerID, identityID)
 	err := tx.QueryRow(query.String(), query.Args...).Scan(pu.ScanFields()...)
 	if err != nil {
@@ -296,40 +297,31 @@ func ProvisionProviderUser(tx WriteTxn, user *models.ProviderUser) error {
 	return insert(tx, (*providerUserTable)(user))
 }
 
-func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
-	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
+func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.ProviderUser, oidcClient providers.OIDCClient) ([]models.Group, error) {
+	accessToken, expiry, err := oidcClient.RefreshAccessToken(ctx, user)
 	if err != nil {
-		return err
-	}
-
-	accessToken, expiry, err := oidcClient.RefreshAccessToken(ctx, providerUser)
-	if err != nil {
-		return fmt.Errorf("refresh provider access: %w", err)
+		return nil, fmt.Errorf("refresh provider access: %w", err)
 	}
 
 	// update the stored access token if it was refreshed
-	if accessToken != string(providerUser.AccessToken) {
-		logging.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
+	if accessToken != string(user.AccessToken) {
+		logging.Debugf("access token for user at provider %s was refreshed", user.ProviderID)
 
-		providerUser.AccessToken = models.EncryptedAtRest(accessToken)
-		providerUser.ExpiresAt = *expiry
+		user.AccessToken = models.EncryptedAtRest(accessToken)
+		user.ExpiresAt = *expiry
 
-		err = UpdateProviderUser(tx, providerUser)
+		err = UpdateProviderUser(tx, user)
 		if err != nil {
-			return fmt.Errorf("update provider user on sync: %w", err)
+			return nil, fmt.Errorf("update provider user on sync: %w", err)
 		}
 	}
 
-	info, err := oidcClient.GetUserInfo(ctx, providerUser)
+	info, err := oidcClient.GetUserInfo(ctx, user)
 	if err != nil {
-		return fmt.Errorf("oidc user sync failed: %w", err)
+		return nil, fmt.Errorf("oidc user sync failed: %w", err)
 	}
 
-	if err := AssignIdentityToGroups(tx, user, provider, info.Groups); err != nil {
-		return fmt.Errorf("assign identity to groups: %w", err)
-	}
-
-	return nil
+	return AssignIdentityToGroups(tx, user, info.Groups)
 }
 
 type SCIMParameters struct {

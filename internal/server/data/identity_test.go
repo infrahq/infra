@@ -901,14 +901,15 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				err = UpdateProviderUser(db, pu)
 				assert.NilError(t, err)
 
-				err = AssignIdentityToGroups(db, identity, provider, test.IncomingGroups)
+				result, err := AssignIdentityToGroups(db, pu, test.IncomingGroups)
 				assert.NilError(t, err)
 
-				// check the result
-				actual, err := ListGroups(db, ListGroupsOptions{ByGroupMember: identity.ID})
-				assert.NilError(t, err)
+				assert.DeepEqual(t, result, test.ExpectedGroups, cmpModelsGroupShallow)
 
-				assert.DeepEqual(t, actual, test.ExpectedGroups, cmpModelsGroupShallow)
+				// check the persisted result
+				persisted, err := ListGroups(db, ListGroupsOptions{ByGroupMember: identity.ID})
+				assert.NilError(t, err)
+				assert.DeepEqual(t, persisted, test.ExpectedGroups, cmpModelsGroupShallow)
 			})
 		}
 	})

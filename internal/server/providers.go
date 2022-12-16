@@ -181,7 +181,7 @@ func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyRespons
 // setProviderInfoFromServer checks information provided by an OIDC server
 func (a *API) setProviderInfoFromServer(c *gin.Context, provider *models.Provider) error {
 	// create a provider client to validate the server and get its info
-	oidc, err := a.providerClient(c, provider, "")
+	oidc, err := a.server.providerClient(c, provider, "")
 	if err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}

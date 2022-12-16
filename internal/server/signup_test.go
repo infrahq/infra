@@ -114,6 +114,9 @@ func TestAPI_SignupSocial(t *testing.T) {
 	srv.options.EnableSignup = true
 	srv.options.BaseDomain = "exampledomain.com"
 	srv.Google = &models.Provider{
+		Model: models.Model{
+			ID: models.InternalGoogleProviderID,
+		},
 		Name:         "Moogle",
 		URL:          "example.com",
 		ClientID:     "aaa",
