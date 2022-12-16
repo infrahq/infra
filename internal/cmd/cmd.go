@@ -224,7 +224,6 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 
 		// Hidden commands
 		newTokensCmd(cli),
-		newCredentialsCmd(cli),
 		newServerCmd(),
 		newConnectorCmd(),
 		newAgentCmd(),
