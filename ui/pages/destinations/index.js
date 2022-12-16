@@ -20,6 +20,7 @@ export default function Destinations() {
 
   const { data: { items: destinations, totalCount, totalPages } = {}, mutate } =
     useSWR(`/api/destinations?page=${page}&limit=${limit}`)
+
   const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
   const [selectedDeleteId, setSelectedDeleteId] = useState(null)
 
@@ -49,10 +50,6 @@ export default function Destinations() {
       </header>
 
       <Table
-        href={row =>
-          row.original.kind === 'kubernetes' &&
-          `/destinations/${row.original.id}`
-        }
         count={totalCount}
         pageCount={totalPages}
         pageIndex={parseInt(page) - 1}
