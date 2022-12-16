@@ -101,6 +101,10 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusBadGateway
 		resp.Message = err.Error()
 
+	case errors.Is(err, internal.ErrConflict):
+		resp.Code = http.StatusConflict
+		resp.Message = err.Error()
+
 	case errors.As(err, &overLimitError):
 		c.Writer.Header().Set("Retry-After", strconv.Itoa(int(overLimitError.RetryAfter.Seconds())))
 		resp.Code = http.StatusTooManyRequests

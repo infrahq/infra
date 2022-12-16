@@ -759,7 +759,9 @@ func TestAPI_PatchProvider(t *testing.T) {
 
 // mockOIDC is a fake oidc identity provider
 type fakeOIDCImplementation struct {
-	UserInfoRevoked bool // when true returns an error fromt the user info endpoint
+	UserInfoRevoked bool   // when true returns an error fromt the user info endpoint
+	FailExchange    bool   // when true auth code exchange fails
+	UserEmail       string // the email returned from the fake identity provider
 }
 
 func (m *fakeOIDCImplementation) Validate(_ context.Context) error {
@@ -771,11 +773,14 @@ func (m *fakeOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.A
 }
 
 func (m *fakeOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (*providers.IdentityProviderAuth, error) {
+	if m.FailExchange {
+		return nil, fmt.Errorf("invalid auth code")
+	}
 	return &providers.IdentityProviderAuth{
 		AccessToken:       "acc",
 		RefreshToken:      "ref",
 		AccessTokenExpiry: time.Now().Add(1 * time.Minute),
-		Email:             "hello@example.com",
+		Email:             m.UserEmail,
 	}, nil
 }
 

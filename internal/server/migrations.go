@@ -41,6 +41,25 @@ func (a *API) addRequestRewrites() {
 			InactivityTimeout: o.ExtensionDeadline,
 		}
 	})
+	type signupOrgV0_19_0 struct {
+		Name      string `json:"name"`
+		Subdomain string `json:"subDomain"`
+	}
+	type signupRequestV0_19_0 struct {
+		Name     string           `json:"name"`
+		Password string           `json:"password"`
+		Org      signupOrgV0_19_0 `json:"org"`
+	}
+	addRequestRewrite(a, http.MethodPost, "/api/signup", "0.19.0", func(oldRequest signupRequestV0_19_0) api.SignupRequest {
+		return api.SignupRequest{
+			User: &api.SignupUser{
+				UserName: oldRequest.Name,
+				Password: oldRequest.Password,
+			},
+			OrgName:   oldRequest.Org.Name,
+			Subdomain: oldRequest.Org.Subdomain,
+		}
+	})
 }
 
 func (a *API) addResponseRewrites() {

@@ -177,9 +177,11 @@ export default function Login() {
           {providers?.length > 0 && (
             <>
               <Providers
+                providers={providers || []}
                 baseDomain={baseDomain}
                 loginDomain={loginDomain}
-                providers={providers || []}
+                authnFunc={oidcLogin}
+                buttonPrompt={'Log in with'}
               />
               <div className='relative mt-6 mb-2 w-full'>
                 <div

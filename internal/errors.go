@@ -18,4 +18,5 @@ var (
 	ErrBadRequest          = fmt.Errorf("bad request")
 	ErrNotImplemented      = fmt.Errorf("not implemented")
 	ErrExpired             = fmt.Errorf("expired")
+	ErrConflict            = fmt.Errorf("conflict")
 )

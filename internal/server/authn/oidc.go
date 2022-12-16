@@ -15,7 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/server/providers"
 )
 
-type oidcAuthn struct {
+type OIDCAuthn struct {
 	Provider           *models.Provider
 	RedirectURL        string
 	Code               string
@@ -27,7 +27,7 @@ func NewOIDCAuthentication(provider *models.Provider, redirectURL string, code s
 	if provider == nil {
 		return nil, fmt.Errorf("nil provider in oidc authentication")
 	}
-	return &oidcAuthn{
+	return &OIDCAuthn{
 		Provider:           provider,
 		RedirectURL:        redirectURL,
 		Code:               code,
@@ -36,7 +36,7 @@ func NewOIDCAuthentication(provider *models.Provider, redirectURL string, code s
 	}, nil
 }
 
-func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
+func (a *OIDCAuthn) Authenticate(ctx context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
 	idpAuth, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(ctx, a.Code)
 	if err != nil {
@@ -106,6 +106,6 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 	}, nil
 }
 
-func (a *oidcAuthn) Name() string {
+func (a *OIDCAuthn) Name() string {
 	return "oidc"
 }

@@ -362,12 +362,12 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	// run signup for "admin@email.com"
 	signupReq := api.SignupRequest{
-		Name:     email,
-		Password: passwd,
-		Org: api.SignupOrg{
-			Name:      "infrahq",
-			Subdomain: "myorg1243",
+		User: &api.SignupUser{
+			UserName: email,
+			Password: passwd,
 		},
+		OrgName:   "infrahq",
+		Subdomain: "myorg1243",
 	}
 	err := json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)

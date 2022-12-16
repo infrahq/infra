@@ -1,10 +1,13 @@
 package access
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -61,4 +64,17 @@ func DeleteOrganization(c *gin.Context, id uid.ID) error {
 
 func SanitizedDomain(subDomain, serverBaseDomain string) string {
 	return strings.ToLower(subDomain) + "." + serverBaseDomain
+}
+
+// DomainAvailable is needed to check if an org domain is available before completing social sign-up
+func DomainAvailable(c *gin.Context, domain string) error {
+	rCtx := GetRequestContext(c)
+	_, err := data.GetOrganization(rCtx.DBTxn, data.GetOrganizationOptions{ByDomain: domain})
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return fmt.Errorf("check domain available: %w", err)
+		}
+		return nil // not found, so available
+	}
+	return fmt.Errorf("%s is already in use", domain)
 }

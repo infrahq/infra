@@ -268,7 +268,7 @@ func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.Provide
 }
 
 // ProvisionProviderUser directly creates a provider user and an identity (if the identity does not exist already)
-// This is used exclusively for SCIM provisioning
+// This is used exclusively for SCIM provisioning and initial sign-up
 func ProvisionProviderUser(tx WriteTxn, user *models.ProviderUser) error {
 	// create an identity if this is the first time we are seeing the user with this email
 	opts := GetIdentityOptions{

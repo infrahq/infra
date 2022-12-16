@@ -15,7 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/validate"
 )
 
-const oidcProviderRequestTimeout = time.Second * 10
+const oidcProviderRequestTimeout = time.Second * 30
 
 // UserInfoClaims captures the claims fields from a user-info response that we care about
 type UserInfoClaims struct {

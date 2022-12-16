@@ -13,9 +13,9 @@ type SignupResponse struct {
 	Organization *Organization `json:"organization"`
 }
 
-type SignupOrg struct {
-	Name      string `json:"name"`
-	Subdomain string `json:"subDomain"`
+type SignupUser struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
 }
 
 type reservedSubdomainData struct {
@@ -37,9 +37,48 @@ func init() {
 	reservedSubdomains = append(reservedSubdomains, reserved.RequiresApproval...)
 }
 
-func (r SignupOrg) ValidationRules() []validate.ValidationRule {
+func (r SignupUser) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.Required("name", r.Name),
+		validate.Required("username", r.UserName),
+		validate.Email("username", r.UserName),
+		validate.Required("password", r.Password),
+		// check the admin user's password requirements against our basic password requirements
+		validate.StringRule{
+			Name:      "password",
+			Value:     r.Password,
+			MinLength: 8,
+			MaxLength: 253,
+		},
+	}
+}
+
+type SocialSignup struct {
+	Code        string `json:"code"`
+	RedirectURL string `json:"redirectURL"`
+}
+
+func (r SocialSignup) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("code", r.Code),
+		validate.Required("redirectURL", r.RedirectURL),
+	}
+}
+
+type SignupRequest struct {
+	Social    *SocialSignup `json:"social"`
+	User      *SignupUser   `json:"user"`
+	OrgName   string        `json:"orgName"`
+	Subdomain string        `json:"subDomain"`
+}
+
+func (r SignupRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.RequireOneOf(
+			validate.Field{Name: "social", Value: r.Social},
+			validate.Field{Name: "user", Value: r.User},
+		),
+
+		validate.Required("orgName", r.OrgName),
 		validate.Required("subDomain", r.Subdomain),
 		validate.StringRule{
 			Name:      "subDomain",
@@ -59,26 +98,5 @@ func (r SignupOrg) ValidationRules() []validate.ValidationRule {
 			},
 		},
 		validate.ReservedStrings("subDomain", r.Subdomain, reservedSubdomains),
-	}
-}
-
-type SignupRequest struct {
-	Name     string    `json:"name"`
-	Password string    `json:"password"`
-	Org      SignupOrg `json:"org"`
-}
-
-func (r SignupRequest) ValidationRules() []validate.ValidationRule {
-	return []validate.ValidationRule{
-		validate.Required("name", r.Name),
-		validate.Email("name", r.Name),
-		validate.Required("password", r.Password),
-		// check the admin user's password requirements against our basic password requirements
-		validate.StringRule{
-			Name:      "password",
-			Value:     r.Password,
-			MinLength: 8,
-			MaxLength: 253,
-		},
 	}
 }
