@@ -159,8 +159,15 @@ func CountOrganizations(tx ReadTxn) (int64, error) {
 	return countRows(tx, organizationsTable{})
 }
 
-func GetForgottenDomainsForEmail(tx ReadTxn, email string) ([]models.ForgottenDomain, error) {
-	var results []models.ForgottenDomain
+type ForgottenDomain struct {
+	OrganizationName   string
+	OrganizationDomain string
+	// LastSeenAt is the last time the user logged into this organization.
+	LastSeenAt time.Time
+}
+
+func GetForgottenDomainsForEmail(tx ReadTxn, email string) ([]ForgottenDomain, error) {
+	var results []ForgottenDomain
 
 	rows, err := tx.Query(`
 		SELECT organizations.name, organizations.domain, identities.last_seen_at
@@ -172,7 +179,7 @@ func GetForgottenDomainsForEmail(tx ReadTxn, email string) ([]models.ForgottenDo
 	if err != nil {
 		return results, err
 	}
-	return scanRows(rows, func(r *models.ForgottenDomain) []any {
+	return scanRows(rows, func(r *ForgottenDomain) []any {
 		return []any{&r.OrganizationName, &r.OrganizationDomain, &r.LastSeenAt}
 	})
 }

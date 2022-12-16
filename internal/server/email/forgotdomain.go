@@ -3,11 +3,11 @@ package email
 import (
 	"sort"
 
-	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/data"
 )
 
 type ForgottenDomainData struct {
-	Organizations []models.ForgottenDomain
+	Organizations []data.ForgottenDomain
 }
 
 func SendForgotDomainsEmail(name, address string, data ForgottenDomainData) error {

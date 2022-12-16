@@ -41,7 +41,7 @@ func TestGetForgottenDomainsForEmail(t *testing.T) {
 			results, err := GetForgottenDomainsForEmail(db, userA.Name)
 			assert.NilError(t, err)
 
-			expected := []models.ForgottenDomain{{
+			expected := []ForgottenDomain{{
 				OrganizationName:   orgA.Name,
 				OrganizationDomain: orgA.Domain,
 				LastSeenAt:         userA.LastSeenAt,
@@ -60,7 +60,7 @@ func TestGetForgottenDomainsForEmail(t *testing.T) {
 			results, err := GetForgottenDomainsForEmail(db, userA.Name)
 			assert.NilError(t, err)
 
-			expected := []models.ForgottenDomain{
+			expected := []ForgottenDomain{
 				{
 					OrganizationName:   orgA.Name,
 					OrganizationDomain: orgA.Domain,
