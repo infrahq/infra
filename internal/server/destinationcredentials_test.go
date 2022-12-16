@@ -11,7 +11,6 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -19,7 +18,6 @@ import (
 
 func TestDestinationCredentials(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
-	logging.SetLevel("debug")
 	db := srv.db
 	routes := srv.GenerateRoutes()
 	destName := "foo"
