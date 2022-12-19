@@ -96,10 +96,3 @@ func DeleteAccessKey(rCtx RequestContext, id uid.ID, name string) error {
 
 	return data.DeleteAccessKeys(rCtx.DBTxn, data.DeleteAccessKeysOptions{ByID: key.ID})
 }
-
-func DeleteRequestAccessKey(c RequestContext) error {
-	// does not need authorization check, this action is limited to the calling key
-
-	id := c.Authenticated.AccessKey.ID
-	return data.DeleteAccessKeys(c.DBTxn, data.DeleteAccessKeysOptions{ByID: id})
-}

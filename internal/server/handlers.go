@@ -41,8 +41,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 		// this will fail if the user was removed from the IDP, which means they no longer are a valid user
 		return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
 	}
-
-	token, err := access.CreateToken(rCtx)
+	token, err := data.CreateIdentityToken(rCtx.DBTxn, rCtx.Authenticated.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +117,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			provider = a.server.Google
 		} else {
 			var err error
-			provider, err = access.GetProvider(c, r.OIDC.ProviderID)
+			provider, err = data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.OIDC.ProviderID})
 			if err != nil {
 				return nil, fmt.Errorf("invalid identity provider: %w", err)
 			}
@@ -193,7 +192,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 }
 
 func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
-	err := access.DeleteRequestAccessKey(getRequestContext(c))
+	// does not need authorization check, this action is limited to the calling key
+	rCtx := getRequestContext(c)
+	id := rCtx.Authenticated.AccessKey.ID
+	err := data.DeleteAccessKeys(rCtx.DBTxn, data.DeleteAccessKeysOptions{ByID: id})
 	if err != nil {
 		return nil, err
 	}

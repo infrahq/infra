@@ -20,16 +20,6 @@ func CreateProvider(c *gin.Context, provider *models.Provider) error {
 	return data.CreateProvider(db, provider)
 }
 
-func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
-	rCtx := GetRequestContext(c)
-	return data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: id})
-}
-
-func ListProviders(c *gin.Context, opts data.ListProvidersOptions) ([]models.Provider, error) {
-	rCtx := GetRequestContext(c)
-	return data.ListProviders(rCtx.DBTxn, opts)
-}
-
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {

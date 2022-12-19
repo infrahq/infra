@@ -19,13 +19,14 @@ import (
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
+	rCtx := getRequestContext(c)
 	p := PaginationFromRequest(r.PaginationRequest)
 	opts := data.ListProvidersOptions{
 		ByName:               r.Name,
 		ExcludeInfraProvider: true,
 		Pagination:           &p,
 	}
-	providers, err := access.ListProviders(c, opts)
+	providers, err := data.ListProviders(rCtx.DBTxn, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +45,8 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.L
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error) {
-	provider, err := access.GetProvider(c, r.ID)
+	rCtx := getRequestContext(c)
+	provider, err := data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +68,7 @@ func cleanupURL(url string) string {
 }
 
 func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api.Provider, error) {
+	rCtx := getRequestContext(c)
 	provider := &models.Provider{
 		Name:         r.Name,
 		URL:          cleanupURL(r.URL),
@@ -91,7 +94,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		provider.Name = provider.Kind.String()
 
 		// If provider name is taken, generate a random tag
-		providers, err := access.ListProviders(c, data.ListProvidersOptions{
+		providers, err := data.ListProviders(rCtx.DBTxn, data.ListProvidersOptions{
 			ByName: provider.Kind.String(),
 		})
 		if err != nil {
@@ -119,7 +122,8 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 }
 
 func (a *API) PatchProvider(c *gin.Context, r *api.PatchProviderRequest) (*api.Provider, error) {
-	provider, err := access.GetProvider(c, r.ID)
+	rCtx := getRequestContext(c)
+	provider, err := data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
 	}

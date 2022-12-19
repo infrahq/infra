@@ -27,16 +27,6 @@ func UpdateDestination(rCtx RequestContext, destination *models.Destination) err
 	return data.UpdateDestination(rCtx.DBTxn, destination)
 }
 
-func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
-	rCtx := GetRequestContext(c)
-	return data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByID: id})
-}
-
-func ListDestinations(c *gin.Context, opts data.ListDestinationsOptions) ([]models.Destination, error) {
-	rCtx := GetRequestContext(c)
-	return data.ListDestinations(rCtx.DBTxn, opts)
-}
-
 func DeleteDestination(c *gin.Context, id uid.ID) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
