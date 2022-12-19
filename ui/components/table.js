@@ -68,18 +68,18 @@ export default function Table({
             table.getRowModel().rows.map(row => (
               <tr
                 className={`group truncate ${
-                  href ? 'cursor-pointer hover:bg-gray-50/50' : ''
+                  href(row) ? 'cursor-pointer hover:bg-gray-50/50' : ''
                 }`}
                 key={row.id}
               >
                 {row.getVisibleCells().map(cell => (
                   <td
                     className={`border-gray-100 text-sm  ${
-                      href ? '' : 'px-5 py-2'
+                      href(row) ? '' : 'px-5 py-2'
                     }`}
                     key={cell.id}
                   >
-                    {href ? (
+                    {href(row) ? (
                       <Link
                         href={href(row)}
                         tabIndex='-1'
