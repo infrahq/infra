@@ -18,7 +18,7 @@ type ListDestinationCredentialResponse struct {
 	MaxUpdateIndex int64                   `json:"maxUpdateIndex"`
 }
 
-// DestinationCredential is the database DestinationCredential object, not a request/response struct
+// DestinationCredential represents the request for credentials to a particular destination
 type DestinationCredential struct {
 	////////////////////
 	// request fields //

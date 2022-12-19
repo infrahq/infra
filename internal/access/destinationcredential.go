@@ -31,7 +31,6 @@ func (l ListDestinationCredentialResponse) ItemCount() int {
 func CreateDestinationCredential(c *gin.Context, destination string) (*models.DestinationCredential, error) {
 	rCtx := GetRequestContext(c)
 	// does the user have a grant to this destination?
-	// ListGrants(c, )
 	grants, err := data.ListGrants(rCtx.DBTxn, data.ListGrantsOptions{
 		ByDestination:              destination,
 		BySubject:                  uid.NewIdentityPolymorphicID(rCtx.Authenticated.User.ID),
@@ -151,11 +150,6 @@ func ListDestinationCredentials(c *gin.Context, destination string, lastUpdateIn
 		return listDestinationCredentialsWithMaxUpdateIndex(rCtx, dest.ID)
 	}
 	return blockingRequest(rCtx, listenOpts, query, lastUpdateIndex)
-}
-
-type ListDestinationCredentialRespct struct {
-	Items          []models.DestinationCredential
-	MaxUpdateIndex int64
 }
 
 func listDestinationCredentialsWithMaxUpdateIndex(rCtx RequestContext, destinationID uid.ID) (ListDestinationCredentialResponse, error) {
