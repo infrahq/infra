@@ -2,9 +2,7 @@ import { useRouter } from 'next/router'
 import Tippy from '@tippyjs/react'
 import Cookies from 'universal-cookie'
 
-import {
-  googleSocialLoginID,
-} from '../lib/providers'
+import { googleSocialLoginID } from '../lib/providers'
 import { currentBaseDomain } from '../lib/login'
 import { providers as providersList } from '../lib/providers'
 

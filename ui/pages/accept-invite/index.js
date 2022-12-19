@@ -8,7 +8,7 @@ import PasswordResetForm from '../../components/password-reset-form'
 export default function AcceptInvite() {
   const router = useRouter()
   const { token } = router.query
-  const { baseDomain, loginDomain, google,  } = useServerConfig()
+  const { baseDomain, loginDomain, google } = useServerConfig()
 
   if (!router.isReady) {
     return null
