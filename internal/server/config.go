@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -20,39 +21,22 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type Grant struct {
-	User     string
-	Group    string
-	Resource string
-	Role     string
-}
-
-func (g Grant) ValidationRules() []validate.ValidationRule {
-	return []validate.ValidationRule{
-		validate.RequireOneOf(
-			validate.Field{Name: "user", Value: g.User},
-			validate.Field{Name: "group", Value: g.Group},
-		),
-		validate.Required("resource", g.Resource),
-	}
+type Config struct {
+	DefaultOrganizationDomain string
+	Users                     []User
 }
 
 type User struct {
 	Name      string
 	AccessKey string
 	Password  string
+	Role      string
 }
 
 func (u User) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("name", u.Name),
 	}
-}
-
-type Config struct {
-	DefaultOrganizationDomain string
-	Grants                    []Grant
-	Users                     []User
 }
 
 func (c Config) ValidationRules() []validate.ValidationRule {
@@ -590,100 +574,33 @@ func (s Server) loadConfig(config Config) error {
 		}
 	}
 
-	// extract users from grants and add them to users
-	for _, g := range config.Grants {
-		switch {
-		case g.User != "":
-			config.Users = append(config.Users, User{Name: g.User})
-		}
-	}
-
 	if err := s.loadUsers(tx, config.Users); err != nil {
 		return fmt.Errorf("load users: %w", err)
-	}
-
-	if err := s.loadGrants(tx, config.Grants); err != nil {
-		return fmt.Errorf("load grants: %w", err)
 	}
 
 	return tx.Commit()
 }
 
-func (s Server) loadGrants(db data.WriteTxn, grants []Grant) error {
-	for _, g := range grants {
-		_, err := s.loadGrant(db, g)
-		if err != nil {
-			return err
-		}
+func loadGrant(tx data.WriteTxn, userID uid.ID, role string) error {
+	if role == "" {
+		return nil
 	}
-	return nil
-}
-
-func (Server) loadGrant(db data.WriteTxn, input Grant) (*models.Grant, error) {
-	var id uid.PolymorphicID
-
-	switch {
-	case input.User != "":
-		user, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: input.User})
-		if err != nil {
-			return nil, err
-		}
-
-		id = uid.NewIdentityPolymorphicID(user.ID)
-
-	case input.Group != "":
-		group, err := data.GetGroup(db, data.GetGroupOptions{ByName: input.Group})
-		if err != nil {
-			if !errors.Is(err, internal.ErrNotFound) {
-				return nil, err
-			}
-
-			logging.Debugf("creating placeholder group %q", input.Group)
-
-			// group does not exist yet, create a placeholder
-			group = &models.Group{
-				Name:      input.Group,
-				CreatedBy: models.CreatedBySystem,
-			}
-
-			if err := data.CreateGroup(db, group); err != nil {
-				return nil, err
-			}
-		}
-
-		id = uid.NewGroupPolymorphicID(group.ID)
-
-	default:
-		return nil, errors.New("invalid grant: missing identity")
-	}
-
-	if len(input.Role) == 0 {
-		input.Role = models.BasePermissionConnect
-	}
-
-	grant, err := data.GetGrant(db, data.GetGrantOptions{
-		BySubject:   id,
-		ByResource:  input.Resource,
-		ByPrivilege: input.Role,
+	grant, err := data.GetGrant(tx, data.GetGrantOptions{
+		BySubject:   uid.NewIdentityPolymorphicID(userID),
+		ByResource:  access.ResourceInfraAPI,
+		ByPrivilege: role,
 	})
-	if err != nil {
-		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, err
-		}
-
-		grant = &models.Grant{
-			Subject:   id,
-			Resource:  input.Resource,
-			Privilege: input.Role,
-			CreatedBy: models.CreatedBySystem,
-		}
-
-		if err := data.CreateGrant(db, grant); err != nil {
-			return nil, err
-		}
+	if err == nil || !errors.Is(err, internal.ErrNotFound) {
+		return err
 	}
 
-	return grant, nil
+	grant = &models.Grant{
+		Subject:   uid.NewIdentityPolymorphicID(userID),
+		Resource:  access.ResourceInfraAPI,
+		Privilege: role,
+		CreatedBy: models.CreatedBySystem,
+	}
+	return data.CreateGrant(tx, grant)
 }
 
 func (s Server) loadUsers(db data.WriteTxn, users []User) error {
@@ -731,6 +648,10 @@ func (s Server) loadUser(db data.WriteTxn, input User) (*models.Identity, error)
 	}
 
 	if err := s.loadAccessKey(db, identity, input.AccessKey); err != nil {
+		return nil, err
+	}
+
+	if err := loadGrant(db, identity.ID, input.Role); err != nil {
 		return nil, err
 	}
 

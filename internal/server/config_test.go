@@ -16,7 +16,6 @@ import (
 	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestKeyProvider_PrepareForDecode_IntegrationWithDecode_FullConfig(t *testing.T) {
@@ -298,29 +297,6 @@ func TestLoadConfigEmpty(t *testing.T) {
 	assert.NilError(t, err)
 }
 
-func TestLoadConfigInvalid(t *testing.T) {
-	cases := map[string]Config{
-		"MissingGrantIdentity": {
-			Grants: []Grant{
-				{
-					Role:     "admin",
-					Resource: "test-cluster",
-				},
-			},
-		},
-	}
-
-	for name, config := range cases {
-		t.Run(name, func(t *testing.T) {
-			s := setupServer(t)
-
-			err := s.loadConfig(config)
-			// TODO: add expectedErr for each case
-			assert.ErrorContains(t, err, "") // could be any error
-		})
-	}
-}
-
 func TestLoadConfigWithUsers(t *testing.T) {
 	s := setupServer(t)
 
@@ -371,100 +347,6 @@ func TestLoadConfigWithUsers(t *testing.T) {
 	assert.Equal(t, bytes.Compare(key.SecretChecksum, chksm[:]), 0) // 0 means the byte slices are equal
 }
 
-func TestLoadConfigWithUserGrants_OptionalRole(t *testing.T) {
-	s := setupServer(t)
-
-	config := Config{
-		Grants: []Grant{
-			{
-				User:     "test@example.com",
-				Resource: "test-cluster",
-			},
-		},
-	}
-
-	err := s.loadConfig(config)
-	assert.NilError(t, err)
-
-	user, err := data.GetIdentity(s.db, data.GetIdentityOptions{ByName: "test@example.com"})
-	assert.NilError(t, err)
-	assert.Assert(t, user != nil)
-
-	grant, err := data.GetGrant(s.db, data.GetGrantOptions{
-		BySubject:   uid.NewIdentityPolymorphicID(user.ID),
-		ByPrivilege: "connect",
-		ByResource:  "test-cluster",
-	})
-	assert.NilError(t, err)
-	assert.Assert(t, grant != nil)
-}
-
-func TestLoadConfigWithUserGrants(t *testing.T) {
-	s := setupServer(t)
-
-	config := Config{
-		Grants: []Grant{
-			{
-				User:     "test@example.com",
-				Role:     "admin",
-				Resource: "test-cluster",
-			},
-		},
-	}
-
-	err := s.loadConfig(config)
-	assert.NilError(t, err)
-
-	tx := txnForTestCase(t, s.db, s.db.DefaultOrg.ID)
-
-	provider, err := data.GetProvider(tx, data.GetProviderOptions{ByName: models.InternalInfraProviderName})
-	assert.NilError(t, err)
-	assert.Assert(t, provider != nil)
-
-	user, err := data.GetIdentity(tx, data.GetIdentityOptions{ByName: "test@example.com"})
-	assert.NilError(t, err)
-	assert.Assert(t, user != nil)
-
-	grant, err := data.GetGrant(tx, data.GetGrantOptions{
-		BySubject:   uid.NewIdentityPolymorphicID(user.ID),
-		ByPrivilege: "admin",
-		ByResource:  "test-cluster",
-	})
-	assert.NilError(t, err)
-	assert.Assert(t, grant != nil)
-}
-
-func TestLoadConfigWithGroupGrants(t *testing.T) {
-	s := setupServer(t)
-
-	config := Config{
-		Grants: []Grant{
-			{
-				Group:    "Everyone",
-				Role:     "admin",
-				Resource: "test-cluster",
-			},
-		},
-	}
-
-	err := s.loadConfig(config)
-	assert.NilError(t, err)
-
-	tx := txnForTestCase(t, s.db, s.db.DefaultOrg.ID)
-
-	group, err := data.GetGroup(tx, data.GetGroupOptions{ByName: "Everyone"})
-	assert.NilError(t, err)
-	assert.Assert(t, group != nil)
-
-	grant, err := data.GetGrant(tx, data.GetGrantOptions{
-		BySubject:   uid.NewGroupPolymorphicID(group.ID),
-		ByPrivilege: "admin",
-		ByResource:  "test-cluster",
-	})
-	assert.NilError(t, err)
-	assert.Assert(t, grant != nil)
-}
-
 func TestLoadConfigUpdate(t *testing.T) {
 	s := setupServer(t)
 
@@ -472,26 +354,16 @@ func TestLoadConfigUpdate(t *testing.T) {
 		Users: []User{
 			{
 				Name: "r2d2@example.com",
+				Role: "admin",
 			},
 			{
 				Name:      "c3po@example.com",
 				AccessKey: "TllVlekkUz.NFnxSlaPQLosgkNsyzaMttfC",
+				Role:      "view",
 			},
 			{
 				Name:     "sarah@email.com",
 				Password: "supersecret",
-			},
-		},
-		Grants: []Grant{
-			{
-				User:     "test@example.com",
-				Role:     "admin",
-				Resource: "test-cluster",
-			},
-			{
-				Group:    "Everyone",
-				Role:     "admin",
-				Resource: "test-cluster",
 			},
 		},
 	}
@@ -502,7 +374,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	tx := txnForTestCase(t, s.db, s.db.DefaultOrg.ID)
 	defaultOrg := s.db.DefaultOrg
 
-	var identities, groups, credentials, accessKeys int64
+	var identities, credentials, accessKeys int64
 
 	grants, err := data.ListGrants(tx, data.ListGrantsOptions{})
 	assert.NilError(t, err)
@@ -518,17 +390,13 @@ func TestLoadConfigUpdate(t *testing.T) {
 		privileges[v.Privilege]++
 	}
 
-	assert.Equal(t, privileges["admin"], 2)
-	assert.Equal(t, privileges["view"], 0)
+	assert.Equal(t, privileges["admin"], 1)
+	assert.Equal(t, privileges["view"], 1)
 	assert.Equal(t, privileges["connector"], 1)
 
 	err = tx.QueryRow("SELECT COUNT(*) FROM identities WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&identities)
 	assert.NilError(t, err)
-	assert.Equal(t, int64(5), identities)
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM groups WHERE organization_id = ?;", defaultOrg.ID).Scan(&groups)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), groups) // Everyone
+	assert.Equal(t, int64(4), identities)
 
 	err = tx.QueryRow("SELECT COUNT(*) FROM credentials WHERE organization_id = ?;", defaultOrg.ID).Scan(&credentials)
 	assert.NilError(t, err)
@@ -539,16 +407,10 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, int64(1), accessKeys) // c3po
 
 	updatedConfig := Config{
-		Grants: []Grant{
+		Users: []User{
 			{
-				User:     "test@example.com",
-				Role:     "view",
-				Resource: "test-cluster",
-			},
-			{
-				Group:    "Everyone",
-				Role:     "view",
-				Resource: "test-cluster",
+				Name: "c3po@example.com",
+				Role: "admin",
 			},
 		},
 	}
@@ -558,7 +420,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	grants, err = data.ListGrants(tx, data.ListGrantsOptions{})
 	assert.NilError(t, err)
-	assert.Assert(t, is.Len(grants, 5))
+	assert.Assert(t, is.Len(grants, 4))
 
 	privileges = map[string]int{
 		"admin":     0,
@@ -571,24 +433,12 @@ func TestLoadConfigUpdate(t *testing.T) {
 	}
 
 	assert.Equal(t, privileges["admin"], 2)
-	assert.Equal(t, privileges["view"], 2)
+	assert.Equal(t, privileges["view"], 1)
 	assert.Equal(t, privileges["connector"], 1)
 
 	err = tx.QueryRow("SELECT COUNT(*) FROM identities WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&identities)
 	assert.NilError(t, err)
-	assert.Equal(t, int64(5), identities)
-
-	user, err := data.GetIdentity(s.db, data.GetIdentityOptions{ByName: "test@example.com"})
-	assert.NilError(t, err)
-	assert.Assert(t, user != nil)
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM groups WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&groups)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), groups)
-
-	group, err := data.GetGroup(tx, data.GetGroupOptions{ByName: "Everyone"})
-	assert.NilError(t, err)
-	assert.Assert(t, group != nil)
+	assert.Equal(t, int64(4), identities)
 }
 
 func TestLoadAccessKey(t *testing.T) {
