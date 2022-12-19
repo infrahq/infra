@@ -225,6 +225,9 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		return syncGrantsToDestination(ctx, con, waiter, fn)
 	})
 	group.Go(func() error {
+		ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		defer cancel()
+
 		// TODO: how long should this wait? Use exponential backoff on error?
 		waiter := repeat.NewWaiter(backoff.NewConstantBackOff(30 * time.Second))
 		for {
@@ -471,7 +474,10 @@ func syncGrantsToDestination(
 ) error {
 	var latestIndex int64 = 1
 
-	sync := func() error {
+	sync := func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, 7*time.Minute)
+		defer cancel()
+
 		grants, err := con.client.ListGrants(ctx, api.ListGrantsRequest{
 			Destination:     con.destination.Name, // TODO: use options.Name when that is required
 			BlockingRequest: api.BlockingRequest{LastUpdateIndex: latestIndex},
@@ -503,7 +509,7 @@ func syncGrantsToDestination(
 	}
 
 	for {
-		if err := sync(); err != nil {
+		if err := sync(ctx); err != nil {
 			logging.L.Error().Err(err).Msg("sync grants to destination")
 		} else {
 			waiter.Reset()
