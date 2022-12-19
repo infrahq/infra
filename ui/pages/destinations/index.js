@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 
 import { useUser } from '../../lib/hooks'
+import { CommandLineIcon } from '@heroicons/react/24/solid'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
@@ -45,7 +46,9 @@ export default function Destinations() {
       </header>
 
       <Table
-        href={row => `/destinations/${row.original.id}`}
+        href={row =>
+          row.original.kind === 'ssh' ? '' : `/destinations/${row.original.id}`
+        }
         count={totalCount}
         pageCount={totalPages}
         pageIndex={parseInt(page) - 1}
@@ -63,26 +66,32 @@ export default function Destinations() {
             cell: info => (
               <div className='flex flex-row items-center py-1'>
                 <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
-                  <img
-                    alt='kubernetes icon'
-                    className='h-5'
-                    src={`/kubernetes.svg`}
-                  />
+                  {info.row.original.kind === 'ssh' ? (
+                    <CommandLineIcon className='h-5 text-black' />
+                  ) : (
+                    <img
+                      alt='kubernetes icon'
+                      className='h-5'
+                      src={`/kubernetes.svg`}
+                    />
+                  )}
                 </div>
                 <div className='flex flex-col'>
                   <div className='text-sm font-medium text-gray-700'>
                     {info.getValue()}
                   </div>
-                  <div className='text-2xs text-gray-500'>
-                    {info.row.original.resources?.length > 0 && (
-                      <span>
-                        {info.row.original.resources?.length}&nbsp;
-                        {info.row.original.resources?.length === 1
-                          ? 'namespace'
-                          : 'namespaces'}
-                      </span>
-                    )}
-                  </div>
+                  {info.row.original.kind !== 'ssh' && (
+                    <div className='text-2xs text-gray-500'>
+                      {info.row.original.resources?.length > 0 && (
+                        <span>
+                          {info.row.original.resources?.length}&nbsp;
+                          {info.row.original.resources?.length === 1
+                            ? 'namespace'
+                            : 'namespaces'}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ),
