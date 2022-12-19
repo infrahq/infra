@@ -1,6 +1,7 @@
 name: cd / binaries
 
 on:
+  pull_request:
   push:
     tags:
       - v*
