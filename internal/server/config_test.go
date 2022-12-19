@@ -6,15 +6,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
-	"gotest.tools/v3/assert/opt"
-	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
@@ -300,71 +296,10 @@ func TestLoadConfigEmpty(t *testing.T) {
 
 	err := s.loadConfig(Config{})
 	assert.NilError(t, err)
-
-	providers, err := data.CountAllProviders(s.db)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), providers) // internal infra provider only
-
-	grants, err := data.CountAllGrants(s.db)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), grants) // connector grant only
 }
 
 func TestLoadConfigInvalid(t *testing.T) {
 	cases := map[string]Config{
-		"MissingProviderName": {
-			Providers: []Provider{
-				{
-					URL:          "example.com",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-					AuthURL:      "example.com/auth",
-					Scopes:       []string{"openid", "email"},
-				},
-			},
-		},
-		"MissingProviderURL": {
-			Providers: []Provider{
-				{
-					Name:         "okta",
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				},
-			},
-		},
-		"MissingProviderClientID": {
-			Providers: []Provider{
-				{
-					Name:         "okta",
-					URL:          "example.com",
-					ClientSecret: "client-secret",
-					AuthURL:      "example.com/auth",
-					Scopes:       []string{"openid", "email"},
-				},
-			},
-		},
-		"MissingProviderClientSecret": {
-			Providers: []Provider{
-				{
-					Name:     "okta",
-					URL:      "example.com",
-					ClientID: "client-id",
-					AuthURL:  "example.com/auth",
-					Scopes:   []string{"openid", "email"},
-				},
-			},
-		},
-		"MissingProviderRequiredScopes": {
-			Providers: []Provider{
-				{
-					Name:     "okta",
-					URL:      "example.com",
-					ClientID: "client-id",
-					AuthURL:  "example.com/auth",
-					Scopes:   []string{"offline_access"},
-				},
-			},
-		},
 		"MissingGrantIdentity": {
 			Grants: []Grant{
 				{
@@ -384,123 +319,6 @@ func TestLoadConfigInvalid(t *testing.T) {
 			assert.ErrorContains(t, err, "") // could be any error
 		})
 	}
-}
-
-var cmpEncryptedAtRestEqual = cmp.Comparer(func(x, y models.EncryptedAtRest) bool {
-	return string(x) == string(y)
-})
-
-func TestLoadConfigWithProviders(t *testing.T) {
-	s := setupServer(t)
-
-	config := Config{
-		DefaultOrganizationDomain: "super.example.com",
-		Providers: []Provider{
-			{
-				Name:         "okta",
-				URL:          "example.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				AuthURL:      "example.com/oauth2/default/v1/token",
-				Scopes:       []string{"openid", "email"},
-			},
-			{
-				Name:         "azure",
-				URL:          "demo.azure.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         models.ProviderKindAzure.String(),
-				AuthURL:      "demo.azure.com/oauth2/v2.0/authorize",
-				Scopes:       []string{"openid", "email"},
-			},
-			{
-				Name:             "google",
-				URL:              "accounts.google.com",
-				ClientID:         "client-id",
-				ClientSecret:     "client-secret",
-				Kind:             models.ProviderKindGoogle.String(),
-				AuthURL:          "https://accounts.google.com/o/oauth2/v2/auth",
-				Scopes:           []string{"openid", "email"},
-				PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-				ClientEmail:      "example@tenant.iam.gserviceaccount.com",
-				DomainAdminEmail: "admin@example.com",
-			},
-		},
-	}
-
-	err := s.loadConfig(config)
-	assert.NilError(t, err)
-
-	tx := txnForTestCase(t, s.db, s.db.DefaultOrg.ID)
-
-	defaultOrg := s.db.DefaultOrg
-	updatedOrg, err := data.GetOrganization(tx, data.GetOrganizationOptions{ByID: defaultOrg.ID})
-	assert.NilError(t, err)
-	assert.Equal(t, updatedOrg.Domain, "super.example.com")
-
-	okta, err := data.GetProvider(tx, data.GetProviderOptions{ByName: "okta"})
-	assert.NilError(t, err)
-
-	expected := &models.Provider{
-		Model:              okta.Model,     // not relevant
-		CreatedBy:          okta.CreatedBy, // not relevant
-		Name:               "okta",
-		URL:                "example.com",
-		ClientID:           "client-id",
-		ClientSecret:       "client-secret",
-		Kind:               models.ProviderKindOIDC, // the kind gets the default value
-		AuthURL:            "example.com/oauth2/default/v1/token",
-		Scopes:             []string{"openid", "email"},
-		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
-	}
-
-	cmpProvider := cmp.Options{
-		cmp.FilterPath(
-			opt.PathField(models.Provider{}, "ClientSecret"),
-			cmpEncryptedAtRestEqual),
-		cmp.FilterPath(
-			opt.PathField(models.Provider{}, "Scopes"),
-			cmp.Comparer(slices.Equal)),
-		cmpopts.EquateEmpty(),
-	}
-	assert.DeepEqual(t, okta, expected, cmpProvider)
-
-	azure, err := data.GetProvider(tx, data.GetProviderOptions{ByName: "azure"})
-	assert.NilError(t, err)
-
-	expected = &models.Provider{
-		Model:              azure.Model,     // not relevant
-		CreatedBy:          azure.CreatedBy, // not relevant
-		Name:               "azure",
-		URL:                "demo.azure.com",
-		ClientID:           "client-id",
-		ClientSecret:       "client-secret",
-		Kind:               models.ProviderKindAzure, // when specified, the kind is set
-		AuthURL:            "demo.azure.com/oauth2/v2.0/authorize",
-		Scopes:             []string{"openid", "email"},
-		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
-	}
-	assert.DeepEqual(t, azure, expected, cmpProvider)
-
-	google, err := data.GetProvider(tx, data.GetProviderOptions{ByName: "google"})
-	assert.NilError(t, err)
-
-	expected = &models.Provider{
-		Model:              google.Model,     // not relevant
-		CreatedBy:          google.CreatedBy, // not relevant
-		Name:               "google",
-		URL:                "accounts.google.com",
-		ClientID:           "client-id",
-		ClientSecret:       "client-secret",
-		Kind:               models.ProviderKindGoogle,
-		AuthURL:            "https://accounts.google.com/o/oauth2/v2/auth",
-		Scopes:             []string{"openid", "email"},
-		PrivateKey:         "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-		ClientEmail:        "example@tenant.iam.gserviceaccount.com",
-		DomainAdminEmail:   "admin@example.com",
-		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
-	}
-	assert.DeepEqual(t, google, expected, cmpProvider)
 }
 
 func TestLoadConfigWithUsers(t *testing.T) {
@@ -651,16 +469,6 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	s := setupServer(t)
 
 	config := Config{
-		Providers: []Provider{
-			{
-				Name:         "okta",
-				URL:          "example.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				AuthURL:      "example.com/auth",
-				Scopes:       []string{"openid", "email"},
-			},
-		},
 		Grants: []Grant{
 			{
 				User:     "test@example.com",
@@ -681,11 +489,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	tx := txnForTestCase(t, s.db, s.db.DefaultOrg.ID)
 	defaultOrg := s.db.DefaultOrg
 
-	var providers, grants, identities, groups, providerUsers int64
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM providers WHERE organization_id = ?;", defaultOrg.ID).Scan(&providers)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(2), providers) // okta and infra providers
+	var grants, identities, groups, providerUsers int64
 
 	err = tx.QueryRow("SELECT COUNT(*) FROM grants WHERE organization_id = ?;", defaultOrg.ID).Scan(&grants)
 	assert.NilError(t, err)
@@ -704,25 +508,10 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.Equal(t, int64(1), providerUsers)
 
 	// previous config is cleared on new config application
-	newConfig := Config{
-		Providers: []Provider{
-			{
-				Name:         "okta",
-				URL:          "new.example.com",
-				ClientID:     "new-client-id",
-				ClientSecret: "new-client-secret",
-				AuthURL:      "new.example.com/auth",
-				Scopes:       []string{"openid", "email"},
-			},
-		},
-	}
+	newConfig := Config{}
 
 	err = s.loadConfig(newConfig)
 	assert.NilError(t, err)
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM providers WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&providers)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(2), providers) // infra and new okta
 
 	err = tx.QueryRow("SELECT COUNT(*) FROM grants WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&grants)
 	assert.NilError(t, err)
@@ -741,16 +530,6 @@ func TestLoadConfigUpdate(t *testing.T) {
 	s := setupServer(t)
 
 	config := Config{
-		Providers: []Provider{
-			{
-				Name:         "okta",
-				URL:          "example.okta.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				AuthURL:      "example.com/auth",
-				Scopes:       []string{"openid", "email"},
-			},
-		},
 		Users: []User{
 			{
 				Name: "r2d2@example.com",
@@ -784,11 +563,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	tx := txnForTestCase(t, s.db, s.db.DefaultOrg.ID)
 	defaultOrg := s.db.DefaultOrg
 
-	var providers, identities, groups, credentials, accessKeys int64
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM providers WHERE organization_id = ?;", defaultOrg.ID).Scan(&providers)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(2), providers) // infra and okta
+	var identities, groups, credentials, accessKeys int64
 
 	grants, err := data.ListGrants(tx, data.ListGrantsOptions{})
 	assert.NilError(t, err)
@@ -825,16 +600,6 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, int64(1), accessKeys) // c3po
 
 	updatedConfig := Config{
-		Providers: []Provider{
-			{
-				Name:         "atko",
-				URL:          "new.example.com",
-				ClientID:     "client-id-2",
-				ClientSecret: "client-secret-2",
-				AuthURL:      "new.example.com/v1/auth",
-				Scopes:       []string{"openid", "email", "groups"},
-			},
-		},
 		Grants: []Grant{
 			{
 				User:     "test@example.com",
@@ -851,38 +616,6 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	err = s.loadConfig(updatedConfig)
 	assert.NilError(t, err)
-
-	providerCount, err := data.CountAllProviders(s.db)
-	assert.NilError(t, err)
-	assert.Equal(t, providerCount, int64(2)) // infra and atko
-
-	provider, err := data.GetProvider(tx, data.GetProviderOptions{ByName: "atko"})
-	assert.NilError(t, err)
-
-	expected := &models.Provider{
-		Model:              provider.Model,     // not relevant
-		CreatedBy:          provider.CreatedBy, // not relevant
-		Name:               "atko",
-		URL:                "new.example.com",
-		ClientID:           "client-id-2",
-		ClientSecret:       "client-secret-2",
-		Kind:               models.ProviderKindOIDC, // the kind gets the default value
-		AuthURL:            "new.example.com/v1/auth",
-		Scopes:             []string{"openid", "email", "groups"},
-		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
-	}
-
-	cmpProvider := cmp.Options{
-		cmp.FilterPath(
-			opt.PathField(models.Provider{}, "ClientSecret"),
-			cmpEncryptedAtRestEqual),
-		cmp.FilterPath(
-			opt.PathField(models.Provider{}, "Scopes"),
-			cmp.Comparer(slices.Equal)),
-		cmpopts.EquateEmpty(),
-	}
-
-	assert.DeepEqual(t, provider, expected, cmpProvider)
 
 	grants, err = data.ListGrants(tx, data.ListGrantsOptions{})
 	assert.NilError(t, err)
