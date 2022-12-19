@@ -61,7 +61,7 @@ export default function Signup() {
   return (
     <div className='flex w-full flex-col items-center px-10 py-4'>
       <h1 className='mt-4 text-2xl font-bold leading-snug'>Sign up</h1>
-      {google !== undefined && (
+      {google && (
         <>
           <Providers
             providers={[google]}
