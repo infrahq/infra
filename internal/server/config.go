@@ -610,25 +610,12 @@ func (s Server) loadConfig(config Config) error {
 }
 
 func (s Server) loadGrants(db data.WriteTxn, grants []Grant) error {
-	keep := make([]uid.ID, 0, len(grants))
-
 	for _, g := range grants {
-		grant, err := s.loadGrant(db, g)
+		_, err := s.loadGrant(db, g)
 		if err != nil {
 			return err
 		}
-
-		keep = append(keep, grant.ID)
 	}
-
-	// remove any grant previously defined by config
-	if err := data.DeleteGrants(db, data.DeleteGrantsOptions{
-		NotIDs:      keep,
-		ByCreatedBy: models.CreatedBySystem,
-	}); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -700,27 +687,12 @@ func (Server) loadGrant(db data.WriteTxn, input Grant) (*models.Grant, error) {
 }
 
 func (s Server) loadUsers(db data.WriteTxn, users []User) error {
-	keep := make([]uid.ID, 0, len(users)+1)
-
 	for _, i := range users {
-		user, err := s.loadUser(db, i)
+		_, err := s.loadUser(db, i)
 		if err != nil {
 			return err
 		}
-
-		keep = append(keep, user.ID)
 	}
-
-	// remove any users previously defined by config
-	opts := data.DeleteIdentitiesOptions{
-		ByProviderID: data.InfraProvider(db).ID,
-		ByNotIDs:     keep,
-		CreatedBy:    models.CreatedBySystem,
-	}
-	if err := data.DeleteIdentities(db, opts); err != nil {
-		return err
-	}
-
 	return nil
 }
 

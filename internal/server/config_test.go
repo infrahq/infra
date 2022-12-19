@@ -465,67 +465,6 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 	assert.Assert(t, grant != nil)
 }
 
-func TestLoadConfigPruneConfig(t *testing.T) {
-	s := setupServer(t)
-
-	config := Config{
-		Grants: []Grant{
-			{
-				User:     "test@example.com",
-				Role:     "admin",
-				Resource: "test-cluster",
-			},
-			{
-				Group:    "Everyone",
-				Role:     "admin",
-				Resource: "test-cluster",
-			},
-		},
-	}
-
-	err := s.loadConfig(config)
-	assert.NilError(t, err)
-
-	tx := txnForTestCase(t, s.db, s.db.DefaultOrg.ID)
-	defaultOrg := s.db.DefaultOrg
-
-	var grants, identities, groups, providerUsers int64
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM grants WHERE organization_id = ?;", defaultOrg.ID).Scan(&grants)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(3), grants) // 2 from config, 1 internal connector
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM identities WHERE organization_id = ?;", defaultOrg.ID).Scan(&identities)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(2), identities)
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM groups WHERE organization_id = ?;", defaultOrg.ID).Scan(&groups)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), groups)
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM provider_users").Scan(&providerUsers)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), providerUsers)
-
-	// previous config is cleared on new config application
-	newConfig := Config{}
-
-	err = s.loadConfig(newConfig)
-	assert.NilError(t, err)
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM grants WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&grants)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), grants) // connector
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM identities WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&identities)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), identities)
-
-	err = tx.QueryRow("SELECT COUNT(*) FROM groups WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&groups)
-	assert.NilError(t, err)
-	assert.Equal(t, int64(1), groups)
-}
-
 func TestLoadConfigUpdate(t *testing.T) {
 	s := setupServer(t)
 
@@ -619,7 +558,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	grants, err = data.ListGrants(tx, data.ListGrantsOptions{})
 	assert.NilError(t, err)
-	assert.Assert(t, is.Len(grants, 3))
+	assert.Assert(t, is.Len(grants, 5))
 
 	privileges = map[string]int{
 		"admin":     0,
@@ -631,13 +570,13 @@ func TestLoadConfigUpdate(t *testing.T) {
 		privileges[v.Privilege]++
 	}
 
-	assert.Equal(t, privileges["admin"], 0)
+	assert.Equal(t, privileges["admin"], 2)
 	assert.Equal(t, privileges["view"], 2)
 	assert.Equal(t, privileges["connector"], 1)
 
 	err = tx.QueryRow("SELECT COUNT(*) FROM identities WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&identities)
 	assert.NilError(t, err)
-	assert.Equal(t, int64(2), identities)
+	assert.Equal(t, int64(5), identities)
 
 	user, err := data.GetIdentity(s.db, data.GetIdentityOptions{ByName: "test@example.com"})
 	assert.NilError(t, err)

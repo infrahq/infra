@@ -395,12 +395,10 @@ func SetIdentityVerified(tx WriteTxn, token string) error {
 type ListIdentityOptions struct {
 	ByID                   uid.ID
 	ByIDs                  []uid.ID
-	ByNotIDs               []uid.ID
 	ByName                 string
 	ByPublicKeyFingerprint string
 	ByNotName              string
 	ByGroupID              uid.ID
-	CreatedBy              uid.ID
 	Pagination             *Pagination
 	LoadGroups             bool
 	LoadProviders          bool
@@ -408,9 +406,6 @@ type ListIdentityOptions struct {
 }
 
 func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, error) {
-	if len(opts.ByNotIDs) > 0 && opts.CreatedBy == 0 {
-		return nil, fmt.Errorf("ListIdentities by 'not IDs' requires 'created by'")
-	}
 	identities := &identitiesTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(identities))
@@ -443,13 +438,6 @@ func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, er
 	}
 	if opts.ByGroupID != 0 {
 		query.B("AND identities_groups.group_id = ?", opts.ByGroupID)
-	}
-	if opts.CreatedBy != 0 {
-		query.B("AND identities.created_by = ?", opts.CreatedBy)
-		if len(opts.ByNotIDs) > 0 {
-			query.B("AND identities.id NOT IN ")
-			queryInClause(query, opts.ByNotIDs)
-		}
 	}
 	query.B("ORDER BY identities.name ASC")
 	if opts.Pagination != nil {
@@ -630,8 +618,6 @@ func UpdateIdentity(tx WriteTxn, identity *models.Identity) error {
 type DeleteIdentitiesOptions struct {
 	ByID         uid.ID
 	ByIDs        []uid.ID
-	ByNotIDs     []uid.ID
-	CreatedBy    uid.ID
 	ByProviderID uid.ID
 }
 
@@ -640,10 +626,8 @@ func DeleteIdentities(tx WriteTxn, opts DeleteIdentitiesOptions) error {
 		return fmt.Errorf("DeleteIdentities requires a provider ID")
 	}
 	listOpts := ListIdentityOptions{
-		ByID:      opts.ByID,
-		ByIDs:     opts.ByIDs,
-		ByNotIDs:  opts.ByNotIDs,
-		CreatedBy: opts.CreatedBy,
+		ByID:  opts.ByID,
+		ByIDs: opts.ByIDs,
 	}
 	toDelete, err := ListIdentities(tx, listOpts)
 	if err != nil {

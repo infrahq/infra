@@ -369,25 +369,6 @@ func TestListIdentities(t *testing.T) {
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
-		t.Run("filter identities by created by", func(t *testing.T) {
-			actual, err := ListIdentities(db, ListIdentityOptions{CreatedBy: uid.ID(1000)})
-			assert.NilError(t, err)
-			expected := []models.Identity{salt}
-			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
-		})
-
-		t.Run("filter by not IDs requires created by", func(t *testing.T) {
-			_, err := ListIdentities(db, ListIdentityOptions{ByNotIDs: []uid.ID{bourne.ID, bauer.ID}})
-			assert.ErrorContains(t, err, "ListIdentities by 'not IDs' requires 'created by'")
-		})
-
-		t.Run("filter by not IDs", func(t *testing.T) {
-			identities, err := ListIdentities(db, ListIdentityOptions{CreatedBy: uid.ID(1000), ByNotIDs: []uid.ID{bourne.ID, bauer.ID}})
-			assert.NilError(t, err)
-			expected := []models.Identity{salt}
-			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
-		})
-
 		t.Run("filter identities by group and name", func(t *testing.T) {
 			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID, ByName: bauer.Name})
 			assert.NilError(t, err)
@@ -654,79 +635,6 @@ func TestDeleteIdentities(t *testing.T) {
 				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 2})
 				assert.Error(t, err, "record not found")
 				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 3})
-				assert.NilError(t, err) // still exists
-			},
-		},
-		{
-			name: "delete by not IDs requires created by",
-			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
-				return DeleteIdentitiesOptions{
-					ByProviderID: InfraProvider(tx).ID,
-					ByNotIDs:     []uid.ID{1, 2},
-				}, models.Identity{} // not used
-			},
-			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
-				assert.ErrorContains(t, err, "ListIdentities by 'not IDs' requires 'created by'")
-			},
-		},
-		{
-			name: "delete by not IDs",
-			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
-				id1 := &models.Identity{
-					Model:     models.Model{ID: 1},
-					Name:      "name1@infrahq.com",
-					CreatedBy: 1000,
-				}
-				id2 := &models.Identity{
-					Model:     models.Model{ID: 2},
-					Name:      "name2@infrahq.com",
-					CreatedBy: 1000,
-				}
-				id3 := &models.Identity{
-					Model:     models.Model{ID: 3},
-					Name:      "name3@infrahq.com",
-					CreatedBy: 1000,
-				}
-				createIdentities(t, tx, id1, id2, id3)
-				return DeleteIdentitiesOptions{
-					ByProviderID: InfraProvider(tx).ID,
-					ByNotIDs:     []uid.ID{id1.ID, id2.ID},
-					CreatedBy:    1000,
-				}, models.Identity{} // not used
-			},
-			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
-				assert.NilError(t, err)
-				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 3})
-				assert.Error(t, err, "record not found")
-				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 2})
-				assert.NilError(t, err) // still exists
-				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 1})
-				assert.NilError(t, err) // still exists
-			},
-		},
-		{
-			name: "delete by created by",
-			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
-				id1 := &models.Identity{
-					Model:     models.Model{ID: 1},
-					Name:      "name1@infrahq.com",
-					CreatedBy: 1,
-				}
-				id2 := &models.Identity{
-					Model: models.Model{ID: 2},
-					Name:  "name2@infrahq.com",
-				}
-				createIdentities(t, tx, id1, id2)
-				return DeleteIdentitiesOptions{
-					ByProviderID: InfraProvider(tx).ID,
-					CreatedBy:    uid.ID(1),
-				}, models.Identity{} // not used
-			},
-			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
-				assert.NilError(t, err)
-				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 1})
-				assert.Error(t, err, "record not found")
-				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 2})
 				assert.NilError(t, err) // still exists
 			},
 		},
