@@ -110,6 +110,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details *
 	case details.Social != nil:
 		// sign-up with social (google)
 		user := &models.ProviderUser{
+			ProviderID:   models.InternalGoogleProviderID,
 			Email:        details.Social.IDPAuth.Email,
 			RedirectURL:  details.Social.RedirectURL,
 			AccessToken:  models.EncryptedAtRest(details.Social.IDPAuth.AccessToken),
