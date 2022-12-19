@@ -47,7 +47,7 @@ export default function Destinations() {
 
       <Table
         href={row =>
-          row.original.kind === 'ssh' ? '' : `/destinations/${row.original.id}`
+          row.original.kind === 'kubernetes' && `/destinations/${row.original.id}`
         }
         count={totalCount}
         pageCount={totalPages}
