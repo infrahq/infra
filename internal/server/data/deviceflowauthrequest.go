@@ -2,10 +2,8 @@ package data
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
@@ -30,6 +28,7 @@ func (d *deviceFlowAuthRequestTable) ScanFields() []any {
 	return []any{&d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode, &d.UserID, &d.ProviderID}
 }
 
+// TODO: use regular if conditions here. There's no benefit to using the validate functions.
 func validateDeviceFlowAuthRequest(dfar *models.DeviceFlowAuthRequest) error {
 	err := validate.Error{}
 	validationRules := []validate.ValidationRule{
@@ -43,11 +42,9 @@ func validateDeviceFlowAuthRequest(dfar *models.DeviceFlowAuthRequest) error {
 			err[failure.Name] = append(err[failure.Name], failure.Problems...)
 		}
 	}
-
 	if len(err) > 0 {
-		return fmt.Errorf("%w: %s", internal.ErrInternalServerError, err)
+		return errors.New(err.Error())
 	}
-
 	return nil
 }
 

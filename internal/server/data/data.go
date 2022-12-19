@@ -311,6 +311,7 @@ func isOrgMember(model any) bool {
 type UniqueConstraintError struct {
 	Table  string
 	Column string
+	Value  any
 }
 
 // these are tables whose names need the 'an' article rather than 'a'
@@ -340,7 +341,10 @@ func (e UniqueConstraintError) Error() string {
 	if e.Column == "" {
 		return fmt.Sprintf("%s %v with that value already exists", article, table)
 	}
-	return fmt.Sprintf("%s %v with that %v already exists", article, table, e.Column)
+	if e.Value == nil {
+		return fmt.Sprintf("%s %v with that %v already exists", article, table, e.Column)
+	}
+	return fmt.Sprintf("%s %v with %v %v already exists", article, table, e.Column, e.Value)
 }
 
 // handleError looks for well known DB errors. If the error is recognized it
