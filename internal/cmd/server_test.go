@@ -215,12 +215,6 @@ ui:
   enabled: false # default is true
   proxyURL: "1.2.3.4:5151"
 
-providers:
-  - name: okta
-    url: https://dev-okta.com/
-    clientID: client-id
-    clientSecret: the-secret
-
 grants:
   - user: user1
     resource: infra
@@ -309,14 +303,6 @@ api:
 					},
 
 					Config: server.Config{
-						Providers: []server.Provider{
-							{
-								Name:         "okta",
-								URL:          "https://dev-okta.com/",
-								ClientID:     "client-id",
-								ClientSecret: "the-secret",
-							},
-						},
 						Grants: []server.Grant{
 							{
 								User:     "user1",

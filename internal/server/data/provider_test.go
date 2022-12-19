@@ -217,16 +217,6 @@ func TestListProviders(t *testing.T) {
 			expected := []models.Provider{*providerInfra, *providerDev}
 			assert.DeepEqual(t, expected, actual, cmpModelByID)
 		})
-		t.Run("created by and notIDs", func(t *testing.T) {
-			actual, err := ListProviders(db, ListProvidersOptions{
-				CreatedBy: 777,
-				NotIDs:    []uid.ID{providerDev.ID},
-			})
-			assert.NilError(t, err)
-
-			expected := []models.Provider{*providerProd}
-			assert.DeepEqual(t, expected, actual, cmpModelByID)
-		})
 		t.Run("pagination", func(t *testing.T) {
 			page := Pagination{Page: 2, Limit: 2}
 			actual, err := ListProviders(db, ListProvidersOptions{Pagination: &page})
