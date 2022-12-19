@@ -2,6 +2,9 @@ import { useRouter } from 'next/router'
 import Tippy from '@tippyjs/react'
 import Cookies from 'universal-cookie'
 
+import {
+  googleSocialLoginID,
+} from '../lib/providers'
 import { currentBaseDomain } from '../lib/login'
 import { providers as providersList } from '../lib/providers'
 
@@ -16,7 +19,7 @@ export function oidcLogin(
   }
 
   let redirectURL = window.location.origin + '/login/callback'
-  if (id === '') {
+  if (id === googleSocialLoginID) {
     // managed oidc providers (social login) need to be sent to the base redirect URL before they are redirected to org login
     const cookies = new Cookies()
     cookies.set('finishLogin', window.location.host, {
