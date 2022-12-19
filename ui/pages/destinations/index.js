@@ -24,6 +24,31 @@ export default function Destinations() {
     return null
   }
 
+  const test = [
+    ...destinations,
+    {
+      connected: true,
+      kind: 'ssh',
+      name: 'ssh-demo',
+      connection: { url: 'abc' },
+      version: '0.20.0',
+    },
+    {
+      connected: false,
+      kind: 'ssh',
+      name: 'ssh-demo',
+      connection: { url: 'abc' },
+      version: '0.20.0',
+    },
+    {
+      connected: true,
+      kind: 'ssh',
+      name: 'ssh-demo',
+      connection: { url: '' },
+      version: '0.20.0',
+    },
+  ]
+
   return (
     <div className='mb-10'>
       <Head>
@@ -54,7 +79,7 @@ export default function Destinations() {
         pageCount={totalPages}
         pageIndex={parseInt(page) - 1}
         pageSize={limit}
-        data={destinations}
+        data={test}
         empty='No infrastructure'
         onPageChange={({ pageIndex }) => {
           router.push({
@@ -81,7 +106,7 @@ export default function Destinations() {
                   <div className='text-sm font-medium text-gray-700'>
                     {info.getValue()}
                   </div>
-                  {info.row.original.kind !== 'ssh' && (
+                  {info.row.original.kind !== 'ssh' ? (
                     <div className='text-2xs text-gray-500'>
                       {info.row.original.resources?.length > 0 && (
                         <span>
@@ -91,6 +116,14 @@ export default function Destinations() {
                             : 'namespaces'}
                         </span>
                       )}
+                    </div>
+                  ) : (
+                    <div className='text-2xs text-gray-500'>
+                      {info.row.original.connected
+                        ? info.row.original.connection.url === ''
+                          ? '-'
+                          : info.row.original.connection.url
+                        : '-'}
                     </div>
                   )}
                 </div>
