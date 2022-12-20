@@ -66,8 +66,6 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
     )
   }, [resourceQuery])
 
-  useEffect(() => setSelectedResource(resources[0]), [resources])
-
   useEffect(() => {
     setRoles(sortByRole(selectedResource?.roles))
   }, [selectedResource])
@@ -83,26 +81,35 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
 
     try {
       const GrantsToAdd = []
-      if (selectedNamespaces.length === 0) {
-        selectedRoles.forEach(role => {
-          GrantsToAdd.push({
-            user: selected.user && selected.id,
-            group: selected.group && selected.id,
-            privilege: role,
-            resource: selectedResource.name,
-          })
+      if (selectedResource.kind === 'ssh') {
+        GrantsToAdd.push({
+          user: selected.user && selected.id,
+          group: selected.group && selected.id,
+          privilege: 'connect',
+          resource: selectedResource.name,
         })
       } else {
-        selectedNamespaces.forEach(resource => {
+        if (selectedNamespaces.length === 0) {
           selectedRoles.forEach(role => {
             GrantsToAdd.push({
               user: selected.user && selected.id,
               group: selected.group && selected.id,
               privilege: role,
-              resource: `${selectedResource.name}.${resource}`,
+              resource: selectedResource.name,
             })
           })
-        })
+        } else {
+          selectedNamespaces.forEach(resource => {
+            selectedRoles.forEach(role => {
+              GrantsToAdd.push({
+                user: selected.user && selected.id,
+                group: selected.group && selected.id,
+                privilege: role,
+                resource: `${selectedResource.name}.${resource}`,
+              })
+            })
+          })
+        }
       }
 
       const newGrants = await fetch('/api/grants', {
@@ -122,25 +129,6 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
   return (
     <div className='w-full 2xl:m-auto'>
       <h1 className='py-1 font-display text-lg font-medium'>Grant access</h1>
-      <h3 className='mt-3 text-sm font-medium'>
-        Grant access to{' '}
-        <span className='font-bold'>
-          {selectedNamespaces.length > 0 ? (
-            selectedNamespaces.length > 5 ? (
-              <span>
-                {selectedNamespaces.slice(0, 5).join(', ')} ... +{' '}
-                {selectedNamespaces.length - 5}
-              </span>
-            ) : (
-              selectedNamespaces.join(', ')
-            )
-          ) : selectedResource?.kind === 'kubernetes' ? (
-            'cluster'
-          ) : (
-            'ssh'
-          )}
-        </span>
-      </h3>
       <form className='flex flex-col space-y-4' onSubmit={onSubmit}>
         <div className='mb-4 flex flex-col space-y-4'>
           {/* Identity dropdown selection */}
@@ -162,10 +150,8 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                     setSelected(null)
                   }
                 }}
-                onFocus={() => {
-                  if (!selected) {
-                    identityButton.current?.click()
-                  }
+                onClick={() => {
+                  identityButton.current?.click()
                 }}
               />
               {options?.length > 0 && (
@@ -208,236 +194,243 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
               <Combobox.Button className='hidden' ref={identityButton} />
             </Combobox>
           </div>
-          {/* Resource / Infrastructure dropdown selection */}
-          <div className='relative mt-4 space-y-1'>
-            <label className='text-2xs font-medium text-gray-700'>
-              Infrastructure
-            </label>
-            <Combobox
-              as='div'
-              value={selectedResource?.name || ''}
-              onChange={setSelectedResource}
-            >
-              <Combobox.Input
-                className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                placeholder='Enter resource'
-                onChange={e => {
-                  setResourceQuery(e.target.value)
-                  if (e.target.value.length === 0) {
-                    setSelectedResource(null)
-                  }
-                }}
-              />
-              {resourcesOptions?.length > 0 && (
-                <div className='relative'>
-                  <Combobox.Options className=' absolute z-50 mt-2 max-h-60 w-full origin-top-right divide-y divide-gray-100 overflow-auto rounded-md bg-white text-xs shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
-                    {resourcesOptions?.map(f => (
-                      <Combobox.Option
-                        key={f.id}
-                        value={f}
-                        className={({ active }) =>
-                          `relative cursor-default select-none py-[7px] px-3 ${
-                            active ? 'bg-gray-50' : ''
-                          }`
+          {selectedResource?.kind !== 'ssh' && (
+            <>
+              {/* Resource / Infrastructure dropdown selection */}
+              <div className='relative mt-4 space-y-1'>
+                <label className='text-2xs font-medium text-gray-700'>
+                  Infrastructure
+                </label>
+                <Combobox
+                  as='div'
+                  value={selectedResource?.name || ''}
+                  onChange={setSelectedResource}
+                >
+                  <Combobox.Input
+                    className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
+                    placeholder='Enter resource'
+                    onChange={e => {
+                      setResourceQuery(e.target.value)
+                      if (e.target.value.length === 0) {
+                        setSelectedResource(null)
+                      }
+                    }}
+                    onClick={() => {
+                      resourceButton.current?.click()
+                    }}
+                  />
+                  {resourcesOptions?.length > 0 && (
+                    <div className='relative'>
+                      <Combobox.Options className=' absolute z-50 mt-2 max-h-60 w-full origin-top-right divide-y divide-gray-100 overflow-auto rounded-md bg-white text-xs shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                        {resourcesOptions?.map(f => (
+                          <Combobox.Option
+                            key={f.id}
+                            value={f}
+                            className={({ active }) =>
+                              `relative cursor-default select-none py-[7px] px-3 ${
+                                active ? 'bg-gray-50' : ''
+                              }`
+                            }
+                          >
+                            <div className='flex flex-row'>
+                              <div className='flex min-w-0 flex-1 flex-col'>
+                                <div className='flex justify-between py-0.5 font-medium'>
+                                  <span className='truncate' title={f.name}>
+                                    {f.name}
+                                  </span>
+                                  {selectedResource &&
+                                    selectedResource.id === f.id && (
+                                      <CheckIcon
+                                        data-testid='selected-icon'
+                                        className='h-3 w-3 stroke-1 text-gray-600'
+                                        aria-hidden='true'
+                                      />
+                                    )}
+                                </div>
+                              </div>
+                            </div>
+                          </Combobox.Option>
+                        ))}
+                      </Combobox.Options>
+                    </div>
+                  )}
+                  <Combobox.Button className='hidden' ref={resourceButton} />
+                </Combobox>
+              </div>
+              {selectedResource !== null && (
+                <div className='relative mt-4 space-y-1'>
+                  <label className='text-2xs font-medium text-gray-700'>
+                    Namespaces (optional)
+                  </label>
+                  <Listbox
+                    value={selectedNamespaces}
+                    onChange={v => {
+                      if (v.includes(OPTION_SELECT_ALL)) {
+                        if (
+                          selectedNamespaces.length !==
+                          selectedResource?.resources?.length
+                        ) {
+                          if (selectedResource !== undefined) {
+                            setSelectedNamespaces([
+                              ...selectedResource.resources,
+                            ])
+                          }
+                        } else {
+                          setSelectedNamespaces([])
                         }
-                      >
-                        <div className='flex flex-row'>
-                          <div className='flex min-w-0 flex-1 flex-col'>
-                            <div className='flex justify-between py-0.5 font-medium'>
-                              <span className='truncate' title={f.name}>
-                                {f.name}
-                              </span>
-                              {selected && selected.id === f.id && (
-                                <CheckIcon
-                                  data-testid='selected-icon'
-                                  className='h-3 w-3 stroke-1 text-gray-600'
-                                  aria-hidden='true'
-                                />
-                              )}
-                            </div>
-                            <div className='text-3xs text-gray-500'>
-                              {f.user ? 'User' : f.group ? 'Group' : ''}
-                            </div>
-                          </div>
+                        return
+                      }
+
+                      setSelectedNamespaces(v)
+                    }}
+                    multiple
+                  >
+                    <div className='relative'>
+                      <Listbox.Button className='relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
+                        <div className='flex space-x-1 truncate'>
+                          <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
+                            <ChevronDownIcon
+                              className='h-4 w-4 stroke-1 text-gray-700'
+                              aria-hidden='true'
+                            />
+                          </span>
+                          <span className='text-gray-700'>
+                            {selectedNamespaces.length > 0
+                              ? selectedNamespaces.join(', ')
+                              : 'Select namespaces'}
+                          </span>
                         </div>
-                      </Combobox.Option>
-                    ))}
-                  </Combobox.Options>
+                      </Listbox.Button>
+                      <Listbox.Options className='absolute z-10 w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
+                        <div className='max-h-64 overflow-auto'>
+                          {selectedResource?.resources?.map(r => (
+                            <Listbox.Option
+                              key={r}
+                              className={({ active }) =>
+                                `${
+                                  active ? 'bg-gray-100' : ''
+                                } select-none py-2 px-3 hover:cursor-pointer`
+                              }
+                              value={r}
+                            >
+                              {({ selected }) => (
+                                <div className='flex flex-row'>
+                                  <div className='flex flex-1 flex-col'>
+                                    <div className='flex justify-between py-0.5 font-medium'>
+                                      {r}
+                                      {selected && (
+                                        <CheckIcon
+                                          className='h-3 w-3 text-gray-900'
+                                          aria-hidden='true'
+                                        />
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </Listbox.Option>
+                          ))}
+                        </div>
+                        {selectedResource?.resources?.length > 1 && (
+                          <Listbox.Option
+                            className={({ active }) =>
+                              `${
+                                active ? 'bg-gray-50' : 'bg-white'
+                              } group flex w-full items-center border-t border-gray-100 px-3 py-1.5 text-xs font-medium text-blue-500 hover:cursor-pointer`
+                            }
+                            value={OPTION_SELECT_ALL}
+                          >
+                            <div className='flex flex-row items-center py-0.5'>
+                              {selectedNamespaces.length !==
+                              selectedResource?.resources?.length
+                                ? 'Select all'
+                                : 'Reset'}
+                            </div>
+                          </Listbox.Option>
+                        )}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
                 </div>
               )}
-              <Combobox.Button className='hidden' ref={resourceButton} />
-            </Combobox>
-          </div>
-          {selectedResource !== null && (
-            <div className='relative mt-4 space-y-1'>
-              <label className='text-2xs font-medium text-gray-700'>
-                Namespaces
-              </label>
-              <Listbox
-                value={selectedNamespaces}
-                onChange={v => {
-                  if (v.includes(OPTION_SELECT_ALL)) {
-                    if (
-                      selectedNamespaces.length !==
-                      selectedResource?.resources?.length
-                    ) {
-                      if (selectedResource !== undefined) {
-                        setSelectedNamespaces([...selectedResource.resources])
+              {roles?.length > 1 && (
+                <div className='relative mt-4 space-y-1'>
+                  <label className='text-2xs font-medium text-gray-700'>
+                    Roles
+                  </label>
+                  <Listbox
+                    value={selectedRoles}
+                    onChange={v => {
+                      if (selectedRoles.length === 1 && v.length === 0) {
+                        return
                       }
-                    } else {
-                      setSelectedNamespaces([])
-                    }
-                    return
-                  }
 
-                  setSelectedNamespaces(v)
-                }}
-                multiple
-              >
-                <div className='relative'>
-                  <Listbox.Button className='relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
-                    <div className='flex space-x-1 truncate'>
-                      <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
-                        <ChevronDownIcon
-                          className='h-4 w-4 stroke-1 text-gray-700'
-                          aria-hidden='true'
-                        />
-                      </span>
-                      <span className='text-gray-700'>
-                        {selectedNamespaces.length > 0
-                          ? selectedNamespaces.join(', ')
-                          : 'Select namespaces'}
-                      </span>
-                    </div>
-                  </Listbox.Button>
-                  <Listbox.Options className='absolute z-10 w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
-                    <div className='max-h-64 overflow-auto'>
-                      {selectedResource?.resources?.map(r => (
-                        <Listbox.Option
-                          key={r}
-                          className={({ active }) =>
-                            `${
-                              active ? 'bg-gray-100' : ''
-                            } select-none py-2 px-3 hover:cursor-pointer`
-                          }
-                          value={r}
-                        >
-                          {({ selected }) => (
-                            <div className='flex flex-row'>
-                              <div className='flex flex-1 flex-col'>
-                                <div className='flex justify-between py-0.5 font-medium'>
-                                  {r}
-                                  {selected && (
-                                    <CheckIcon
-                                      className='h-3 w-3 text-gray-900'
-                                      aria-hidden='true'
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </Listbox.Option>
-                      ))}
-                    </div>
-                    {selectedResource?.resources?.length > 1 && (
-                      <Listbox.Option
-                        className={({ active }) =>
-                          `${
-                            active ? 'bg-gray-50' : 'bg-white'
-                          } group flex w-full items-center border-t border-gray-100 px-3 py-1.5 text-xs font-medium text-blue-500 hover:cursor-pointer`
-                        }
-                        value={OPTION_SELECT_ALL}
-                      >
-                        <div className='flex flex-row items-center py-0.5'>
-                          {selectedNamespaces.length !==
-                          selectedResource?.resources?.length
-                            ? 'Select all'
-                            : 'Reset'}
+                      const add = v.filter(x => !selectedRoles.includes(x))
+                      const remove = selectedRoles.filter(x => !v.includes(x))
+                      if (add.length) {
+                        setSelectedRoles([...selectedRoles, ...add])
+                      }
+                      if (remove.length) {
+                        setSelectedRoles(
+                          selectedRoles.filter(x => !remove.includes(x))
+                        )
+                      }
+                    }}
+                    multiple
+                  >
+                    <div className='relative'>
+                      <Listbox.Button className='relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
+                        <div className='flex space-x-1 truncate'>
+                          <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
+                            <ChevronDownIcon
+                              className='h-4 w-4 stroke-1 text-gray-700'
+                              aria-hidden='true'
+                            />
+                          </span>
+                          <span className='text-gray-700'>
+                            {selectedRoles.join(', ')}
+                          </span>
                         </div>
-                      </Listbox.Option>
-                    )}
-                  </Listbox.Options>
-                </div>
-              </Listbox>
-            </div>
-          )}
-          {roles?.length > 1 && (
-            <div className='relative mt-4 space-y-1'>
-              <label className='text-2xs font-medium text-gray-700'>
-                Roles
-              </label>
-              <Listbox
-                value={selectedRoles}
-                onChange={v => {
-                  if (selectedRoles.length === 1 && v.length === 0) {
-                    return
-                  }
-
-                  const add = v.filter(x => !selectedRoles.includes(x))
-                  const remove = selectedRoles.filter(x => !v.includes(x))
-                  if (add.length) {
-                    setSelectedRoles([...selectedRoles, ...add])
-                  }
-                  if (remove.length) {
-                    setSelectedRoles(
-                      selectedRoles.filter(x => !remove.includes(x))
-                    )
-                  }
-                }}
-                multiple
-              >
-                <div className='relative'>
-                  <Listbox.Button className='relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
-                    <div className='flex space-x-1 truncate'>
-                      <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
-                        <ChevronDownIcon
-                          className='h-4 w-4 stroke-1 text-gray-700'
-                          aria-hidden='true'
-                        />
-                      </span>
-                      <span className='text-gray-700'>
-                        {selectedRoles.join(', ')}
-                      </span>
-                    </div>
-                  </Listbox.Button>
-                  <Listbox.Options className='absolute z-[100] w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
-                    <div className='max-h-64 overflow-auto'>
-                      {roles?.map(r => (
-                        <Listbox.Option
-                          key={r}
-                          className={({ active }) =>
-                            `${
-                              active ? 'bg-gray-100' : ''
-                            } select-none py-2 px-3 hover:cursor-pointer`
-                          }
-                          value={r}
-                        >
-                          {({ selected }) => (
-                            <div className='flex flex-row'>
-                              <div className='flex flex-1 flex-col'>
-                                <div className='flex justify-between py-0.5 font-medium'>
-                                  {r}
-                                  {selected && (
-                                    <CheckIcon
-                                      className='h-3 w-3 text-gray-900'
-                                      aria-hidden='true'
-                                    />
-                                  )}
+                      </Listbox.Button>
+                      <Listbox.Options className='absolute z-[100] w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
+                        <div className='max-h-64 overflow-auto'>
+                          {roles?.map(r => (
+                            <Listbox.Option
+                              key={r}
+                              className={({ active }) =>
+                                `${
+                                  active ? 'bg-gray-100' : ''
+                                } select-none py-2 px-3 hover:cursor-pointer`
+                              }
+                              value={r}
+                            >
+                              {({ selected }) => (
+                                <div className='flex flex-row'>
+                                  <div className='flex flex-1 flex-col'>
+                                    <div className='flex justify-between py-0.5 font-medium'>
+                                      {r}
+                                      {selected && (
+                                        <CheckIcon
+                                          className='h-3 w-3 text-gray-900'
+                                          aria-hidden='true'
+                                        />
+                                      )}
+                                    </div>
+                                    <div className='text-3xs text-gray-600'>
+                                      {descriptions[r]}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className='text-3xs text-gray-600'>
-                                  {descriptions[r]}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </Listbox.Option>
-                      ))}
+                              )}
+                            </Listbox.Option>
+                          ))}
+                        </div>
+                      </Listbox.Options>
                     </div>
-                  </Listbox.Options>
+                  </Listbox>
                 </div>
-              </Listbox>
-            </div>
+              )}
+            </>
           )}
         </div>
         <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
@@ -502,7 +495,7 @@ export default function AccessControl() {
   const columns = []
   if (isAdmin) {
     columns.push({
-      header: <span>User / Group </span>,
+      header: <span>User / group </span>,
       id: 'identity',
       accessorKey: 'identityId',
       cell: function Cell(info) {
@@ -659,7 +652,7 @@ export default function AccessControl() {
           setSelectedDeleteIds([])
           setOpenSelectedDeleteModal(false)
         }}
-        title={selectedDeleteIds.length > 1 ? 'Remove grants' : 'Remove grant'}
+        title='Removing access'
         message={
           selectedDeleteIds.length > 1 ? (
             <>are you sure you want to remove all the selected grants?</>
