@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// TestDestinationCredentials uses nested tests that have co-dependency. This could be one giant test, but the t.Run() are nice for segmenting and naming parts of the test.
 func TestDestinationCredentials(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
 	db := srv.db
@@ -46,7 +47,7 @@ func TestDestinationCredentials(t *testing.T) {
 		t.Parallel()
 
 		wg.Wait()
-		resp, status, err := httpReq[*api.CreateDestinationCredential, api.DestinationCredential](t, routes, http.MethodPost, "/api/credentials", &api.CreateDestinationCredential{
+		resp, status, err := httpReq[*api.CreateDestinationCredentialRequest, api.DestinationCredential](t, routes, http.MethodPost, "/api/credentials", &api.CreateDestinationCredentialRequest{
 			Destination: destName,
 		}, key)
 
@@ -60,7 +61,7 @@ func TestDestinationCredentials(t *testing.T) {
 	t.Run("ListDestinationCredentials", func(t *testing.T) {
 		t.Parallel()
 		go wg.Done()
-		resp, status, err := httpReq[*api.ListDestinationCredential, api.ListDestinationCredentialResponse](t, routes, http.MethodGet, "/api/credentials", &api.ListDestinationCredential{
+		resp, status, err := httpReq[*api.ListDestinationCredentialRequest, api.ListDestinationCredentialResponse](t, routes, http.MethodGet, "/api/credentials", &api.ListDestinationCredentialRequest{
 			Destination: destName,
 		}, key)
 		assert.NilError(t, err)
@@ -71,7 +72,7 @@ func TestDestinationCredentials(t *testing.T) {
 		t.Run("AnswerDestinationCredential", func(t *testing.T) {
 			r := resp.Items[0]
 
-			_, status, err := httpReq[*api.AnswerDestinationCredential, api.EmptyResponse](t, routes, http.MethodPut, "/api/credentials", &api.AnswerDestinationCredential{
+			_, status, err := httpReq[*api.AnswerDestinationCredentialRequest, api.EmptyResponse](t, routes, http.MethodPut, "/api/credentials", &api.AnswerDestinationCredentialRequest{
 				ID:                  r.ID,
 				OrganizationID:      r.OrganizationID,
 				BearerToken:         "abc.123",

@@ -45,8 +45,3 @@ func (c DestinationCredential) ToAPI() api.DestinationCredential {
 	}
 	return dc
 }
-
-func (c *DestinationCredential) FromUpdateAPI(r *api.AnswerDestinationCredential) {
-	c.BearerToken = EncryptedAtRest(r.BearerToken)
-	c.CredentialExpiresAt = (*time.Time)(&r.CredentialExpiresAt)
-}

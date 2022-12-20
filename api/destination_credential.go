@@ -4,11 +4,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type CreateDestinationCredential struct {
+type CreateDestinationCredentialRequest struct {
 	Destination string `form:"destination"`
 }
 
-type ListDestinationCredential struct {
+type ListDestinationCredentialRequest struct {
 	Destination     string `form:"destination"`
 	LastUpdateIndex int64  `form:"lastUpdateIndex"`
 }
@@ -49,19 +49,12 @@ type DestinationCredential struct {
 	// Token      string
 }
 
-// AnswerDestinationCredential
-type AnswerDestinationCredential struct {
-	////////////////////
-	// request fields //
-	////////////////////
+// AnswerDestinationCredentialRequest
+type AnswerDestinationCredentialRequest struct {
 	ID             uid.ID `json:"id"`
 	OrganizationID uid.ID `json:"organizationID"`
 
-	// /////////////////////
-	// // response fields //
-	// /////////////////////
-
-	// // API key
+	// API key
 	BearerToken         string `json:"bearerToken"`
 	CredentialExpiresAt Time   `json:"credentialExpiresAt"`
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -39,8 +38,9 @@ func CreateDestinationCredential(c *gin.Context, destination string) (*models.De
 	if err != nil {
 		return nil, fmt.Errorf("ListGrants: %w", err)
 	}
+
 	if len(grants) == 0 {
-		return nil, internal.ErrUnauthorized
+		return nil, HandleAuthErr(ErrNotAuthorized, "destination", "get")
 	}
 
 	dest, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByName: destination})
@@ -172,13 +172,14 @@ func listDestinationCredentialsWithMaxUpdateIndex(rCtx RequestContext, destinati
 	return ListDestinationCredentialResponse{Items: result, MaxUpdateIndex: maxUpdateIndex}, err
 }
 
-func AnswerDestinationCredential(rctx RequestContext, r *api.AnswerDestinationCredential) error {
+func AnswerDestinationCredential(rctx RequestContext, r *api.AnswerDestinationCredentialRequest) error {
 	cr, err := data.GetDestinationCredential(rctx.DBTxn, r.ID, r.OrganizationID)
 	if err != nil {
 		return err
 	}
 
-	cr.FromUpdateAPI(r)
+	cr.BearerToken = models.EncryptedAtRest(r.BearerToken)
+	cr.CredentialExpiresAt = (*time.Time)(&r.CredentialExpiresAt)
 
 	err = data.AnswerDestinationCredential(rctx.DBTxn, cr)
 	if err != nil {

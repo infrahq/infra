@@ -398,11 +398,11 @@ func (c Client) DeleteDestination(ctx context.Context, id uid.ID) error {
 	return delete(ctx, c, fmt.Sprintf("/api/destinations/%s", id), Query{})
 }
 
-func (c Client) CreateDestinationCredential(ctx context.Context, r *CreateDestinationCredential) (*DestinationCredential, error) {
+func (c Client) CreateDestinationCredential(ctx context.Context, r *CreateDestinationCredentialRequest) (*DestinationCredential, error) {
 	return post[DestinationCredential](ctx, c, "/api/credentials", r)
 }
 
-func (c Client) ListDestinationCredentials(ctx context.Context, req ListDestinationCredential) (*ListDestinationCredentialResponse, error) {
+func (c Client) ListDestinationCredentials(ctx context.Context, req ListDestinationCredentialRequest) (*ListDestinationCredentialResponse, error) {
 	resp, err := get[ListDestinationCredentialResponse](ctx, c, "/api/credentials", Query{
 		"destination":     []string{req.Destination},
 		"lastUpdateIndex": []string{strconv.FormatInt(req.LastUpdateIndex, 10)},
@@ -410,7 +410,7 @@ func (c Client) ListDestinationCredentials(ctx context.Context, req ListDestinat
 	return resp, err
 }
 
-func (c Client) AnswerDestinationCredential(ctx context.Context, r *AnswerDestinationCredential) (*EmptyResponse, error) {
+func (c Client) AnswerDestinationCredential(ctx context.Context, r *AnswerDestinationCredentialRequest) (*EmptyResponse, error) {
 	return put[EmptyResponse](ctx, c, "/api/credentials", r)
 }
 

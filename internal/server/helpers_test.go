@@ -117,15 +117,7 @@ func createAccessKey(t *testing.T, db data.WriteTxn, email string) (string, *mod
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
-	provider := data.InfraProvider(db)
-
-	token := &models.AccessKey{
-		IssuedFor:  user.ID,
-		ProviderID: provider.ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
-	}
-
-	body, err := data.CreateAccessKey(db, token)
+	body := createAccessKeyForUser(t, db, user)
 	assert.NilError(t, err)
 
 	return body, user

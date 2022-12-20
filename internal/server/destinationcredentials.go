@@ -8,14 +8,14 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-var createDestinationCredentialRoute = route[api.CreateDestinationCredential, *api.DestinationCredential]{
+var createDestinationCredentialRoute = route[api.CreateDestinationCredentialRequest, *api.DestinationCredential]{
 	handler: CreateDestinationCredential,
 	routeSettings: routeSettings{
 		transactionCommitsEarly: true,
 	},
 }
 
-func CreateDestinationCredential(c *gin.Context, r *api.CreateDestinationCredential) (*api.DestinationCredential, error) {
+func CreateDestinationCredential(c *gin.Context, r *api.CreateDestinationCredentialRequest) (*api.DestinationCredential, error) {
 	req, err := access.CreateDestinationCredential(c, r.Destination)
 	if err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func CreateDestinationCredential(c *gin.Context, r *api.CreateDestinationCredent
 	return &result, nil
 }
 
-var listDestinationCredentialRoute = route[api.ListDestinationCredential, *api.ListDestinationCredentialResponse]{
+var listDestinationCredentialRoute = route[api.ListDestinationCredentialRequest, *api.ListDestinationCredentialResponse]{
 	handler: ListDestinationCredentials,
 	routeSettings: routeSettings{
 		transactionCommitsEarly: true,
@@ -34,7 +34,7 @@ var listDestinationCredentialRoute = route[api.ListDestinationCredential, *api.L
 }
 
 // ListDestinationCredentials is a long-polling endpoint that returns destination credentials awaiting to be filled.
-func ListDestinationCredentials(c *gin.Context, r *api.ListDestinationCredential) (*api.ListDestinationCredentialResponse, error) {
+func ListDestinationCredentials(c *gin.Context, r *api.ListDestinationCredentialRequest) (*api.ListDestinationCredentialResponse, error) {
 	resp, err := access.ListDestinationCredentials(c, r.Destination, r.LastUpdateIndex)
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func ListDestinationCredentials(c *gin.Context, r *api.ListDestinationCredential
 }
 
 // AnswerDestinationCredential is called by the connector to populate authn credentials
-func AnswerDestinationCredential(c *gin.Context, r *api.AnswerDestinationCredential) (*api.EmptyResponse, error) {
+func AnswerDestinationCredential(c *gin.Context, r *api.AnswerDestinationCredentialRequest) (*api.EmptyResponse, error) {
 	rCtx := getRequestContext(c)
 
 	if err := access.AnswerDestinationCredential(rCtx, r); err != nil {
