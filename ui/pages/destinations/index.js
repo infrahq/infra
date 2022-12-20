@@ -24,31 +24,6 @@ export default function Destinations() {
     return null
   }
 
-  const test = [
-    ...destinations,
-    {
-      connected: true,
-      kind: 'ssh',
-      name: 'ssh-demo',
-      connection: { url: 'abc' },
-      version: '0.20.0',
-    },
-    {
-      connected: false,
-      kind: 'ssh',
-      name: 'ssh-demo',
-      connection: { url: 'abc' },
-      version: '0.20.0',
-    },
-    {
-      connected: true,
-      kind: 'ssh',
-      name: 'ssh-demo',
-      connection: { url: '' },
-      version: '0.20.0',
-    },
-  ]
-
   return (
     <div className='mb-10'>
       <Head>
@@ -79,7 +54,7 @@ export default function Destinations() {
         pageCount={totalPages}
         pageIndex={parseInt(page) - 1}
         pageSize={limit}
-        data={test}
+        data={destinations}
         empty='No infrastructure'
         onPageChange={({ pageIndex }) => {
           router.push({
