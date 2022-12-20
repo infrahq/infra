@@ -225,9 +225,6 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		return syncGrantsToDestination(ctx, con, waiter, fn)
 	})
 	group.Go(func() error {
-		ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-		defer cancel()
-
 		// TODO: how long should this wait? Use exponential backoff on error?
 		waiter := repeat.NewWaiter(backoff.NewConstantBackOff(30 * time.Second))
 		for {
@@ -379,6 +376,9 @@ func httpTransportFromOptions(opts ServerOptions) *http.Transport {
 }
 
 func syncDestination(ctx context.Context, con connector) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
 	endpoint, err := getEndpointHostPort(con.k8s, con.options)
 	if err != nil {
 		logging.L.Warn().Err(err).Msg("could not get host")
