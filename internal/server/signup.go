@@ -106,7 +106,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 
 	a.t.User(created.Identity.ID.String(), created.Identity.Name)
 	a.t.Org(created.Organization.ID.String(), created.Identity.ID.String(), created.Organization.Name, created.Organization.Domain)
-	a.t.Event("signup", created.Identity.ID.String(), created.Organization.ID.String(), Properties{})
+	a.t.Event("signup", created.Identity.ID.String(), created.Organization.ID.String(), Properties{}.Set("email", created.Identity.Name))
 
 	link := fmt.Sprintf("https://%s", created.Organization.Domain)
 	err := email.SendSignupEmail("", created.Identity.Name, email.SignupData{

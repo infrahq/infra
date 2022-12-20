@@ -175,7 +175,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	key := result.AccessKey
 	a.t.User(key.IssuedFor.String(), result.User.Name)
 	a.t.OrgMembership(key.OrganizationID.String(), key.IssuedFor.String())
-	a.t.Event("login", key.IssuedFor.String(), key.OrganizationID.String(), Properties{"method": loginMethod.Name()})
+	a.t.Event("login", key.IssuedFor.String(), key.OrganizationID.String(), Properties{
+		"method": loginMethod.Name(),
+		"email":  result.User.Name,
+	})
 
 	// Update the request context so that logging middleware can include the userID
 	rCtx.Authenticated.User = result.User
