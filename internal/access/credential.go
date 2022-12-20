@@ -191,8 +191,8 @@ func checkPasswordRequirements(db data.ReadTxn, password string) error {
 	}
 
 	requirements := []struct {
-		value         int
-		valueFunc     func(rune) bool
+		minCount      int
+		countFunc     func(rune) bool
 		singularError string
 		pluralError   string
 	}{
@@ -207,15 +207,15 @@ func checkPasswordRequirements(db data.ReadTxn, password string) error {
 
 	valid := true
 	for _, r := range requirements {
-		switch {
-		case r.value > 1:
-			requirementError = append(requirementError, fmt.Sprintf(r.pluralError, r.value))
-		case r.value > 0:
-			requirementError = append(requirementError, fmt.Sprintf(r.singularError, r.value))
+		if !hasMinimumCount(password, r.minCount, r.countFunc) {
+			valid = false
 		}
 
-		if !hasMinimumCount(password, r.value, r.valueFunc) {
-			valid = false
+		switch {
+		case r.minCount == 1:
+			requirementError = append(requirementError, fmt.Sprintf(r.singularError, r.minCount))
+		case r.minCount > 1:
+			requirementError = append(requirementError, fmt.Sprintf(r.pluralError, r.minCount))
 		}
 	}
 
