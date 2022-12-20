@@ -294,8 +294,9 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 		SkipTLSVerify:      options.SkipTLSVerify,
 	}
 	client, err := NewAPIClient(&APIClientOpts{
-		Host:      options.Server,
-		Transport: httpTransportForHostConfig(cfg),
+		Host:                     options.Server,
+		Transport:                httpTransportForHostConfig(cfg),
+		SkipLogoutOnUnauthorized: true,
 	},
 	)
 	if err != nil {

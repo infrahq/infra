@@ -545,3 +545,121 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "Server:  C8:73:E3:27:2C:EA:48:00:FA:40:66:1A:3E:97:D8:59:5E:1F:70:8E:83:9F:79:CF:22:04:C8:64:39:40:5B:73"))
 	})
 }
+
+func TestLoginCmd_Unauthorized(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	kubeconfig := filepath.Join(home, "kubeconfig")
+	t.Setenv("KUBECONFIG", kubeconfig)
+
+	id := uid.New()
+	name := "admin@local"
+	accessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
+
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/login" {
+			var loginRequest api.LoginRequest
+			err := json.NewDecoder(r.Body).Decode(&loginRequest)
+			assert.Check(t, err)
+			assert.Equal(t, loginRequest.PasswordCredentials.Name, "admin@local")
+
+			if loginRequest.PasswordCredentials.Password == "password" {
+				loginResponse := &api.LoginResponse{
+					UserID:                 id,
+					Name:                   name,
+					AccessKey:              accessKey,
+					OrganizationName:       "Default",
+					PasswordUpdateRequired: false,
+					Expires:                api.Time(time.Now().UTC().Add(time.Hour * 24)),
+				}
+
+				err = json.NewEncoder(w).Encode(loginResponse)
+				assert.Check(t, err)
+				return
+			}
+
+			w.WriteHeader(http.StatusUnauthorized)
+
+			loginError := &api.Error{
+				Code:    http.StatusUnauthorized,
+				Message: "",
+			}
+
+			err = json.NewEncoder(w).Encode(loginError)
+			assert.Check(t, err)
+		}
+	}))
+
+	t.Run("login with bad credentials", func(t *testing.T) {
+		t.Setenv("INFRA_USER", name)
+		t.Setenv("INFRA_PASSWORD", "notpassword")
+		t.Setenv("INFRA_SKIP_TLS_VERIFY", "true")
+
+		ctx, _ := PatchCLI(context.Background())
+
+		err := Run(ctx, "login", srv.Listener.Addr().String())
+		assert.ErrorContains(t, err, "your username or password may be invalid")
+
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := make([]ClientHostConfig, 0)
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpopts.EquateEmpty())
+	})
+
+	t.Run("login with good credentials", func(t *testing.T) {
+		t.Setenv("INFRA_USER", name)
+		t.Setenv("INFRA_PASSWORD", "password")
+		t.Setenv("INFRA_SKIP_TLS_VERIFY", "true")
+
+		ctx, _ := PatchCLI(context.Background())
+
+		err := Run(ctx, "login", srv.Listener.Addr().String())
+		assert.NilError(t, err)
+
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := []ClientHostConfig{
+			{
+				UserID:        id,
+				Name:          "admin@local",
+				AccessKey:     accessKey,
+				Host:          srv.Listener.Addr().String(),
+				Current:       true,
+				Expires:       api.Time(time.Now().UTC().Add(24 * time.Hour)),
+				SkipTLSVerify: true,
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
+
+	t.Run("login with bad credentials again", func(t *testing.T) {
+		t.Setenv("INFRA_USER", name)
+		t.Setenv("INFRA_PASSWORD", "notpassword")
+		t.Setenv("INFRA_SKIP_TLS_VERIFY", "true")
+
+		ctx, _ := PatchCLI(context.Background())
+
+		err := Run(ctx, "login", srv.Listener.Addr().String())
+		assert.ErrorContains(t, err, "your username or password may be invalid")
+
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := []ClientHostConfig{
+			{
+				UserID:        id,
+				Name:          "admin@local",
+				AccessKey:     accessKey,
+				Host:          srv.Listener.Addr().String(),
+				Current:       true,
+				Expires:       api.Time(time.Now().UTC().Add(24 * time.Hour)),
+				SkipTLSVerify: true,
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
+}
