@@ -21,7 +21,7 @@ export default function AcceptInvite() {
 
   return (
     <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
-      <h1 className='text-base font-bold leading-snug'>Welcome to Infra</h1>
+      <h1 className='text-base font-bold leading-snug'>Accept Invitation</h1>
       {google && (
         <>
           <Providers
@@ -44,9 +44,6 @@ export default function AcceptInvite() {
           </div>
         </>
       )}
-      <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
-        set a password to continue
-      </h2>
       <PasswordResetForm
         header='Welcome to Infra'
         subheader='Please set your password to continue'
