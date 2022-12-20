@@ -132,11 +132,12 @@ func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
 }
 
 type ListProviderUsersOptions struct {
-	ByProviderID   uid.ID
-	ByIdentityID   uid.ID
-	ByIdentityIDs  []uid.ID
-	HideInactive   bool
-	SCIMParameters *SCIMParameters
+	ByProviderID    uid.ID
+	ByNotProviderID uid.ID
+	ByIdentityID    uid.ID
+	ByIdentityIDs   []uid.ID
+	HideInactive    bool
+	SCIMParameters  *SCIMParameters
 }
 
 func ListProviderUsers(tx ReadTxn, opts ListProviderUsersOptions) ([]models.ProviderUser, error) {
@@ -155,6 +156,9 @@ func ListProviderUsers(tx ReadTxn, opts ListProviderUsersOptions) ([]models.Prov
 	query.B("WHERE 1=1") // this is always true, used to make the logic of adding clauses simpler by always appending them with an AND
 	if opts.ByProviderID != 0 {
 		query.B("AND provider_id = ?", opts.ByProviderID)
+	}
+	if opts.ByNotProviderID != 0 {
+		query.B("AND provider_id != ?", opts.ByNotProviderID)
 	}
 	if opts.ByIdentityID != 0 {
 		query.B("AND identity_id = ?", opts.ByIdentityID)

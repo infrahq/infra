@@ -343,9 +343,11 @@ export default function Users() {
                 }
               )
 
-              // can only delete users that exist within Infra which are not the currently logged in user
+              // can only delete Infra users where password authn is the only authn method
               if (
-                info.row.original.id === user?.id ||
+                (info.row.original.id === user?.id &&
+                  info.row.original.providerNames?.filter(n => n != 'infra')
+                    .length == 0) ||
                 !info.row.original.providerNames?.includes('infra')
               ) {
                 return null

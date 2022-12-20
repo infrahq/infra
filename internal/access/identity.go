@@ -57,24 +57,32 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	rCtx := GetRequestContext(c)
-	if isIdentitySelf(rCtx, data.GetIdentityOptions{ByID: id}) {
-		return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
-	}
-
 	if data.InfraConnectorIdentity(rCtx.DBTxn).ID == id {
 		return fmt.Errorf("%w: the connector user can not be deleted", internal.ErrBadRequest)
 	}
 
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
-	if err != nil {
-		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
+	if isIdentitySelf(rCtx, data.GetIdentityOptions{ByID: id}) {
+		// allow delete own infra provider user if it's not the only provider for this user
+		opts := data.ListProviderUsersOptions{ByNotProviderID: data.InfraProvider(rCtx.DBTxn).ID, ByIdentityID: id}
+		providerUsers, err := data.ListProviderUsers(rCtx.DBTxn, opts)
+		if err != nil {
+			return err
+		}
+
+		if len(providerUsers) == 0 {
+			return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
+		}
+	} else {
+		if err := IsAuthorized(rCtx, models.InfraAdminRole); err != nil {
+			return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
+		}
 	}
 
 	opts := data.DeleteIdentitiesOptions{
-		ByProviderID: data.InfraProvider(db).ID,
+		ByProviderID: data.InfraProvider(rCtx.DBTxn).ID,
 		ByID:         id,
 	}
-	return data.DeleteIdentities(db, opts)
+	return data.DeleteIdentities(rCtx.DBTxn, opts)
 }
 
 func ListIdentities(c *gin.Context, opts data.ListIdentityOptions) ([]models.Identity, error) {

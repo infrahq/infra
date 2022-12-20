@@ -809,7 +809,16 @@ func TestAPI_DeleteUser(t *testing.T) {
 
 	testCases := []testCase{
 		// TODO: not authenticated
-		// TODO: not authorized
+		{
+			name:    "not authorized",
+			urlPath: "/api/users/" + testUser.ID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", selfKey))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+			},
+		},
 		{
 			name:    "can not delete internal users",
 			urlPath: "/api/users/" + connector.ID.String(),
@@ -818,13 +827,30 @@ func TestAPI_DeleteUser(t *testing.T) {
 			},
 		},
 		{
-			name:    "can not delete self",
+			name:    "can not delete self with only infra provider",
 			urlPath: "/api/users/" + selfUser.ID.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", selfKey))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
+			},
+		},
+		{
+			name:    "can delete self with another provider",
+			urlPath: "/api/users/" + selfUser.ID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				selfProvider := &models.Provider{Name: "notinfra", Kind: "oidc"}
+				err := data.CreateProvider(srv.DB(), selfProvider)
+				assert.NilError(t, err)
+
+				_, err = data.CreateProviderUser(srv.DB(), selfProvider, selfUser)
+				assert.NilError(t, err)
+
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", selfKey))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
 			},
 		},
 		{
