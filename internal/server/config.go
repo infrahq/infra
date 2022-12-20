@@ -574,8 +574,10 @@ func (s Server) loadConfig(config Config) error {
 		}
 	}
 
-	if err := s.loadUsers(tx, config.Users); err != nil {
-		return fmt.Errorf("load users: %w", err)
+	for _, u := range config.Users {
+		if err := s.loadUser(tx, u); err != nil {
+			return fmt.Errorf("load user %v: %w", u.Name, err)
+		}
 	}
 
 	return tx.Commit()
@@ -603,21 +605,11 @@ func loadGrant(tx data.WriteTxn, userID uid.ID, role string) error {
 	return data.CreateGrant(tx, grant)
 }
 
-func (s Server) loadUsers(db data.WriteTxn, users []User) error {
-	for _, i := range users {
-		_, err := s.loadUser(db, i)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s Server) loadUser(db data.WriteTxn, input User) (*models.Identity, error) {
+func (s Server) loadUser(db data.WriteTxn, input User) error {
 	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: input.Name})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
-			return nil, err
+			return err
 		}
 
 		if input.Name != models.InternalInfraConnectorIdentityName {
@@ -633,29 +625,28 @@ func (s Server) loadUser(db data.WriteTxn, input User) (*models.Identity, error)
 		}
 
 		if err := data.CreateIdentity(db, identity); err != nil {
-			return nil, err
+			return err
 		}
 
 		_, err = data.CreateProviderUser(db, data.InfraProvider(db), identity)
 		if err != nil {
-			return nil, err
+			return err
 		}
-
 	}
 
 	if err := s.loadCredential(db, identity, input.Password); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := s.loadAccessKey(db, identity, input.AccessKey); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := loadGrant(db, identity.ID, input.Role); err != nil {
-		return nil, err
+		return err
 	}
 
-	return identity, nil
+	return nil
 }
 
 func (s Server) loadCredential(db data.WriteTxn, identity *models.Identity, password string) error {
@@ -697,11 +688,7 @@ func (s Server) loadCredential(db data.WriteTxn, identity *models.Identity, pass
 
 	credential.PasswordHash = hash
 
-	if err := data.UpdateCredential(db, credential); err != nil {
-		return err
-	}
-
-	return nil
+	return data.UpdateCredential(db, credential)
 }
 
 func (s Server) loadAccessKey(db data.WriteTxn, identity *models.Identity, key string) error {
@@ -753,9 +740,5 @@ func (s Server) loadAccessKey(db data.WriteTxn, identity *models.Identity, key s
 
 	accessKey.Secret = secret
 
-	if err := data.UpdateAccessKey(db, accessKey); err != nil {
-		return err
-	}
-
-	return nil
+	return data.UpdateAccessKey(db, accessKey)
 }
