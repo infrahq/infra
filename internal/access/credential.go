@@ -174,10 +174,10 @@ func isSymbol(r rune) bool {
 	return (r >= '\u0020' && r <= '\u002F') || (r >= '\u003A' && r <= '\u0040') || (r >= '\u005B' && r <= '\u0060') || (r >= '\u007B' && r <= '\u007E')
 }
 
-func hasMinimumCount(min int, password string, check func(rune) bool) bool {
+func hasMinimumCount(password string, min int, minCheck func(rune) bool) bool {
 	var count int
 	for _, r := range password {
-		if check(r) {
+		if minCheck(r) {
 			count++
 		}
 	}
@@ -189,30 +189,38 @@ func checkPasswordRequirements(db data.ReadTxn, password string) error {
 	if err != nil {
 		return err
 	}
-	errs := make(validate.Error)
 
-	if !hasMinimumCount(settings.LowercaseMin, password, unicode.IsLower) {
-		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d lower case letters", settings.LowercaseMin))
+	requirements := []struct {
+		minCount      int
+		countFunc     func(rune) bool
+		singularError string
+		pluralError   string
+	}{
+		{settings.LengthMin, func(r rune) bool { return true }, "%d character", "%d characters"},
+		{settings.LowercaseMin, unicode.IsLower, "%d lowercase letter", "%d lowercase letters"},
+		{settings.UppercaseMin, unicode.IsUpper, "%d uppercase letter", "%d uppercase letters"},
+		{settings.NumberMin, unicode.IsDigit, "%d number", "%d numbers"},
+		{settings.SymbolMin, isSymbol, "%d symbol", "%d symbols"},
 	}
 
-	if !hasMinimumCount(settings.UppercaseMin, password, unicode.IsUpper) {
-		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d upper case letters", settings.UppercaseMin))
+	requirementError := make([]string, 0)
+
+	valid := true
+	for _, r := range requirements {
+		if !hasMinimumCount(password, r.minCount, r.countFunc) {
+			valid = false
+		}
+
+		switch {
+		case r.minCount == 1:
+			requirementError = append(requirementError, fmt.Sprintf(r.singularError, r.minCount))
+		case r.minCount > 1:
+			requirementError = append(requirementError, fmt.Sprintf(r.pluralError, r.minCount))
+		}
 	}
 
-	if !hasMinimumCount(settings.NumberMin, password, unicode.IsDigit) {
-		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d numbers", settings.NumberMin))
-	}
-
-	if !hasMinimumCount(settings.SymbolMin, password, isSymbol) {
-		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d symbols", settings.SymbolMin))
-	}
-
-	if len(password) < settings.LengthMin {
-		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum length of %d", settings.LengthMin))
-	}
-
-	if len(errs["password"]) > 0 {
-		return errs
+	if !valid {
+		return validate.Error{"password": requirementError}
 	}
 
 	return nil

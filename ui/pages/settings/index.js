@@ -14,6 +14,7 @@ import { Menu } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
 import { sortBySubject } from '../../lib/grants'
+import { formatPasswordRequirements } from '../../lib/login'
 import Notification from '../../components/notification'
 import GrantForm from '../../components/grant-form'
 import Dashboard from '../../components/layouts/dashboard'
@@ -415,8 +416,12 @@ function Password() {
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
-          errors[error.fieldName.toLowerCase()] =
-            error.errors[0] || 'invalid value'
+          const fieldName = error.fieldName.toLowerCase()
+          if (fieldName === 'password') {
+            errors[fieldName] = formatPasswordRequirements(error.errors)
+          } else {
+            errors[fieldName] = error.errors[0] || 'invalid value'
+          }
         }
         setErrors(errors)
       } else {
@@ -441,7 +446,11 @@ function Password() {
             type='password'
             autoComplete='off'
             value={oldPassword}
-            onChange={e => setOldPassword(e.target.value)}
+            onChange={e => {
+              setOldPassword(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
               errors.oldpassword ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -463,7 +472,11 @@ function Password() {
             type='password'
             autoComplete='off'
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={e => {
+              setPassword(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
               errors.password ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -482,7 +495,11 @@ function Password() {
             type='password'
             autoComplete='off'
             value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
+            onChange={e => {
+              setConfirmPassword(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
               errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
             }`}
