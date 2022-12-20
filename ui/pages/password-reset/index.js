@@ -46,10 +46,10 @@ export default function PasswordReset() {
     <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
       {token ? (
         <>
-          <PasswordResetForm
-            header='Reset password'
-            subheader='Set your new password'
-          />
+          <h1 className='text-base font-bold leading-snug'>
+            Reset your password
+          </h1>
+          <PasswordResetForm />
         </>
       ) : (
         <>

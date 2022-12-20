@@ -44,10 +44,7 @@ export default function AcceptInvite() {
           </div>
         </>
       )}
-      <PasswordResetForm
-        header='Welcome to Infra'
-        subheader='Please set your password to continue'
-      />
+      <PasswordResetForm />
     </div>
   )
 }
