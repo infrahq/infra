@@ -89,10 +89,5 @@ func UpdateOrganization(c *gin.Context, org *models.Organization) error {
 		}
 		return data.UpdateOrganization(db, org)
 	}
-	roles := []string{models.InfraSupportAdminRole}
-	err := IsAuthorized(rCtx, roles...)
-	if err != nil {
-		return HandleAuthErr(err, "organization", "update", roles...)
-	}
-	return data.UpdateOrganization(rCtx.DBTxn, org)
+	return fmt.Errorf("%w: %s", ErrNotAuthorized, "you may only update your own organization")
 }
