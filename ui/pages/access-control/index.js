@@ -7,6 +7,7 @@ import {
   TrashIcon,
   CheckIcon,
   ChevronDownIcon,
+  CommandLineIcon,
 } from '@heroicons/react/24/outline'
 import { Dialog, Transition, Combobox, Listbox } from '@headlessui/react'
 
