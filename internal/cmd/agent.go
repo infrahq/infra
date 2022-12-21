@@ -171,15 +171,5 @@ func syncKubeConfig(_ context.Context) error {
 	}
 	client.Name = "agent"
 
-	user, destinations, grants, err := getUserDestinationGrants(client, "kubernetes")
-	if err != nil {
-		return fmt.Errorf("list grants: %w", err)
-	}
-
-	if err := writeKubeconfig(user, destinations, grants); err != nil {
-		return fmt.Errorf("update kubeconfig file: %w", err)
-	}
-
-	logging.L.Info().Msg("finished kubeconfig sync")
-	return nil
+	return updateKubeconfig(client)
 }
