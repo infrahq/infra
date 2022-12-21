@@ -8,10 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -47,7 +49,7 @@ func TestUsersCmd(t *testing.T) {
 		modifiedUsers := []models.Identity{}
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if strings.Contains(req.URL.Path, "/api/providers") {
+			if strings.HasPrefix(req.URL.Path, "/api/providers") {
 				resp.WriteHeader(http.StatusOK)
 
 				providers := []*api.Provider{
@@ -63,7 +65,7 @@ func TestUsersCmd(t *testing.T) {
 				return
 			}
 
-			if strings.Contains(req.URL.Path, "/api/users") {
+			if strings.HasPrefix(req.URL.Path, "/api/users") {
 				switch req.Method {
 				case http.MethodPost:
 					createUserReq := api.CreateUserRequest{}
@@ -219,5 +221,58 @@ func TestUsersCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		golden.Assert(t, bufs.Stdout.String(), t.Name())
+	})
+}
+
+func TestUsersCmd_EditPassword(t *testing.T) {
+	dir := setupEnv(t)
+
+	opts := defaultServerOptions(dir)
+	setupServerOptions(t, &opts)
+	opts.Config.Users = []server.User{
+		{
+			Name:     "admin@local",
+			Password: "password",
+		},
+	}
+	srv, err := server.New(opts)
+	assert.NilError(t, err)
+
+	ctx := context.Background()
+	runAndWait(ctx, t, srv.Run)
+
+	runStep(t, "login", func(t *testing.T) {
+		t.Setenv("INFRA_USER", "admin@local")
+		t.Setenv("INFRA_PASSWORD", "password")
+		t.Setenv("INFRA_SKIP_TLS_VERIFY", "true")
+
+		err := Run(ctx, "login", srv.Addrs.HTTPS.String())
+		assert.NilError(t, err)
+	})
+
+	t.Run("update user password", func(t *testing.T) {
+		t.Setenv("INFRA_NON_INTERACTIVE", "false")
+
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		console := newConsole(t)
+		ctx = PatchCLIWithPTY(ctx, console.Tty())
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			return Run(ctx, "users", "edit", "admin@local", "--password")
+		})
+
+		exp := expector{console: console}
+		exp.ExpectString(t, "Old Password:")
+		exp.Send(t, "password\n")
+		exp.ExpectString(t, "New Password:")
+		exp.Send(t, "p4ssword\n")
+		exp.ExpectString(t, "Confirm New Password:")
+		exp.Send(t, "p4ssword\n")
+		exp.ExpectString(t, "Updated password")
+
+		assert.NilError(t, g.Wait())
 	})
 }

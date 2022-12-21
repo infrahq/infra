@@ -275,10 +275,14 @@ func updateUser(cli *CLI, name string) error {
 	if isSelf {
 		req := &api.UpdateUserRequest{ID: config.UserID}
 
-		fmt.Fprintf(cli.Stderr, "  Enter a new password:\n")
+		oldPasswordPrompt := &survey.Password{Message: "Old Password:"}
+		if err := survey.AskOne(oldPasswordPrompt, &req.OldPassword, cli.surveyIO); err != nil {
+			return err
+		}
 
 	PROMPT:
-		req.Password, err = promptSetPassword(cli, "")
+
+		req.Password, err = promptSetPassword(cli, req.OldPassword)
 		if err != nil {
 			return err
 		}
@@ -376,12 +380,12 @@ PROMPT:
 	prompts := []*survey.Question{
 		{
 			Name:     "Password",
-			Prompt:   &survey.Password{Message: "Password:"},
+			Prompt:   &survey.Password{Message: "New Password:"},
 			Validate: checkPasswordRequirements(oldPassword),
 		},
 		{
 			Name:     "Confirm",
-			Prompt:   &survey.Password{Message: "Confirm Password:"},
+			Prompt:   &survey.Password{Message: "Confirm New Password:"},
 			Validate: survey.Required,
 		},
 	}
