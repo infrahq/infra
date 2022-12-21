@@ -397,7 +397,7 @@ const infraDestinationSSHConfig = `
 Host {{ .Hostname }}
     IdentityFile {{ .KeyFilename }}
     IdentitiesOnly yes
-    UserKnownHostsFile ~/.ssh/infra/known_hosts
+    UserKnownHostsFile {{ .InfraSSHDir }}/known_hosts
     User {{ .Username }}
     Port {{ .Port }}
 
@@ -454,6 +454,7 @@ func writeDestinationSSHConfig(
 		"Hostname":    host,
 		"Port":        port,
 		"KeyFilename": keyFilename,
+		"InfraSSHDir": infraSSHDir,
 	}
 	if err := infraDestinationSSHConfigTemplate.Execute(fh, data); err != nil {
 		return err

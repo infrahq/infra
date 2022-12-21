@@ -46,7 +46,7 @@ jobs:
           POSTGRES_PASSWORD: password123
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
+          --health-interval 5s
           --health-timeout 5s
           --health-retries 5
         ports: ["127.0.0.1:5432:5432"]
@@ -111,3 +111,45 @@ jobs:
         run: |
           go generate ./...
           git diff --exit-code
+
+  test-acceptance:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_name == 'main' || contains(github.event.pull_request.labels.*.name, 'action/test-acceptance') }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.19"
+          cache: true
+      - run: go install gotest.tools/gotestsum@v1.8.2
+
+      - name: Filter goreleaser config to linux only
+        run: go run ./test/bin/goreleaser-filter.go > .goreleaser.linux.yml
+
+      - uses: goreleaser/goreleaser-action@v3
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --snapshot --skip-publish --config .goreleaser.linux.yml
+        env:
+          RELEASE_NAME: 0.0.0
+
+      - name: Start containers
+        run: |
+          head -c 32 < /dev/urandom > test/root.key
+          docker compose -f test/docker-compose.yaml up -d --wait
+
+      - name: Setup destinations
+        run: ./test/setup.sh
+
+      - name: Run tests
+        working-directory: test
+        run: ~/go/bin/gotestsum -ftestname -- ./...
+
+      - name: Container output
+        if: always()
+        run: |
+          set +e
+          docker compose --ansi always -f test/docker-compose.yaml logs
+          echo "systemd logs from ubuntu"
+          docker exec test-destination_ubuntu-1 journalctl -t infra -t sshd -t infra-ssh

@@ -77,7 +77,7 @@ func validateOptionsSSH(opts Options) error {
 	case opts.Server.URL.Host == "":
 		return fmt.Errorf("missing server.url")
 	case opts.Server.AccessKey == "":
-		return fmt.Errorf("missing server.acessKey")
+		return fmt.Errorf("missing server.accessKey")
 	case opts.Name == "":
 		return fmt.Errorf("missing name")
 
