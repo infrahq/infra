@@ -94,11 +94,9 @@ export default function Destinations() {
                     </div>
                   ) : (
                     <div className='text-2xs text-gray-500'>
-                      {info.row.original.connected
-                        ? info.row.original.connection.url === ''
-                          ? '-'
-                          : info.row.original.connection.url
-                        : '-'}
+                      {info.row.original.connection.url === ''
+                        ? '-'
+                        : info.row.original.connection.url}
                     </div>
                   )}
                 </div>
