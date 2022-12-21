@@ -14,7 +14,7 @@ export default function Table({
   data,
   href,
   empty = 'No data',
-  deleteText = 'Delete selected',
+  deleteText = 'Remove selected',
   count = data?.length,
   allowDelete = false,
   selectedRowIds = [],

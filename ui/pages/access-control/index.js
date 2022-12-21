@@ -80,9 +80,9 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
     e.preventDefault()
 
     try {
-      const GrantsToAdd = []
+      const grantsToAdd = []
       if (selectedResource.kind === 'ssh') {
-        GrantsToAdd.push({
+        grantsToAdd.push({
           user: selected.user && selected.id,
           group: selected.group && selected.id,
           privilege: 'connect',
@@ -91,7 +91,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
       } else {
         if (selectedNamespaces.length === 0) {
           selectedRoles.forEach(role => {
-            GrantsToAdd.push({
+            grantsToAdd.push({
               user: selected.user && selected.id,
               group: selected.group && selected.id,
               privilege: role,
@@ -101,7 +101,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
         } else {
           selectedNamespaces.forEach(resource => {
             selectedRoles.forEach(role => {
-              GrantsToAdd.push({
+              grantsToAdd.push({
                 user: selected.user && selected.id,
                 group: selected.group && selected.id,
                 privilege: role,
@@ -114,7 +114,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
 
       const newGrants = await fetch('/api/grants', {
         method: 'PATCH',
-        body: JSON.stringify({ GrantsToAdd }),
+        body: JSON.stringify({ GrantsToAdd: grantsToAdd }),
       })
 
       onCreated(newGrants)
@@ -143,7 +143,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
             >
               <Combobox.Input
                 className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                placeholder='Enter group or user'
+                placeholder='User or group'
                 onChange={e => {
                   setQuery(e.target.value)
                   if (e.target.value.length === 0) {
@@ -208,7 +208,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                 >
                   <Combobox.Input
                     className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-                    placeholder='Enter resource'
+                    placeholder='infrastructure'
                     onChange={e => {
                       setResourceQuery(e.target.value)
                       if (e.target.value.length === 0) {
@@ -236,7 +236,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                               <div className='flex min-w-0 flex-1 flex-col'>
                                 <div className='flex justify-between py-0.5 font-medium'>
                                   <span className='truncate' title={f.name}>
-                                    {f.name}
+                                    {f.name} - {f.kind}
                                   </span>
                                   {selectedResource &&
                                     selectedResource.id === f.id && (
@@ -586,7 +586,22 @@ export default function AccessControl() {
           ...columns,
           {
             id: 'infrastructure',
-            cell: info => <span>{info.getValue().split('.')[0]}</span>,
+            cell: info => (
+              <span className='flex flex-row items-center py-1'>
+                <div className='mr-3 flex h-6 w-6 flex-none items-center justify-center rounded-md border border-gray-200'>
+                  {info.row.original.kind === 'ssh' ? (
+                    <CommandLineIcon className='h-4 text-black' />
+                  ) : (
+                    <img
+                      alt='kubernetes icon'
+                      className='h-4'
+                      src={`/kubernetes.svg`}
+                    />
+                  )}
+                </div>
+                {info.getValue().split('.')[0]}
+              </span>
+            ),
             header: () => <span>Infrastructure</span>,
             accessorKey: 'resource',
           },
@@ -653,13 +668,7 @@ export default function AccessControl() {
           setOpenSelectedDeleteModal(false)
         }}
         title='Removing access'
-        message={
-          selectedDeleteIds.length > 1 ? (
-            <>are you sure you want to remove all the selected grants?</>
-          ) : (
-            <>are you sure you want to remove this grant?</>
-          )
-        }
+        message='Are you sure you want to remove the selected access?'
       />
     </div>
   )
