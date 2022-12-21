@@ -17,7 +17,7 @@ import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
 
 function oidcLogin(
-  { baseDomain, loginDomain, id, clientID, authURL, scopes },
+  { baseDomain, loginDomain, id, clientID, authURL, scopes, kind },
   next
 ) {
   window.localStorage.setItem('providerID', id)
@@ -49,9 +49,22 @@ function oidcLogin(
   }
   window.localStorage.setItem('redirectURL', redirectURL)
 
-  document.location.href = `${authURL}?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=${scopes.join(
-    '+'
-  )}&state=${state}`
+  const sendTo = new URL(authURL)
+  // URL searchParams add query parameters to a URL
+  sendTo.searchParams.append('redirect_uri', redirectURL)
+  sendTo.searchParams.append('client_id', clientID)
+  sendTo.searchParams.append('response_type', 'code')
+  sendTo.searchParams.append('scope', scopes.join(' '))
+  sendTo.searchParams.append('state', state)
+
+  if (kind === 'google') {
+    // google only sends a refresh token when a user consents, always prompt so we always get the ref token
+    sendTo.searchParams.append('prompt', 'consent')
+    // also need to specify offline access in the case of Google to get a refresh token
+    sendTo.searchParams.append('access_type', 'offline')
+  }
+
+  document.location.href = sendTo.href
 }
 
 function Providers({ baseDomain, loginDomain, providers }) {

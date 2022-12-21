@@ -6,7 +6,7 @@ import { currentBaseDomain } from '../lib/login'
 import { providers as providersList } from '../lib/providers'
 
 export function oidcLogin(
-  { baseDomain, loginDomain, id, clientID, authURL, scopes },
+  { baseDomain, loginDomain, id, clientID, authURL, scopes, kind },
   next
 ) {
   if (baseDomain === '') {
@@ -27,15 +27,15 @@ export function oidcLogin(
     redirectURL = window.location.protocol + '//' + loginDomain + '/redirect' // go to the social login redirect specified by the server
   }
 
-  oidc(id, clientID, authURL, scopes, redirectURL, next)
+  oidc(id, clientID, authURL, scopes, kind, redirectURL, next)
 }
 
-export function oidcSignup({ id, clientID, authURL, scopes }, next) {
+export function oidcSignup({ id, clientID, authURL, scopes, kind }, next) {
   const redirectURL = window.location.origin + '/signup/callback'
-  oidc(id, clientID, authURL, scopes, redirectURL, next)
+  oidc(id, clientID, authURL, scopes, kind, redirectURL, next)
 }
 
-function oidc(id, clientID, authURL, scopes, redirectURL, next) {
+function oidc(id, clientID, authURL, scopes, kind, redirectURL, next) {
   window.localStorage.setItem('redirectURL', redirectURL)
 
   window.localStorage.setItem('providerID', id)
@@ -48,9 +48,22 @@ function oidc(id, clientID, authURL, scopes, redirectURL, next) {
     .join('')
   window.localStorage.setItem('state', state)
 
-  document.location.href = `${authURL}?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=${scopes.join(
-    '+'
-  )}&state=${state}`
+  const sendTo = new URL(authURL)
+  // URL searchParams add query parameters to a URL
+  sendTo.searchParams.append('redirect_uri', redirectURL)
+  sendTo.searchParams.append('client_id', clientID)
+  sendTo.searchParams.append('response_type', 'code')
+  sendTo.searchParams.append('scope', scopes.join(' '))
+  sendTo.searchParams.append('state', state)
+
+  if (kind === 'google') {
+    // google only sends a refresh token when a user consents, always prompt so we always get the ref token
+    sendTo.searchParams.append('prompt', 'consent')
+    // also need to specify offline access in the case of Google to get a refresh token
+    sendTo.searchParams.append('access_type', 'offline')
+  }
+
+  document.location.href = sendTo.href
 }
 
 export default function Providers({
