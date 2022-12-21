@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/internal/server/data"
@@ -31,17 +32,15 @@ func TestSSHDAuthKeysCmd(t *testing.T) {
 	opts := defaultServerOptions(home)
 	opts.Config = server.Config{
 		Users: []server.User{
-			{Name: "admin@example.com", AccessKey: "0000000001.adminadminadminadmin1234"},
+			{
+				Name:      "admin@example.com",
+				AccessKey: "0000000001.adminadminadminadmin1234",
+				Role:      "admin",
+			},
 			{Name: "connector", AccessKey: "0000000003.connectorsecretconnector"},
 			{Name: "anyuser@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},
 			{Name: "otheruser@example.com"},
 			{Name: "nogrant@example.com"},
-		},
-		Grants: []server.Grant{
-			{User: "admin@example.com", Resource: "infra", Role: "admin"},
-			{User: "anyuser@example.com", Resource: "prodhost", Role: "connect"},
-			{User: "otheruser@example.com", Resource: "prodhost", Role: "connect"},
-			{User: "nogrant@example.com", Resource: "otherhost", Role: "connect"},
 		},
 	}
 	setupServerOptions(t, &opts)
@@ -50,6 +49,12 @@ func TestSSHDAuthKeysCmd(t *testing.T) {
 
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
+
+	createGrants(t, srv.DB(),
+		api.GrantRequest{UserName: "anyuser@example.com", Resource: "prodhost", Privilege: "connect"},
+		api.GrantRequest{UserName: "otheruser@example.com", Resource: "prodhost", Privilege: "connect"},
+		api.GrantRequest{UserName: "nogrant@example.com", Resource: "otherhost", Privilege: "connect"},
+	)
 
 	pubKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxB1cFqocoje6xEGj3UOlNMo4b51ff7F7V4FzVsVyGk2iDYy/ZwuFfdAnKVQETCY/jwpKw6UQp7Sg1E5R9YljyCRjSGJXY1Tv07HJsYF8z4vVXpV15Sp4md9ExB0EGkdtagb10pX3lnj5vZSur6NvdsXWYh8ikZZydB3KKCV3ylgb2OOzGpSHD9MEc4b1LUyFAqB7zZeiccDYgIqwZ3spuX7Kt3vrC46H1Fv9yWjnZ4S1xJYHVgDwBTJE3rszVzX5ZHCbdvWMKBbvnzZlh8GBwxgoH4MEPnhTZSCk26BtFjSGyVG3CXsI0o4uJERw+oqSG/A45LN+qa0e+0O54VylIgploM0+inWDL7tInUjkFIFd6qhqxELGVpE8BOrw8ucW8xfmWyCISI9W9Z482HK2/SCuFWCJaPxHEOgLjYwB4aTEMbLSewRRRBUC1J4hmIp23Hu2yYuE7kC8w7zWptw43qLvWy4SAdCZFEpR+hSRD77nnsgabz4HGGnECAFwRXA0=`
 	addUserPublicKeyByEmail(t, srv.DB(), "anyuser@example.com", pubKey)

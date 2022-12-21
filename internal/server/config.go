@@ -585,7 +585,7 @@ func loadGrant(tx data.WriteTxn, userID uid.ID, role string) error {
 	if role == "" {
 		return nil
 	}
-	grant, err := data.GetGrant(tx, data.GetGrantOptions{
+	_, err := data.GetGrant(tx, data.GetGrantOptions{
 		BySubject:   uid.NewIdentityPolymorphicID(userID),
 		ByResource:  access.ResourceInfraAPI,
 		ByPrivilege: role,
@@ -594,7 +594,7 @@ func loadGrant(tx data.WriteTxn, userID uid.ID, role string) error {
 		return err
 	}
 
-	grant = &models.Grant{
+	grant := &models.Grant{
 		Subject:   uid.NewIdentityPolymorphicID(userID),
 		Resource:  access.ResourceInfraAPI,
 		Privilege: role,
