@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strings"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/data/encrypt"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/redis"
@@ -55,15 +58,14 @@ type Options struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 
-	DBEncryptionKey         string
-	DBEncryptionKeyProvider string
-	DBHost                  string
-	DBPort                  int
-	DBName                  string
-	DBUsername              string
-	DBPassword              string
-	DBParameters            string
-	DBConnectionString      string
+	DBEncryptionKey    string
+	DBHost             string
+	DBPort             int
+	DBName             string
+	DBUsername         string
+	DBPassword         string
+	DBParameters       string
+	DBConnectionString string
 
 	EmailAppDomain   string
 	EmailFromAddress string
@@ -170,6 +172,12 @@ func New(options Options) (*Server, error) {
 	}
 	options.DB.DSN = dsn
 	options.DB.RootKeyFilePath = options.DBEncryptionKey
+
+	if _, err := os.Stat(options.DB.RootKeyFilePath); errors.Is(err, fs.ErrNotExist) {
+		if err := encrypt.CreateRootKey(options.DB.RootKeyFilePath); err != nil {
+			return nil, err
+		}
+	}
 
 	db, err := data.NewDB(options.DB)
 	if err != nil {

@@ -92,7 +92,6 @@ func defaultServerOptions(infraDir string) server.Options {
 		Version:                  0.3, // update this as the config version changes
 		TLSCache:                 filepath.Join(infraDir, "cache"),
 		DBEncryptionKey:          filepath.Join(infraDir, "sqlite3.db.key"),
-		DBEncryptionKeyProvider:  "native",
 		EnableTelemetry:          true,
 		SessionDuration:          24 * time.Hour * 30, // 30 days
 		SessionInactivityTimeout: 24 * time.Hour * 3,  // 3 days

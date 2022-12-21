@@ -175,7 +175,6 @@ sessionDuration: 3m
 sessionInactivityTimeout: 1m
 
 dbEncryptionKey: /this-is-the-path
-dbEncryptionKeyProvider: the-provider
 dbHost: the-host
 dbPort: 5432
 dbName: infradbname
@@ -257,14 +256,13 @@ api:
 					SessionDuration:          3 * time.Minute,
 					SessionInactivityTimeout: 1 * time.Minute,
 
-					DBEncryptionKey:         "/this-is-the-path",
-					DBEncryptionKeyProvider: "the-provider",
-					DBHost:                  "the-host",
-					DBPort:                  5432,
-					DBParameters:            "sslmode=require",
-					DBPassword:              "env:POSTGRES_DB_PASSWORD",
-					DBUsername:              "infra",
-					DBName:                  "infradbname",
+					DBEncryptionKey: "/this-is-the-path",
+					DBHost:          "the-host",
+					DBPort:          5432,
+					DBParameters:    "sslmode=require",
+					DBPassword:      "env:POSTGRES_DB_PASSWORD",
+					DBUsername:      "infra",
+					DBName:          "infradbname",
 
 					BaseDomain:         "foo.example.com",
 					LoginDomainPrefix:  "login",
@@ -399,8 +397,10 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
 	pgDriver := database.PostgresDriver(t, "_cmd")
 	patchRunServer(t, noServerRun)
 
+	rootKeyPath := filepath.Join(t.TempDir(), "root.key")
 	content := `
       dbConnectionString: ` + pgDriver.DSN + `
+      dbEncryptionKey: ` + rootKeyPath + `
       addr:
         http: "127.0.0.1:0"
         https: "127.0.0.1:0"
