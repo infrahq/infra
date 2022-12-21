@@ -5,8 +5,6 @@ import (
 	"fmt"
 	mathrand "math/rand"
 
-	"github.com/infrahq/secrets"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data/encrypt"
 	"github.com/infrahq/infra/internal/server/data/migrator"
@@ -77,11 +75,6 @@ func GetEncryptionKeyByName(tx StdlibTxn, name string) (*models.EncryptionKey, e
 		return nil, handleError(err)
 	}
 	return (*models.EncryptionKey)(table), nil
-}
-
-type EncryptionKeyProvider interface {
-	GenerateDataKey(rootKeyID string) (*secrets.SymmetricKey, error)
-	DecryptDataKey(rootKeyID string, keyData []byte) (*secrets.SymmetricKey, error)
 }
 
 var dbKeyName = "dbkey"
