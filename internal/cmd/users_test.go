@@ -241,7 +241,7 @@ func TestUsersCmd_EditPassword(t *testing.T) {
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
 
-	t.Run("login", func(t *testing.T) {
+	runStep(t, "login", func(t *testing.T) {
 		t.Setenv("INFRA_USER", "admin@local")
 		t.Setenv("INFRA_PASSWORD", "password")
 		t.Setenv("INFRA_SKIP_TLS_VERIFY", "true")
