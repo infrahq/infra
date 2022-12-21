@@ -146,7 +146,7 @@ users:
 				expected.TLS.CAPrivateKey = "file:foo/ca.key"
 				expected.DBConnectionString = "host=db port=5432 user=postgres dbname=postgres password=postgres"
 				expected.DBEncryptionKey = "/root.key"
-				expected.Config.Users = []server.User{
+				expected.BootstrapConfig.Users = []server.User{
 					{
 						Name:      "username",
 						AccessKey: "access-key",
@@ -290,7 +290,7 @@ api:
 						},
 					},
 
-					Config: server.Config{
+					BootstrapConfig: server.BootstrapConfig{
 						Users: []server.User{
 							{
 								Name:      "username",

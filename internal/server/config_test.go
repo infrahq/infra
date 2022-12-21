@@ -293,14 +293,14 @@ func TestSecretProvider_PrepareForDecode_IntegrationWithDecode(t *testing.T) {
 func TestLoadConfigEmpty(t *testing.T) {
 	s := setupServer(t)
 
-	err := s.loadConfig(Config{})
+	err := s.loadConfig(BootstrapConfig{})
 	assert.NilError(t, err)
 }
 
 func TestLoadConfigWithUsers(t *testing.T) {
 	s := setupServer(t)
 
-	config := Config{
+	config := BootstrapConfig{
 		Users: []User{
 			{
 				Name: "bob@example.com",
@@ -350,7 +350,7 @@ func TestLoadConfigWithUsers(t *testing.T) {
 func TestLoadConfigUpdate(t *testing.T) {
 	s := setupServer(t)
 
-	config := Config{
+	config := BootstrapConfig{
 		Users: []User{
 			{
 				Name: "r2d2@example.com",
@@ -406,7 +406,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), accessKeys) // c3po
 
-	updatedConfig := Config{
+	updatedConfig := BootstrapConfig{
 		Users: []User{
 			{
 				Name: "c3po@example.com",

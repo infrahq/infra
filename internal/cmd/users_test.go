@@ -229,7 +229,7 @@ func TestUsersCmd_EditPassword(t *testing.T) {
 
 	opts := defaultServerOptions(dir)
 	setupServerOptions(t, &opts)
-	opts.Config.Users = []server.User{
+	opts.BootstrapConfig.Users = []server.User{
 		{
 			Name:     "admin@local",
 			Password: "password",

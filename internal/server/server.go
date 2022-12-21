@@ -84,7 +84,7 @@ type Options struct {
 	Keys    []KeyProvider
 	Secrets []SecretProvider
 
-	Config
+	BootstrapConfig
 
 	Addr ListenerOptions
 	UI   UIOptions
@@ -234,7 +234,7 @@ func New(options Options) (*Server, error) {
 		}
 	}
 
-	if err := server.loadConfig(server.options.Config); err != nil {
+	if err := server.loadConfig(server.options.BootstrapConfig); err != nil {
 		return nil, fmt.Errorf("configs: %w", err)
 	}
 

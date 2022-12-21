@@ -23,7 +23,7 @@ func TestListCmd(t *testing.T) {
 	t.Setenv("KUBECONFIG", kubeConfigPath)
 
 	opts := defaultServerOptions(dir)
-	opts.Config = server.Config{
+	opts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
 			{Name: "admin", AccessKey: "0000000001.adminadminadminadmin1234", Role: "admin"},
 			{Name: "nogrants@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},

@@ -55,7 +55,7 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 	dir := t.TempDir()
 	serverOpts := defaultServerOptions(dir)
 	setupServerOptions(t, &serverOpts)
-	serverOpts.Config = server.Config{
+	serverOpts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
 			{Name: "admin@example.com", AccessKey: "0000000001.adminadminadminadmin1234"},
 			{Name: "connector", AccessKey: "0000000002.connectorconnectorconnec"},
