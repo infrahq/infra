@@ -39,12 +39,10 @@ func TestUpdateKubeconfig(t *testing.T) {
 		{
 			User:     "admin@local",
 			Resource: "my-first-kubernetes-cluster",
-			// Role: "admin",
 		},
 		{
 			User:     "admin@local",
 			Resource: "my-first-ssh-server",
-			// Role: "admin",
 		},
 	}
 	srv, err := server.New(serverOpts)
