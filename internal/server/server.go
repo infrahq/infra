@@ -169,13 +169,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("postgres dsn: %w", err)
 	}
 	options.DB.DSN = dsn
-
-	dbKeyProvider, ok := server.keys[options.DBEncryptionKeyProvider]
-	if !ok {
-		return nil, fmt.Errorf("key provider %s not configured", options.DBEncryptionKeyProvider)
-	}
-	options.DB.EncryptionKeyProvider = dbKeyProvider
-	options.DB.RootKeyID = options.DBEncryptionKey
+	options.DB.RootKeyFilePath = options.DBEncryptionKey
 
 	db, err := data.NewDB(options.DB)
 	if err != nil {
