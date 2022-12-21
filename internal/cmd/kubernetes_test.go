@@ -24,29 +24,20 @@ func TestUpdateKubeconfig(t *testing.T) {
 	serverOpts := defaultServerOptions(home)
 	setupServerOptions(t, &serverOpts)
 	accessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
-	serverOpts.Config.Users = []server.User{
+	serverOpts.BootstrapConfig.Users = []server.User{
 		{
 			Name:      "admin@local",
 			AccessKey: accessKey,
+			Role:      "admin",
 		},
 	}
-	serverOpts.Config.Grants = []server.Grant{
-		{
-			User:     "admin@local",
-			Resource: "infra",
-			Role:     "admin",
-		},
-		{
-			User:     "admin@local",
-			Resource: "my-first-kubernetes-cluster",
-		},
-		{
-			User:     "admin@local",
-			Resource: "my-first-ssh-server",
-		},
-	}
+
 	srv, err := server.New(serverOpts)
 	assert.NilError(t, err)
+
+	createGrants(t, srv.DB(),
+		api.GrantRequest{UserName: "admin@local", Resource: "my-first-kubernetes-cluster", Privilege: "connect"},
+		api.GrantRequest{UserName: "admin@local", Resource: "my-first-ssh-server", Privilege: "connect"})
 
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)

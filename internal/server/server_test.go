@@ -53,7 +53,7 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	err := loadDefaultSecretConfig(s.secrets)
 	assert.NilError(t, err)
 
-	err = s.loadConfig(s.options.Config)
+	err = s.loadConfig(s.options.BootstrapConfig)
 	assert.NilError(t, err)
 
 	s.metricsRegistry = prometheus.NewRegistry()
@@ -413,7 +413,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	checkAuthenticated()
 
 	// reload server config
-	err = s.loadConfig(s.options.Config)
+	err = s.loadConfig(s.options.BootstrapConfig)
 	assert.NilError(t, err)
 
 	// retry the authenticated endpoint

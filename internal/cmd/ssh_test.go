@@ -29,7 +29,7 @@ func TestSSHHostsCmd(t *testing.T) {
 
 	srvDir := t.TempDir()
 	opts := defaultServerOptions(srvDir)
-	opts.Config = server.Config{
+	opts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
 			{
 				Name:      "admin@example.com",
@@ -343,7 +343,7 @@ func TestProvisionSSHKey(t *testing.T) {
 
 	srvDir := t.TempDir()
 	opts := defaultServerOptions(srvDir)
-	opts.Config = server.Config{
+	opts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
 			{Name: "admin@example.com", AccessKey: "0000000001.adminadminadminadmin1234"},
 			{Name: "anyuser@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},

@@ -30,7 +30,7 @@ func TestSSHDAuthKeysCmd(t *testing.T) {
 	})
 
 	opts := defaultServerOptions(home)
-	opts.Config = server.Config{
+	opts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
 			{
 				Name:      "admin@example.com",

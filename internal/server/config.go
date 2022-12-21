@@ -21,7 +21,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type Config struct {
+type BootstrapConfig struct {
 	DefaultOrganizationDomain string
 	Users                     []User
 }
@@ -39,7 +39,7 @@ func (u User) ValidationRules() []validate.ValidationRule {
 	}
 }
 
-func (c Config) ValidationRules() []validate.ValidationRule {
+func (c BootstrapConfig) ValidationRules() []validate.ValidationRule {
 	// no-op implement to satisfy the interface
 	return nil
 }
@@ -553,7 +553,7 @@ func getKindFromUnstructured(data interface{}) string {
 	return ""
 }
 
-func (s Server) loadConfig(config Config) error {
+func (s Server) loadConfig(config BootstrapConfig) error {
 	if err := validate.Validate(config); err != nil {
 		return err
 	}
