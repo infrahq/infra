@@ -195,6 +195,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
               <Combobox.Button className='hidden' ref={identityButton} />
             </Combobox>
           </div>
+          {/* {TODO: bug here somewhere} */}
           {selectedResource?.kind !== 'ssh' && (
             <>
               {/* Resource / Infrastructure dropdown selection */}
@@ -599,6 +600,7 @@ export default function AccessControl() {
                       src={`/kubernetes.svg`}
                     />
                   )}
+                  {/* TODO: default icon when kind is === '' */}
                 </div>
                 {info.getValue().split('.')[0]}
               </span>
