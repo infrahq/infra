@@ -25,9 +25,7 @@ import (
 type NewDBOptions struct {
 	DSN string
 
-	EncryptionKeyProvider EncryptionKeyProvider
-	RootKeyID             string
-
+	RootKeyFilePath    string
 	MaxOpenConnections int
 	MaxIdleConnections int
 	MaxIdleTimeout     time.Duration
@@ -50,10 +48,10 @@ func NewDB(dbOpts NewDBOptions) (*DB, error) {
 	opts := migrator.Options{
 		InitSchema: initializeSchema,
 		LoadKey: func(tx migrator.DB) error {
-			if dbOpts.EncryptionKeyProvider == nil {
+			if dbOpts.RootKeyFilePath == "" {
 				return nil
 			}
-			return loadDBKey(tx, dbOpts.EncryptionKeyProvider, dbOpts.RootKeyID)
+			return loadDBKey(tx, dbOpts.RootKeyFilePath)
 		},
 	}
 	m := migrator.New(tx, opts, migrations())
