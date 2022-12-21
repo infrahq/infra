@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { useSWRConfig } from 'swr'
 
-export default function PasswordResetForm({ header, subheader }) {
+export default function PasswordResetForm() {
   const { mutate } = useSWRConfig()
   const router = useRouter()
   const { token } = router.query
@@ -41,10 +41,6 @@ export default function PasswordResetForm({ header, subheader }) {
 
   return (
     <>
-      <h1 className='text-base font-bold leading-snug'>{header}</h1>
-      <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
-        {subheader}
-      </h2>
       <form
         onSubmit={onSubmit}
         className='relative flex w-full max-w-sm flex-col'
