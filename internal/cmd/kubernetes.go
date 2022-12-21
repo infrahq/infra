@@ -43,7 +43,9 @@ func kubernetesSetContext(cli *CLI, cluster, namespace string) error {
 		return fmt.Errorf("context not found: %v", friendlyName)
 	}
 
-	kubeContext.Namespace = namespace
+	if namespace != "" {
+		kubeContext.Namespace = namespace
+	}
 
 	kubeConfig.CurrentContext = contextName
 	kubeConfig.Contexts[contextName] = kubeContext
