@@ -107,7 +107,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		// hack because we don't have names.
 		fromName := email.BuildNameFromEmail(currentUser.Name)
 
-		token, user, err := access.PasswordResetRequest(c, user.Name, 72*time.Hour)
+		token, err := data.CreatePasswordResetToken(rCtx.DBTxn, user.ID, 72*time.Hour)
 		if err != nil {
 			return nil, err
 		}

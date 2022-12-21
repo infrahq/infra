@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -42,7 +43,6 @@ func TestPasswordResetFlow(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	// nolint:noctx
 	req := httptest.NewRequest(http.MethodPost, "/api/password-reset-request", bytes.NewBuffer(body))
 	req.Header.Add("Infra-Version", "0.13.6")
 
@@ -50,7 +50,6 @@ func TestPasswordResetFlow(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
-
 	assert.Assert(t, len(email.TestDataSent) > 0)
 
 	// cheat and grab the token from the db.
@@ -76,20 +75,38 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, string(link), "https:///password-reset?token="+token)
 
-	// reset the password with the token
-	body, err = json.Marshal(&api.VerifiedResetPasswordRequest{
-		Token:    token,
-		Password: "my new pw!2351",
+	runStep(t, "reset password with token", func(t *testing.T) {
+		body, err = json.Marshal(&api.VerifiedResetPasswordRequest{
+			Token:    token,
+			Password: "my new pw!2351",
+		})
+		assert.NilError(t, err)
+
+		req = httptest.NewRequest(http.MethodPost, "/api/password-reset", bytes.NewBuffer(body))
+		req.Header.Add("Infra-Version", apiVersionLatest)
+
+		resp = httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+		// check the password was updated
+		cred, err := data.GetCredentialByUserID(s.DB(), user.ID)
+		assert.NilError(t, err)
+		err = bcrypt.CompareHashAndPassword(cred.PasswordHash, []byte("my new pw!2351"))
+		assert.NilError(t, err)
 	})
-	assert.NilError(t, err)
 
-	// nolint:noctx
-	req = httptest.NewRequest(http.MethodPost, "/api/password-reset", bytes.NewBuffer(body))
-	req.Header.Add("Infra-Version", "0.13.6")
+	runStep(t, "token can not be used again", func(t *testing.T) {
+		body, err := json.Marshal(&api.VerifiedResetPasswordRequest{
+			Token:    token,
+			Password: "another password",
+		})
+		assert.NilError(t, err)
+		req = httptest.NewRequest(http.MethodPost, "/api/password-reset", bytes.NewBuffer(body))
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
-	resp = httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
-
+		resp = httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, http.StatusNotFound, resp.Code, (*responseDebug)(resp))
+	})
 }
