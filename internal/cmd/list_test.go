@@ -25,15 +25,9 @@ func TestListCmd(t *testing.T) {
 	opts := defaultServerOptions(dir)
 	opts.Config = server.Config{
 		Users: []server.User{
-			{Name: "admin", AccessKey: "0000000001.adminadminadminadmin1234"},
+			{Name: "admin", AccessKey: "0000000001.adminadminadminadmin1234", Role: "admin"},
 			{Name: "nogrants@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},
 			{Name: "manygrants@example.com", AccessKey: "0000000003.notadminsecretnotadmin03"},
-		},
-		Grants: []server.Grant{
-			{User: "admin", Resource: "infra", Role: "admin"},
-			{User: "manygrants@example.com", Resource: "space", Role: "explorer"},
-			{User: "manygrants@example.com", Resource: "moon", Role: "inhabitant"},
-			{User: "manygrants@example.com", Resource: "infra-this-is-not", Role: "view"},
 		},
 	}
 	setupServerOptions(t, &opts)
@@ -42,6 +36,12 @@ func TestListCmd(t *testing.T) {
 
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
+
+	createGrants(t, srv.DB(),
+		api.GrantRequest{UserName: "manygrants@example.com", Resource: "space", Privilege: "explorer"},
+		api.GrantRequest{UserName: "manygrants@example.com", Resource: "moon", Privilege: "inhabitant"},
+		api.GrantRequest{UserName: "manygrants@example.com", Resource: "infra-this-is-not", Privilege: "view"},
+	)
 
 	clientOpts := &APIClientOpts{
 		Host:      srv.Addrs.HTTPS.String(),

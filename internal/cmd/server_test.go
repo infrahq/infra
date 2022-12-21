@@ -124,18 +124,12 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 			name: "env vars with config file",
 			setup: func(t *testing.T, cmd *cobra.Command) {
 				content := `
-grants:
-  - user: user1
-    resource: infra
-    role: admin
-  - user: user2
-    resource: infra
-    role: admin
 
 users:
   - name: username
     accessKey: access-key
     password: the-password
+    role: admin
 `
 				dir := fs.NewDir(t, t.Name(),
 					fs.WithFile("cfg.yaml", content))
@@ -153,11 +147,12 @@ users:
 				expected.DBConnectionString = "host=db port=5432 user=postgres dbname=postgres password=postgres"
 				expected.DBEncryptionKey = "/root.key"
 				expected.Config.Users = []server.User{
-					{Name: "username", AccessKey: "access-key", Password: "the-password"},
-				}
-				expected.Config.Grants = []server.Grant{
-					{User: "user1", Resource: "infra", Role: "admin"},
-					{User: "user2", Resource: "infra", Role: "admin"},
+					{
+						Name:      "username",
+						AccessKey: "access-key",
+						Password:  "the-password",
+						Role:      "admin",
+					},
 				}
 				return expected
 			},
@@ -215,18 +210,11 @@ ui:
   enabled: false # default is true
   proxyURL: "1.2.3.4:5151"
 
-grants:
-  - user: user1
-    resource: infra
-    role: admin
-  - group: group1
-    resource: production
-    role: special
-
 users:
   - name: username
     accessKey: access-key
     password: the-password
+    role: admin
 
 redis:
   host: myredis
@@ -303,23 +291,12 @@ api:
 					},
 
 					Config: server.Config{
-						Grants: []server.Grant{
-							{
-								User:     "user1",
-								Resource: "infra",
-								Role:     "admin",
-							},
-							{
-								Group:    "group1",
-								Resource: "production",
-								Role:     "special",
-							},
-						},
 						Users: []server.User{
 							{
 								Name:      "username",
 								AccessKey: "access-key",
 								Password:  "the-password",
+								Role:      "admin",
 							},
 						},
 					},

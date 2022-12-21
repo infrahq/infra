@@ -2,6 +2,7 @@
 users:
   - name: admin@example.com
     accessKey: aaaaaaaaaa.000000000000000000000000
+    role: admin
   - name: connector
     accessKey: dest000001.ubuntuubuntuubuntuubuntu
   - name: connector
@@ -10,9 +11,3 @@ users:
     accessKey: dest000003.redhatredhatredhatredhat
   - name: anyuser@example.com
     accessKey: ababababab.000000000000000000000001
-
-
-grants:
-  - user: admin@example.com
-    resource: infra
-    role: admin
