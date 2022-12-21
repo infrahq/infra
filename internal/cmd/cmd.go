@@ -48,9 +48,10 @@ func printTable(data interface{}, out io.Writer) {
 }
 
 type APIClientOpts struct {
-	Host      string
-	AccessKey string
-	Transport *http.Transport
+	Host                     string
+	AccessKey                string
+	Transport                *http.Transport
+	SkipLogoutOnUnauthorized bool
 }
 
 // Creates API Client options from the current config
@@ -95,7 +96,7 @@ func NewAPIClient(opts *APIClientOpts) (*api.Client, error) {
 	if opts.Host == "" || opts.Transport == nil {
 		return nil, fmt.Errorf("api client access key, host, and transport are required")
 	}
-	return &api.Client{
+	client := &api.Client{
 		Name:      "cli",
 		Version:   internal.Version,
 		URL:       "https://" + opts.Host,
@@ -104,8 +105,11 @@ func NewAPIClient(opts *APIClientOpts) (*api.Client, error) {
 			Timeout:   60 * time.Second,
 			Transport: opts.Transport,
 		},
-		OnUnauthorized: logoutCurrent,
-	}, nil
+	}
+	if !opts.SkipLogoutOnUnauthorized {
+		client.OnUnauthorized = logoutCurrent
+	}
+	return client, nil
 }
 
 func logoutCurrent() {
