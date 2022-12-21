@@ -47,6 +47,10 @@ nfpms:
       - src: package-files/connector.example.yaml
         dst: /etc/infra/connector.example.yaml
         type: config
+      - src: package-files/rpm/infra.pp
+        dst: /usr/share/infra/selinux/infra.pp
+        type: config
+        packager: rpm
     scripts:
       preinstall: package-files/preinstall.sh
       postinstall: package-files/postinstall.sh
