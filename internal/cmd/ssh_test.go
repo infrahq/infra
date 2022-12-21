@@ -615,3 +615,54 @@ func keyIDsFromKeysConfig(t *testing.T, filename string) []string {
 	}
 	return actual
 }
+
+func TestMkdirAll(t *testing.T) {
+	tmp := t.TempDir()
+
+	filename := filepath.Join(tmp, "isafile")
+	_, err := os.Create(filename)
+	assert.NilError(t, err)
+	defer os.Remove(filename)
+
+	type testCase struct {
+		name        string
+		path        string
+		expectedErr string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		err := mkdirAll(tc.path)
+		if tc.expectedErr == "" {
+			assert.NilError(t, err)
+			return
+		}
+		assert.ErrorContains(t, err, tc.expectedErr)
+	}
+
+	testCases := []testCase{
+		{
+			name: "directory does not exist",
+			path: filepath.Join(tmp, "newdir"),
+		},
+		{
+			name: "directory exists",
+			path: tmp,
+		},
+		{
+			name:        "file exists at path",
+			path:        filename,
+			expectedErr: filename + ", the path already exists as a regular file",
+		},
+		{
+			name:        "file exists in parent path",
+			path:        filepath.Join(filename, "newdir"),
+			expectedErr: filename + ", the path already exists as a regular file",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
