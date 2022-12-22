@@ -38,11 +38,3 @@ input[type='search']::-webkit-search-cancel-button {
   font-weight: 100 900;
   src: url(/fonts/mono.ttf) format('truetype-variations');
 }
-
-/* override tag input highlighting */
-.rti--input {
-  outline: none !important;
-  border-color: inherit !important;
-  -webkit-box-shadow: none !important;
-  box-shadow: none !important;
-}
