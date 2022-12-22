@@ -175,6 +175,8 @@ const (
 func NewRootCmd(cli *CLI) *cobra.Command {
 	cobra.EnableCommandSorting = false
 
+	var showAdminHelp bool
+
 	rootCmd := &cobra.Command{
 		Use:               "infra",
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
@@ -189,6 +191,14 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 			}
 			return nil
 		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if showAdminHelp {
+				cmd.SetUsageFunc(nil) // hide our custom template
+				fmt.Fprintln(cli.Stdout, cmd.UsageString())
+				return nil
+			}
+			return nil
+		},
 	}
 
 	rootCmd.AddGroup(
@@ -198,7 +208,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 		},
 		&cobra.Group{
 			ID:    groupManagement,
-			Title: "Management commands:",
+			Title: "Admin commands:",
 		})
 
 	rootCmd.AddCommand(
@@ -231,6 +241,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 	rootCmd.PersistentFlags().StringVar(&cli.RootOptions.LogLevel, "log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().BoolVar(&cli.RootOptions.SkipAPIVersionCheck, "skip-version-check", false, "Skip checking if the CLI is ahead of the server version")
+	rootCmd.Flags().BoolVar(&showAdminHelp, "help-admin", false, "Show help for admin commands")
 
 	rootCmd.AddCommand(newAboutCmd())
 	rootCmd.AddCommand(newCompletionsCmd())
@@ -282,6 +293,5 @@ Flags:
 Global Flags:
 {{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}
 
-Use "infra --help-admin" for more information about admin commands.
 Use "{{.CommandPath}} [command] --help" for more information about a command.
 `

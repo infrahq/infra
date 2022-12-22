@@ -187,13 +187,20 @@ func TestInvalidSessions(t *testing.T) {
 }
 
 func TestRootCmd_HelpText(t *testing.T) {
-	ctx := context.Background()
-	ctx, bufs := PatchCLI(ctx)
-
-	err := Run(ctx, "--help")
-	assert.NilError(t, err)
-
-	golden.Assert(t, bufs.Stdout.String(), "expected-help-root")
+	t.Run("default help", func(t *testing.T) {
+		ctx := context.Background()
+		ctx, bufs := PatchCLI(ctx)
+		err := Run(ctx, "--help")
+		assert.NilError(t, err)
+		golden.Assert(t, bufs.Stdout.String(), "expected-help-root")
+	})
+	t.Run("admin help", func(t *testing.T) {
+		ctx := context.Background()
+		ctx, bufs := PatchCLI(ctx)
+		err := Run(ctx, "--help-admin")
+		assert.NilError(t, err)
+		golden.Assert(t, bufs.Stdout.String(), "expected-help-admin")
+	})
 }
 
 // This is to test any non-root command. If use is removed, change this test
