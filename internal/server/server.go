@@ -493,10 +493,6 @@ func (s *Server) syncIdentityInfo(ctx context.Context, tx *data.Transaction, ide
 		if err != nil {
 			return fmt.Errorf("update provider client: %w", err)
 		}
-		providerUser.LastUpdate = time.Now().UTC()
-		if err := data.UpdateProviderUser(tx, providerUser); err != nil {
-			return fmt.Errorf("update idp user: %w", err)
-		}
 
 		// update current identity provider groups and account status
 		_, err = data.SyncProviderUser(ctx, tx, providerUser, oidc)
@@ -514,6 +510,11 @@ func (s *Server) syncIdentityInfo(ctx context.Context, tx *data.Transaction, ide
 			}
 
 			return fmt.Errorf("%w: %s", ErrSyncFailed, err)
+		}
+
+		providerUser.LastUpdate = time.Now().UTC()
+		if err := data.UpdateProviderUser(tx, providerUser); err != nil {
+			return fmt.Errorf("update idp user: %w", err)
 		}
 	}
 
