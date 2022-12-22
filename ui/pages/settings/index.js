@@ -690,7 +690,6 @@ function Authentication() {
     e.preventDefault()
     let toRemove = e.target.value
     const newAllowedDomains = allowedDomains.filter(d => d !== toRemove)
-    setAllowedDomains(newAllowedDomains)
     updateAllowedDomains(newAllowedDomains)
   }
 
@@ -712,7 +711,6 @@ function Authentication() {
     }
     if (!allowedDomains.includes(cleanedInput)) {
       const newAllowedDomains = [...allowedDomains, cleanedInput]
-      setAllowedDomains(newAllowedDomains)
       updateAllowedDomains(newAllowedDomains)
     }
     setNewDomain('')
@@ -725,7 +723,6 @@ function Authentication() {
       e.preventDefault()
       const newAllowedDomains = [...allowedDomains]
       newAllowedDomains.pop()
-      setAllowedDomains(newAllowedDomains)
       updateAllowedDomains(newAllowedDomains)
     }
   }
@@ -738,6 +735,7 @@ function Authentication() {
         body: JSON.stringify({ allowedDomains }),
       })
       await jsonBody(res)
+      setAllowedDomains(allowedDomains)
       mutate('/api/organizations/self')
     } catch (e) {
       setError(e.message)
