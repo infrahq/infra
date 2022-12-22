@@ -243,7 +243,6 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.SetHelpCommandGroupID(groupOther)
 	rootCmd.AddCommand(newAboutCmd())
 	rootCmd.AddCommand(newCompletionsCmd())
-	rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd
 }
 
@@ -254,34 +253,4 @@ func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
 
 func addFormatFlag(flags *pflag.FlagSet, bind *string) {
 	flags.StringVar(bind, "format", "", "Output format [json|yaml]")
-}
-
-func usageTemplate() string {
-	return `Usage:{{if .Runnable}}
-  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
-  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
-
-Aliases:
-  {{.NameAndAliases}}{{end}}{{if .HasExample}}
-
-Examples:
-{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
-
-Available Commands:{{end}}{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{range $group := .Groups}}
-
-{{.Title}}{{range $cmds}}{{if (and (eq .GroupID $group.ID) (or .IsAvailableCommand (eq .Name "help")))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
-
-Flags:
-{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
-
-Global Flags:
-{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
-
-Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
-  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
-
-Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
-`
 }
