@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"gotest.tools/v3/assert"
@@ -45,11 +44,7 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	s := newServer(options)
 	s.db = setupDB(t)
 
-	// TODO: share more of this with Server.New
-	err := loadDefaultSecretConfig(s.secrets)
-	assert.NilError(t, err)
-
-	err = s.loadConfig(s.options.Config)
+	err := s.loadConfig(s.options.Config)
 	assert.NilError(t, err)
 
 	s.metricsRegistry = prometheus.NewRegistry()
@@ -59,46 +54,43 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 func TestGetPostgresConnectionURL(t *testing.T) {
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
-	storage := map[string]secrets.SecretStorage{
-		"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
-	}
 	options := Options{}
 
-	url, err := getPostgresConnectionString(options, storage)
+	url, err := getPostgresConnectionString(options)
 	assert.NilError(t, err)
 	assert.Assert(t, is.Len(url, 0))
 
 	options.DBHost = "localhost"
-	url, err = getPostgresConnectionString(options, storage)
+	url, err = getPostgresConnectionString(options)
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost", url)
 
 	options.DBPort = 5432
-	url, err = getPostgresConnectionString(options, storage)
+	url, err = getPostgresConnectionString(options)
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost port=5432", url)
 
 	options.DBUsername = "user"
-	url, err = getPostgresConnectionString(options, storage)
+	url, err = getPostgresConnectionString(options)
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost user=user port=5432", url)
 
-	options.DBPassword = "plaintext:secret"
-	url, err = getPostgresConnectionString(options, storage)
+	options.DBPassword = "secret"
+	url, err = getPostgresConnectionString(options)
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost user=user password=secret port=5432", url)
 
 	options.DBName = "postgres"
-	url, err = getPostgresConnectionString(options, storage)
+	url, err = getPostgresConnectionString(options)
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
 
 	t.Run("connection string with password from secrets", func(t *testing.T) {
 		options := Options{
 			DBConnectionString: "host=localhost user=user port=5432",
-			DBPassword:         "plaintext:foo",
+			DBPassword:         "foo",
 		}
-		dsn, err := getPostgresConnectionString(options, storage)
+		dsn, err := getPostgresConnectionString(options)
 		assert.NilError(t, err)
 		assert.Equal(t, "host=localhost user=user port=5432 password=foo", dsn)
 	})
@@ -117,7 +109,7 @@ func TestServer_Run(t *testing.T) {
 		TLSCache:        filepath.Join(dir, "tlscache"),
 		TLS: TLSOptions{
 			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
-			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
+			CAPrivateKey: types.StringOrFile(golden.Get(t, "pki/ca.key")),
 		},
 		API: APIOptions{RequestTimeout: time.Minute},
 	}
@@ -215,7 +207,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		BaseDomain:      "example.com",
 		TLS: TLSOptions{
 			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
-			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
+			CAPrivateKey: types.StringOrFile(golden.Get(t, "pki/ca.key")),
 		},
 		API: APIOptions{RequestTimeout: time.Minute},
 	}

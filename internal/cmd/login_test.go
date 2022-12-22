@@ -214,7 +214,7 @@ func setupServerOptions(t *testing.T, opts *server.Options) {
 
 	key, err := os.ReadFile("testdata/pki/localhost.key")
 	assert.NilError(t, err)
-	opts.TLS.PrivateKey = string(key)
+	opts.TLS.PrivateKey = types.StringOrFile(key)
 
 	cert, err := os.ReadFile("testdata/pki/localhost.crt")
 	assert.NilError(t, err)

@@ -15,7 +15,6 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/errgroup"
 
@@ -79,9 +78,6 @@ type Options struct {
 	// LoginDomainPrefix that users will be sent to after logging in with Google
 	LoginDomainPrefix string
 
-	Keys    []KeyProvider
-	Secrets []SecretProvider
-
 	Config
 
 	Addr ListenerOptions
@@ -107,9 +103,9 @@ type TLSOptions struct {
 	// certificate, or that will be used to generate a certificate if one was
 	// not provided.
 	CA           types.StringOrFile
-	CAPrivateKey string
+	CAPrivateKey types.StringOrFile
 	Certificate  types.StringOrFile
-	PrivateKey   string
+	PrivateKey   types.StringOrFile
 
 	// ACME enables automated certificate management. When set to true a TLS
 	// certificate will be requested from Let's Encrypt, which will be cached
@@ -127,8 +123,6 @@ type Server struct {
 	db              *data.DB
 	redis           *redis.Redis
 	tel             *Telemetry
-	secrets         map[string]secrets.SecretStorage
-	keys            map[string]secrets.SymmetricKeyProvider
 	Addrs           Addrs
 	routines        []routine
 	metricsRegistry *prometheus.Registry
@@ -143,11 +137,7 @@ type Addrs struct {
 
 // newServer creates a Server with base dependencies initialized to zero values.
 func newServer(options Options) *Server {
-	return &Server{
-		options: options,
-		secrets: map[string]secrets.SecretStorage{},
-		keys:    map[string]secrets.SymmetricKeyProvider{},
-	}
+	return &Server{options: options}
 }
 
 // New creates a Server, and initializes it. The returned Server is ready to run.
@@ -158,15 +148,7 @@ func New(options Options) (*Server, error) {
 
 	server := newServer(options)
 
-	if err := importSecrets(options.Secrets, server.secrets); err != nil {
-		return nil, fmt.Errorf("secrets config: %w", err)
-	}
-
-	if err := importKeyProviders(options.Keys, server.secrets, server.keys); err != nil {
-		return nil, fmt.Errorf("key config: %w", err)
-	}
-
-	dsn, err := getPostgresConnectionString(options, server.secrets)
+	dsn, err := getPostgresConnectionString(options)
 	if err != nil {
 		return nil, fmt.Errorf("postgres dsn: %w", err)
 	}
@@ -186,17 +168,10 @@ func New(options Options) (*Server, error) {
 	server.db = db
 	server.metricsRegistry = setupMetrics(server.db)
 
-	redisPassword, err := secrets.GetSecret(options.Redis.Password, server.secrets)
-	if err != nil {
-		return nil, fmt.Errorf("redis: %w", err)
-	}
-
-	options.Redis.Password = redisPassword
-	redis, err := redis.NewRedis(options.Redis)
+	server.redis, err = redis.NewRedis(options.Redis)
 	if err != nil {
 		return nil, err
 	}
-	server.redis = redis
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.db, db.DefaultOrgSettings.ID)
@@ -342,7 +317,7 @@ func (s *Server) listen() error {
 		return err
 	}
 
-	tlsConfig, err := tlsConfigFromOptions(s.secrets, s.options.TLS)
+	tlsConfig, err := tlsConfigFromOptions(s.options.TLS)
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
 	}
@@ -398,7 +373,7 @@ type routine struct {
 }
 
 // getPostgresConnectionString parses postgres configuration options and returns the connection string
-func getPostgresConnectionString(options Options, secretStorage map[string]secrets.SecretStorage) (string, error) {
+func getPostgresConnectionString(options Options) (string, error) {
 	var pgConn strings.Builder
 	pgConn.WriteString(options.DBConnectionString + " ")
 
@@ -412,12 +387,7 @@ func getPostgresConnectionString(options Options, secretStorage map[string]secre
 	}
 
 	if options.DBPassword != "" {
-		pass, err := secrets.GetSecret(options.DBPassword, secretStorage)
-		if err != nil {
-			return "", fmt.Errorf("postgres secret: %w", err)
-		}
-
-		fmt.Fprintf(&pgConn, "password=%s ", pass)
+		fmt.Fprintf(&pgConn, "password=%s ", options.DBPassword)
 	}
 
 	if options.DBPort > 0 {
