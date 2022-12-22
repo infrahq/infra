@@ -459,6 +459,8 @@ func configureEmail(options Options) {
 // This prevents hitting IDP rate limits.
 const providerUserUpdateThreshold = 120 * time.Minute
 
+var ErrSyncFailed = fmt.Errorf("user sync failed")
+
 // syncIdentityInfo calls the identity provider used to authenticate this user session to update their current information
 func (s *Server) syncIdentityInfo(ctx context.Context, tx *data.Transaction, identity *models.Identity, sessionProviderID uid.ID) error {
 	var provider *models.Provider
@@ -511,7 +513,7 @@ func (s *Server) syncIdentityInfo(ctx context.Context, tx *data.Transaction, ide
 				logging.Errorf("failed to delete provider user: %s", nestedErr)
 			}
 
-			return fmt.Errorf("sync user failed: %w", err)
+			return fmt.Errorf("%w: %s", ErrSyncFailed, err)
 		}
 	}
 

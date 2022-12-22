@@ -209,8 +209,11 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 		// sync the identity info here to keep the UI session in sync with IDP session validity
 		if err := srv.syncIdentityInfo(context.Background(), db, identity, accessKey.ProviderID); err != nil {
 			deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
-			// TODO: log error here if not expected
-			logging.L.Debug().Err(err)
+			if errors.Is(err, ErrSyncFailed) {
+				logging.L.Debug().Err(err)
+			} else {
+				logging.L.Error().Err(err)
+			}
 			return u, AuthenticationError{Message: "session in identity provider expired or revoked"}
 		}
 
