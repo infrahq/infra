@@ -170,7 +170,6 @@ func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 const (
 	groupCore       = "group-core"
 	groupManagement = "group-management"
-	groupOther      = "group-other"
 )
 
 func NewRootCmd(cli *CLI) *cobra.Command {
@@ -190,9 +189,6 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 			}
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
-		},
 	}
 
 	rootCmd.AddGroup(
@@ -203,10 +199,6 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 		&cobra.Group{
 			ID:    groupManagement,
 			Title: "Management commands:",
-		},
-		&cobra.Group{
-			ID:    groupOther,
-			Title: "Other commands:",
 		})
 
 	rootCmd.AddCommand(
@@ -240,9 +232,9 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.PersistentFlags().StringVar(&cli.RootOptions.LogLevel, "log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().BoolVar(&cli.RootOptions.SkipAPIVersionCheck, "skip-version-check", false, "Skip checking if the CLI is ahead of the server version")
 
-	rootCmd.SetHelpCommandGroupID(groupOther)
 	rootCmd.AddCommand(newAboutCmd())
 	rootCmd.AddCommand(newCompletionsCmd())
+	rootCmd.SetUsageFunc(usageFunc(rootCmd))
 	return rootCmd
 }
 
@@ -254,3 +246,42 @@ func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
 func addFormatFlag(flags *pflag.FlagSet, bind *string) {
 	flags.StringVar(bind, "format", "", "Output format [json|yaml]")
 }
+
+func usageFunc(rootCmd *cobra.Command) func(cmd *cobra.Command) error {
+	orig := rootCmd.UsageFunc()
+
+	return func(cmd *cobra.Command) error {
+		// Use the default text for non-root commands
+		if cmd != rootCmd {
+			return orig(cmd)
+		}
+
+		cmd.SetUsageTemplate(rootUsage)
+		return orig(cmd)
+	}
+}
+
+// Modified from spf13/cobra.Command.UsageTemplate
+var rootUsage = `Usage:
+  infra [command]
+
+{{- $cmds := .Commands }}
+
+Core commands:{{range $cmds}}
+  {{- if (and (eq .GroupID "group-core") .IsAvailableCommand )}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
+
+{{- if not .AllChildCommandsHaveGroup}}
+
+Other commands:{{range $cmds}}{{if (and (eq .GroupID "") .IsAvailableCommand )}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}
+
+Use "infra --help-admin" for more information about admin commands.
+Use "{{.CommandPath}} [command] --help" for more information about a command.
+`

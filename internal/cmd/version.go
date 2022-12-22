@@ -14,10 +14,9 @@ import (
 
 func newVersionCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
-		Use:     "version",
-		Short:   "Display the Infra version",
-		GroupID: groupOther,
-		Args:    NoArgs,
+		Use:   "version",
+		Short: "Display the Infra version",
+		Args:  NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return version(cli)
 		},

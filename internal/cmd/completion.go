@@ -50,7 +50,6 @@ To load completions for every new session, run:
 and source this file from your PowerShell profile.
 `, `infra`),
 		DisableFlagsInUseLine: true,
-		GroupID:               groupOther,
 		ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
 		Run: func(cmd *cobra.Command, args []string) {
 			shell := filepath.Base(os.Getenv("SHELL"))

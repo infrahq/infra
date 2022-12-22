@@ -1,0 +1,36 @@
+Login to Infra
+
+Usage:
+  infra login [SERVER] [flags]
+
+Examples:
+# Login
+infra login example.infrahq.com
+
+# Login with username and password (prompt for password)
+infra login example.infrahq.com --user user@example.com
+
+# Login with access key
+export INFRA_SERVER=example.infrahq.com
+export INFRA_ACCESS_KEY=2vrEbqFEUr.jtTlxkgYdvghJNdEa8YoUxN0
+infra login example.infrahq.com
+
+# Login with username and password
+export INFRA_SERVER=example.infrahq.com
+export INFRA_USER=user@example.com
+export INFRA_PASSWORD=p4ssw0rd
+infra login
+
+Flags:
+      --key string                       Login with an access key
+      --no-agent                         Skip starting the Infra agent in the background
+      --non-interactive                  Disable all prompts for input (default true)
+      --skip-tls-verify                  Skip verifying server TLS certificates
+      --tls-trusted-cert filepath        TLS certificate or CA used by the server
+      --tls-trusted-fingerprint string   SHA256 fingerprint of the server TLS certificate
+      --user string                      User email
+
+Global Flags:
+      --help                 Display help
+      --log-level string     Show logs when running the command [error, warn, info, debug] (default "info")
+      --skip-version-check   Skip checking if the CLI is ahead of the server version

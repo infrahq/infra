@@ -209,8 +209,7 @@ func TestLoginCmd_HelpText(t *testing.T) {
 	err := Run(ctx, "login", "--help")
 	assert.NilError(t, err)
 
-	golden.Assert(t, bufs.Stdout.String(), "expected-help-use")
-
+	golden.Assert(t, bufs.Stdout.String(), "expected-help-login")
 }
 
 // TestCmdDoesNotUsePersistentPreRun because if any subcommand sets a

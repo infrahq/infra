@@ -13,10 +13,9 @@ import (
 
 func newInfoCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
-		Use:     "info",
-		Short:   "Display the info about the current session",
-		Args:    NoArgs,
-		GroupID: groupOther,
+		Use:   "info",
+		Short: "Display the info about the current session",
+		Args:  NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return info(cli)
 		},

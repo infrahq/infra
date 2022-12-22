@@ -18,11 +18,10 @@ type triangle struct {
 
 func newAboutCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "about",
-		Short:   "Display information about Infra",
-		Args:    NoArgs,
-		GroupID: groupOther,
-		Hidden:  false,
+		Use:    "about",
+		Short:  "Display information about Infra",
+		Args:   NoArgs,
+		Hidden: false,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return about()
 		},
