@@ -170,6 +170,7 @@ func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 const (
 	groupCore       = "group-core"
 	groupManagement = "group-management"
+	groupServices   = "group-services"
 )
 
 func NewRootCmd(cli *CLI) *cobra.Command {
@@ -209,6 +210,10 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 		&cobra.Group{
 			ID:    groupManagement,
 			Title: "Admin commands:",
+		},
+		&cobra.Group{
+			ID:    groupServices,
+			Title: "Service commands:",
 		})
 
 	rootCmd.AddCommand(

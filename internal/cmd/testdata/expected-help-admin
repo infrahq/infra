@@ -16,6 +16,10 @@ Admin commands:
   keys         Manage access keys
   providers    Manage identity providers
 
+Service commands:
+  server       Start the Infra server
+  connector    Start the Infra connector
+
 Additional Commands:
   info         Display the info about the current session
   version      Display the Infra version

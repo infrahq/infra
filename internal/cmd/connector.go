@@ -16,10 +16,10 @@ func newConnectorCmd() *cobra.Command {
 	var configFilename string
 
 	cmd := &cobra.Command{
-		Use:    "connector",
-		Short:  "Start the Infra connector",
-		Args:   NoArgs,
-		Hidden: true,
+		Use:     "connector",
+		Short:   "Start the Infra connector",
+		Args:    NoArgs,
+		GroupID: groupServices,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.UseServerLogger()
 

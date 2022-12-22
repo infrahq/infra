@@ -21,10 +21,10 @@ func newServerCmd() *cobra.Command {
 	var configFilename string
 
 	cmd := &cobra.Command{
-		Use:    "server",
-		Short:  "Start Infra server",
-		Args:   NoArgs,
-		Hidden: true,
+		Use:     "server",
+		Short:   "Start the Infra server",
+		Args:    NoArgs,
+		GroupID: groupServices,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.UseServerLogger()
 
