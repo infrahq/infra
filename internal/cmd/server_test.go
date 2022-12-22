@@ -189,18 +189,6 @@ tls:
   privateKey: file:server.key
   ACME: true
 
-keys:
-  - kind: vault
-    config:
-      token: the-token
-      address: 10.1.1.1:1234
-
-secrets:
-  - kind: env
-    name: base64env
-    config:
-      base64: true
-
 addr:
   http: "1.2.3.4:23"
   https: "1.2.3.5:433"
@@ -270,24 +258,6 @@ api:
 						Certificate:  "-----BEGIN CERTIFICATE-----\nnot a real server certificate\n-----END CERTIFICATE-----\n",
 						PrivateKey:   "file:server.key",
 						ACME:         true,
-					},
-
-					Keys: []server.KeyProvider{
-						{
-							Kind: "vault",
-							Config: server.VaultConfig{
-								Token:   "the-token",
-								Address: "10.1.1.1:1234",
-							},
-						},
-					},
-
-					Secrets: []server.SecretProvider{
-						{
-							Kind:   "env",
-							Name:   "base64env",
-							Config: server.GenericConfig{Base64: true},
-						},
 					},
 
 					BootstrapConfig: server.BootstrapConfig{

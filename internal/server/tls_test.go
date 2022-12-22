@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/infrahq/secrets"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
 
@@ -16,19 +15,14 @@ import (
 )
 
 func TestTLSConfigFromOptions(t *testing.T) {
-	storage := map[string]secrets.SecretStorage{
-		"plaintext": &secrets.PlainSecretProvider{},
-		"file":      &secrets.FileSecretProvider{},
-	}
-
 	ca := golden.Get(t, "pki/ca.crt")
 	t.Run("user provided certificate", func(t *testing.T) {
 		opts := TLSOptions{
 			CA:          types.StringOrFile(ca),
 			Certificate: types.StringOrFile(golden.Get(t, "pki/localhost.crt")),
-			PrivateKey:  "file:testdata/pki/localhost.key",
+			PrivateKey:  types.StringOrFile(golden.Get(t, "pki/localhost.key")),
 		}
-		config, err := tlsConfigFromOptions(storage, opts)
+		config, err := tlsConfigFromOptions(opts)
 		assert.NilError(t, err)
 
 		srv := httptest.NewUnstartedServer(noopHandler)
@@ -56,9 +50,9 @@ func TestTLSConfigFromOptions(t *testing.T) {
 		}
 		opts := TLSOptions{
 			CA:           types.StringOrFile(ca),
-			CAPrivateKey: "file:testdata/pki/ca.key",
+			CAPrivateKey: types.StringOrFile(golden.Get(t, "pki/ca.key")),
 		}
-		config, err := tlsConfigFromOptions(storage, opts)
+		config, err := tlsConfigFromOptions(opts)
 		assert.NilError(t, err)
 
 		l, err := net.Listen("tcp", "127.0.0.1:0")
