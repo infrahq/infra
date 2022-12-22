@@ -27,6 +27,8 @@ func Run(ctx context.Context, args ...string) error {
 	cli := newCLI(ctx)
 	cmd := NewRootCmd(cli)
 	cmd.SetArgs(args)
+	cmd.SetErr(cli.Stderr)
+	cmd.SetOut(cli.Stdout)
 	return cmd.ExecuteContext(ctx)
 }
 

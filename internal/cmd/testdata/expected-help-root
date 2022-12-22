@@ -21,6 +21,7 @@ Other commands:
   version      Display the Infra version
   about        Display information about Infra
   completion   Generate shell auto-completion for the CLI
+  help         Help about any command
 
 Flags:
       --help                 Display help

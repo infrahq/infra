@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -187,15 +186,31 @@ func TestInvalidSessions(t *testing.T) {
 	})
 }
 
-func TestRootCmd_UsageTemplate(t *testing.T) {
+func TestRootCmd_HelpText(t *testing.T) {
 	ctx := context.Background()
-	cmd := NewRootCmd(newCLI(ctx))
+	ctx, bufs := PatchCLI(ctx)
 
-	var buf bytes.Buffer
-	cmd.SetOut(&buf)
-	assert.NilError(t, cmd.Usage())
+	err := Run(ctx, "--help")
+	assert.NilError(t, err)
 
-	golden.Assert(t, buf.String(), "expected-usage")
+	golden.Assert(t, bufs.Stdout.String(), "expected-help-root")
+}
+
+// This is to test any non-root command. If use is removed, change this test
+// to a different non-root command.
+func TestLoginCmd_HelpText(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("USERPROFILE", tmp)
+
+	ctx := context.Background()
+	ctx, bufs := PatchCLI(ctx)
+
+	err := Run(ctx, "login", "--help")
+	assert.NilError(t, err)
+
+	golden.Assert(t, bufs.Stdout.String(), "expected-help-use")
+
 }
 
 // TestCmdDoesNotUsePersistentPreRun because if any subcommand sets a
