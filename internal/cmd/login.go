@@ -217,7 +217,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		return err
 	}
 
-	if err := updateKubeConfig(lc.APIClient, loginRes.UserID); err != nil {
+	if err := updateKubeconfig(lc.APIClient); err != nil {
 		return err
 	}
 

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/uid"
 )
 
 func clientConfig() clientcmd.ClientConfig {
@@ -59,19 +57,8 @@ func kubernetesSetContext(cli *CLI, cluster, namespace string) error {
 	return nil
 }
 
-func updateKubeConfig(client *api.Client, id uid.ID) error {
-	ctx := context.TODO()
-	destinations, err := listAll(ctx, client.ListDestinations, api.ListDestinationsRequest{})
-	if err != nil {
-		return err
-	}
-
-	user, err := client.GetUser(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	grants, err := listAll(ctx, client.ListGrants, api.ListGrantsRequest{User: id, ShowInherited: true})
+func updateKubeconfig(client *api.Client) error {
+	user, destinations, grants, err := getUserDestinationGrants(client, "kubernetes")
 	if err != nil {
 		return err
 	}

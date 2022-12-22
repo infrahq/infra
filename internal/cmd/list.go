@@ -30,7 +30,7 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	user, destinations, grants, err := getUserDestinationGrants(client, "")
+	_, destinations, grants, err := getUserDestinationGrants(client, "")
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func list(cli *CLI) error {
 		cli.Output("You have not been granted access to any active destinations")
 	}
 
-	return writeKubeconfig(user, destinations, grants)
+	return updateKubeconfig(client)
 }
 
 func destinationForResourceExists(resource string, destinations []api.Destination) bool {

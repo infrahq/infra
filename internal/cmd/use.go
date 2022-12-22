@@ -27,12 +27,7 @@ $ infra use development.kube-system`,
 				return err
 			}
 
-			config, err := currentHostConfig()
-			if err != nil {
-				return err
-			}
-
-			err = updateKubeConfig(client, config.UserID)
+			err = updateKubeconfig(client)
 			if err != nil {
 				return err
 			}
