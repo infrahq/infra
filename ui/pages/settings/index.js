@@ -11,7 +11,6 @@ import {
   PlusIcon,
 } from '@heroicons/react/24/outline'
 import { Menu } from '@headlessui/react'
-import { TagsInput } from 'react-tag-input-component'
 
 import { useUser } from '../../lib/hooks'
 import { sortBySubject } from '../../lib/grants'
@@ -681,34 +680,58 @@ function Authentication() {
     `/api/providers?&limit=1000`
   )
   const { data: org } = useSWR('/api/organizations/self')
+  const [allowedDomains, setAllowedDomains] = useState(
+    org?.allowedDomains || []
+  )
+  const [newDomain, setNewDomain] = useState('')
   const [error, setError] = useState('')
 
-  function validateDomain(newDomain) {
-    // check that we only have the domain (no protocol), but be lenient on validation
-    if (
-      newDomain.startsWith('http://') ||
-      newDomain.startsWith('https://') ||
-      newDomain.startsWith('www.') ||
-      newDomain.startsWith('@')
-    ) {
-      setError('please enter only the domain name without a prefix')
-      return false
-    }
+  async function removeDomain(e) {
+    e.preventDefault()
+    let toRemove = e.target.value
+    const newAllowedDomains = allowedDomains.filter(d => d !== toRemove)
+    setAllowedDomains(newAllowedDomains)
+    updateAllowedDomains(newAllowedDomains)
+  }
 
-    return true
+  async function addDomain(e) {
+    e.preventDefault()
+    // check that we only have the domain (no protocol), but be lenient on validation
+    let cleanedInput = newDomain
+    if (newDomain.startsWith('http://')) {
+      cleanedInput = cleanedInput.replace('http://', '')
+    }
+    if (newDomain.startsWith('https://')) {
+      cleanedInput = cleanedInput.replace('https://', '')
+    }
+    if (newDomain.startsWith('www.')) {
+      cleanedInput = cleanedInput.replace('www.', '')
+    }
+    if (newDomain.startsWith('@')) {
+      cleanedInput = cleanedInput.replace('@', '')
+    }
+    if (!allowedDomains.includes(cleanedInput)) {
+      const newAllowedDomains = [...allowedDomains, cleanedInput]
+      setAllowedDomains(newAllowedDomains)
+      updateAllowedDomains(newAllowedDomains)
+    }
+    setNewDomain('')
+  }
+
+  function onKeyDown(e) {
+    const { key } = e
+
+    if (key === 'Backspace' && newDomain === '' && allowedDomains.length > 0) {
+      e.preventDefault()
+      const newAllowedDomains = [...allowedDomains]
+      newAllowedDomains.pop()
+      setAllowedDomains(newAllowedDomains)
+      updateAllowedDomains(newAllowedDomains)
+    }
   }
 
   async function updateAllowedDomains(allowedDomains) {
     setError('')
-    // check if anything has changed, since onChange gets called when allowed domains loads
-    const compareDomains = [...allowedDomains]
-    if (
-      org?.allowedDomains.sort().toString() == compareDomains.sort().toString()
-    ) {
-      // dont need to update
-      return
-    }
-
     try {
       const res = await fetch('/api/organizations/' + org.id, {
         method: 'PUT',
@@ -723,9 +746,9 @@ function Authentication() {
 
   return (
     <>
-      {providers?.some(p => p.id === '') && (
+      {providers?.some(p => p.id === googleSocialLoginID) && (
         <>
-          <header className='my-6 flex flex-col justify-between space-y-4 md:flex-row md:space-y-0 md:space-x-4'>
+          <header className='my-6 flex flex-col justify-between md:flex-row md:space-y-0 md:space-x-4'>
             <div>
               <h2 className='mb-0.5 flex items-center font-display text-lg font-medium'>
                 Allowed Domains
@@ -737,22 +760,37 @@ function Authentication() {
               </h3>
             </div>
           </header>
-          <div className='mt-3 flex min-h-0 flex-1 flex-col'>
-            <TagsInput
-              value={org?.allowedDomains}
-              onChange={updateAllowedDomains}
-              beforeAddValidate={validateDomain}
-              name='allowed-domains'
-              placeHolder='add another'
+          <form
+            className='group form-input flex w-full rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-blue-500'
+            onSubmit={addDomain}
+          >
+            {allowedDomains.map(d => (
+              // render domains as a "tag" with an x
+              <span
+                className='mr-1 inline-block rounded bg-gray-200 py-1 px-2 pl-4 pr-2 text-xs font-medium'
+                key={d}
+              >
+                {d}
+                <button
+                  className='px-2 font-normal hover:text-blue-600'
+                  type='button'
+                  value={d}
+                  onClick={removeDomain}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+            <input
+              className='peer bg-transparent focus:outline-none'
+              value={newDomain}
+              onChange={e => {
+                setNewDomain(e.target.value)
+              }}
+              onKeyDown={onKeyDown}
             />
-            <label
-              htmlFor='allowed-domains'
-              className='text-2xs font-medium text-gray-700'
-            >
-              press enter to add a new domain
-            </label>
-            {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
-          </div>
+          </form>
+          {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
         </>
       )}
 
