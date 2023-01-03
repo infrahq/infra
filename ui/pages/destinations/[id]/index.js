@@ -270,10 +270,30 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                   <button
                     className='rounded-md px-4 py-2 text-2xs font-medium text-red-500 hover:bg-red-100 disabled:cursor-not-allowed disabled:bg-white disabled:opacity-30'
                     type='button'
-                    onClick={() => {
-                      selectedNamespaces.map(namespace =>
-                        handleRemove(namespace)
+                    onClick={async () => {
+                      const grantsToRemove = selectedNamespaces.map(
+                        namespace => {
+                          return grant.resourcePrivilegeMap
+                            .get(namespace)
+                            .map(privilege => {
+                              return {
+                                user: grant.user,
+                                group: grant.group,
+                                privilege,
+                                resource: namespace,
+                              }
+                            })
+                        }
                       )
+
+                      await fetch('/api/grants', {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                          grantsToRemove: grantsToRemove.flat(),
+                        }),
+                      })
+
+                      onRemove([])
                       setSelectedNamespaces([])
                     }}
                     disabled={selectedNamespaces.length === 0}
