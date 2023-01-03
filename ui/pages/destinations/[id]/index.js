@@ -841,63 +841,31 @@ export default function DestinationDetail() {
                       privilege,
                       selectedResources,
                     }) => {
-                      // don't add grants that already exist
                       if (selectedResources.length === 0) {
-                        if (
-                          grants?.find(
-                            g =>
-                              g.user === user &&
-                              g.group === group &&
-                              g.privilege === privilege &&
-                              g.resource === destination?.namn
-                          )
-                        ) {
-                          return false
-                        }
-
-                        await fetch('/api/grants', {
-                          method: 'POST',
-                          body: JSON.stringify({
-                            user,
-                            group,
-                            privilege,
-                            resource: destination?.name,
-                          }),
-                        })
-                        mutate()
-                      } else {
-                        const promises = selectedResources.map(
-                          async resource => {
-                            // // don't add grants that already exist
-                            if (
-                              grants?.find(
-                                g =>
-                                  g.user === user &&
-                                  g.group === group &&
-                                  g.privilege === privilege &&
-                                  g.resource ===
-                                    `${destination?.name}.${resource}`
-                              )
-                            ) {
-                              return false
-                            }
-
-                            await fetch('/api/grants', {
-                              method: 'POST',
-                              body: JSON.stringify({
-                                user,
-                                group,
-                                privilege,
-                                resource: `${destination?.name}.${resource}`,
-                              }),
-                            })
-                          }
-                        )
-
-                        await Promise.all(promises)
-                        mutate()
-                        setSelectedResources([])
+                        selectedResources = ['']
                       }
+
+                      const grantsToAdd = selectedResources.map(r => {
+                        return {
+                          user,
+                          group,
+                          privilege,
+                          resource:
+                            r === ''
+                              ? destination?.name
+                              : `${destination?.name}.${r}`,
+                        }
+                      })
+
+                      await fetch('/api/grants', {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                          grantsToAdd,
+                        }),
+                      })
+
+                      mutate()
+                      setSelectedResources([])
                     }}
                   />
                 </div>
