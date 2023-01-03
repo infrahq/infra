@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import { useEffect, useState, Fragment, useRef } from 'react'
+import { useRouter } from 'next/router'
 
 import useSWR from 'swr'
 import dayjs from 'dayjs'
@@ -8,6 +9,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   CommandLineIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline'
 import { Dialog, Transition, Combobox, Listbox } from '@headlessui/react'
 
@@ -462,6 +464,10 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
 }
 
 export default function AccessControl() {
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 10
+
   const { user, isAdmin } = useUser()
 
   const { data: { items: users } = {} } = useSWR(() =>
@@ -472,10 +478,14 @@ export default function AccessControl() {
       ? '/api/groups?limit=1000'
       : `/api/groups?user=${user.id}&limit=1000`
   )
-  const { data: { items: allGrants } = {}, mutate } = useSWR(() =>
-    isAdmin
-      ? '/api/grants?limit=1000'
-      : `/api/grants?user=${user.id}&limit=1000`
+  const { data: { items: allGrants, totalCount, totalPages } = {}, mutate } =
+    useSWR(() =>
+      isAdmin
+        ? `/api/grants?page=${page}&limit=${limit}`
+        : `/api/grants?user=${user.id}&page=${page}&limit=${limit}`
+    )
+  const { data: { items: destinations } = {} } = useSWR(
+    '/api/destinations?limit=1000'
   )
 
   const [grants, setGrants] = useState({})
@@ -486,7 +496,7 @@ export default function AccessControl() {
   useEffect(() => {
     setGrants(
       allGrants
-        ?.filter(g => g.resource !== 'infra')
+        // ?.filter(g => g.resource !== 'infra')
         .map(g => {
           if (g.group) {
             return { ...g, type: 'group', identityId: g.group }
@@ -583,6 +593,17 @@ export default function AccessControl() {
         )}
       </header>
       <Table
+        count={totalCount}
+        pageCount={totalPages}
+        pageIndex={parseInt(page) - 1}
+        pageSize={limit}
+        empty='No grants'
+        onPageChange={({ pageIndex }) => {
+          router.push({
+            pathname: router.pathname,
+            query: { ...router.query, p: pageIndex + 1 },
+          })
+        }}
         data={grants}
         allowDelete={isAdmin}
         selectedRowIds={selectedDeleteIds}
@@ -594,32 +615,55 @@ export default function AccessControl() {
         columns={[
           {
             id: 'infrastructure',
-            cell: info => (
-              <div className='flex flex-row items-center py-1'>
-                {/* TODO: default icon when kind is === '' */}
-                <div className='mr-3 flex h-6 w-6 flex-none items-center justify-center rounded-md border border-gray-200'>
-                  {info.row.original.kind === 'ssh' ? (
-                    <CommandLineIcon className='h-4 text-black' />
-                  ) : (
-                    <img
-                      alt='kubernetes icon'
-                      className='h-4'
-                      src={`/kubernetes.svg`}
-                    />
-                  )}
-                </div>
-                <div className='flex flex-col'>
-                  <div className='text-sm font-medium text-gray-700'>
-                    {info.getValue().split('.')[0]}
+            cell: function Cell(info) {
+              const { kind, connected, connection } = destinations.find(
+                d => d.name === info.getValue().split('.')[0]
+              ) || {
+                kind: undefined,
+                connected: false,
+                connection: { url: '' },
+              }
+
+              return (
+                <div className='flex flex-row items-center space-x-2 py-1'>
+                  <div
+                    className={`h-2 w-2 flex-none rounded-full border ${
+                      connected
+                        ? connection.url === ''
+                          ? 'animate-pulse border-yellow-500 bg-yellow-500'
+                          : 'border-teal-400 bg-teal-400'
+                        : 'border-gray-200 bg-gray-200'
+                    }`}
+                  />
+                  <div className='flex h-6 w-6 flex-none items-center justify-center rounded-md border border-gray-200'>
+                    {kind === undefined && (
+                      <AdjustmentsHorizontalIcon className='h-4 text-blue-500' />
+                    )}
+                    {kind === 'ssh' && (
+                      <CommandLineIcon className='h-4 text-black' />
+                    )}
+                    {kind === 'kubernetes' && (
+                      <img
+                        alt='kubernetes icon'
+                        className='h-4'
+                        src={`/kubernetes.svg`}
+                      />
+                    )}
                   </div>
-                  {info.getValue().split('.')[1] && (
-                    <span className='text-2xs text-gray-500'>
-                      namespace - {info.getValue().split('.')[1]}
-                    </span>
-                  )}
+
+                  <div className='flex flex-col'>
+                    <div className='text-sm font-medium text-gray-700'>
+                      {info.getValue().split('.')[0]}
+                    </div>
+                    {info.getValue().split('.')[1] && (
+                      <span className='text-2xs text-gray-500'>
+                        namespace - {info.getValue().split('.')[1]}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ),
+              )
+            },
             header: () => <span>Infrastructure</span>,
             accessorKey: 'resource',
           },
