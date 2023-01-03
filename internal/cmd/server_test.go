@@ -509,6 +509,30 @@ func TestServerCmd_DeprecatedConfig(t *testing.T) {
 			},
 			expectedErr: "dbEncryptionKeyProvider is no longer supported",
 		},
+		{
+			name: "grants",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				content := `grants: []`
+
+				dir := fs.NewDir(t, t.Name(),
+					fs.WithFile("cfg.yaml", content))
+
+				t.Setenv("INFRA_SERVER_CONFIG_FILE", dir.Join("cfg.yaml"))
+			},
+			expectedErr: "grants can no longer be defined from config",
+		},
+		{
+			name: "providers",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				content := `providers: []`
+
+				dir := fs.NewDir(t, t.Name(),
+					fs.WithFile("cfg.yaml", content))
+
+				t.Setenv("INFRA_SERVER_CONFIG_FILE", dir.Join("cfg.yaml"))
+			},
+			expectedErr: "providers can no longer be defined from config",
+		},
 	}
 
 	for _, tc := range testCases {
