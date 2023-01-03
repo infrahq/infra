@@ -497,7 +497,7 @@ export default function AccessControl() {
     setGrants(
       allGrants
         // ?.filter(g => g.resource !== 'infra')
-        .map(g => {
+        ?.map(g => {
           if (g.group) {
             return { ...g, type: 'group', identityId: g.group }
           }
