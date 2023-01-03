@@ -101,6 +101,8 @@ type Options struct {
 // longer supported.
 type DeprecatedConfig struct {
 	DBEncryptionKeyProvider string
+	Providers               any
+	Grants                  any
 }
 
 type ListenerOptions struct {
@@ -170,6 +172,14 @@ func New(options Options) (*Server, error) {
 	if options.DBEncryptionKeyProvider != "" && options.DBEncryptionKeyProvider != "native" {
 		return nil, errors.New("dbEncryptionKeyProvider is no longer supported, " +
 			"use a file for the root key and set dbEncryptionKey to the path of the file")
+	}
+	if options.Grants != nil {
+		return nil, fmt.Errorf("grants can no longer be defined from config. " +
+			"Please use https://github.com/infrahq/terraform-provider-infra or the API")
+	}
+	if options.Providers != nil {
+		return nil, fmt.Errorf("providers can no longer be defined from config. " +
+			"Please use https://github.com/infrahq/terraform-provider-infra or the API")
 	}
 
 	server := newServer(options)
