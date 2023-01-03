@@ -2,8 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -79,7 +78,8 @@ func readConfig() (*ClientConfig, error) {
 		return nil, err
 	}
 
-	contents, err := ioutil.ReadFile(filepath.Join(infraDir, "config"))
+	filename := filepath.Join(infraDir, "config")
+	contents, err := os.ReadFile(filename)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -95,28 +95,8 @@ func readConfig() (*ClientConfig, error) {
 
 	switch config.Version {
 	case "":
-		// if version is missing, it needs to be updated to the latest
-		configv0dot1 := ClientConfigV0dot1{}
-		if err = json.Unmarshal(contents, &configv0dot1); err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("config file %v is missing a version", filename)
 
-		return configv0dot1.ToV0dot2().ToV0dot3().ToV0dot4(), nil
-
-	case "0.2":
-		configv0dot2 := ClientConfigV0dot2{}
-		if err = json.Unmarshal(contents, &configv0dot2); err != nil {
-			return nil, err
-		}
-
-		return configv0dot2.ToV0dot3().ToV0dot4(), nil
-	case "0.3":
-		configv0dot3 := ClientConfigV0dot3{}
-		if err = json.Unmarshal(contents, &configv0dot3); err != nil {
-			return nil, err
-		}
-
-		return configv0dot3.ToV0dot4(), nil
 	case "0.4":
 		config := &ClientConfig{}
 		if err = json.Unmarshal(contents, &config); err != nil {
@@ -124,7 +104,8 @@ func readConfig() (*ClientConfig, error) {
 		}
 		return config, nil
 	default:
-		return nil, errors.New("unknown version " + config.Version)
+		return nil, fmt.Errorf("client config file %v has version %v which is not supported",
+			filename, config.Version)
 	}
 }
 
@@ -139,7 +120,7 @@ func writeConfig(config *ClientConfig) error {
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(infraDir, "config"), contents, 0o600)
+	return os.WriteFile(filepath.Join(infraDir, "config"), contents, 0o600)
 }
 
 // Save (create or update) the current hostconfig
