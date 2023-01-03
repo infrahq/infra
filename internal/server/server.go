@@ -90,6 +90,15 @@ type Options struct {
 	API  APIOptions
 
 	DB data.NewDBOptions
+
+	DeprecatedConfig
+}
+
+// DeprecatedConfig contains fields that are no longer used by server, but loading
+// values for these fields allows us to error when a config file value is no
+// longer supported.
+type DeprecatedConfig struct {
+	DBEncryptionKeyProvider string
 }
 
 type ListenerOptions struct {
@@ -154,6 +163,11 @@ func newServer(options Options) *Server {
 func New(options Options) (*Server, error) {
 	if options.EnableSignup && options.BaseDomain == "" {
 		return nil, errors.New("cannot enable signup without setting base domain")
+	}
+
+	if options.DBEncryptionKeyProvider != "" && options.DBEncryptionKeyProvider != "native" {
+		return nil, errors.New("dbEncryptionKeyProvider is no longer supported, " +
+			"use a file for the root key and set dbEncryptionKey to the path of the file")
 	}
 
 	server := newServer(options)

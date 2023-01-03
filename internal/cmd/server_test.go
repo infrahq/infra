@@ -513,3 +513,44 @@ func TestCanonicalPath(t *testing.T) {
 		})
 	}
 }
+
+func TestServerCmd_DeprecatedConfig(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir) // Windows
+
+	type testCase struct {
+		name        string
+		setup       func(t *testing.T, cmd *cobra.Command)
+		expectedErr string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		patchRunServer(t, noServerRun)
+
+		cmd := newServerCmd()
+		cmd.SetArgs([]string{}) // prevent reading of os.Args
+		if tc.setup != nil {
+			tc.setup(t, cmd)
+		}
+
+		err := cmd.Execute()
+		assert.ErrorContains(t, err, tc.expectedErr)
+	}
+
+	testCases := []testCase{
+		{
+			name: "dbEncryptionKeyProvider",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				t.Setenv("INFRA_SERVER_DB_ENCRYPTION_KEY_PROVIDER", "vault")
+			},
+			expectedErr: "dbEncryptionKeyProvider is no longer supported",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
