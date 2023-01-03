@@ -13,7 +13,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
-	github.com/getkin/kin-openapi v0.111.0 // indirect
+	github.com/getkin/kin-openapi v0.112.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
