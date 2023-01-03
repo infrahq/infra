@@ -39,15 +39,10 @@ func cryptoRandRead(length int) ([]byte, error) {
 	return b, nil
 }
 
-// SealRaw encrypts plaintext with a decrypted data key and returns it in a raw binary format
-// TODO: unexport or inline?
-func SealRaw(key *SymmetricKey, plain []byte) ([]byte, error) {
-	if len(key.unencrypted) == 0 {
-		return nil, errors.New("missing key")
-	}
-
+// Seal encrypts plaintext with a decrypted data key and returns it in base64
+func Seal(key *SymmetricKey, plain []byte) ([]byte, error) {
 	if len(key.unencrypted) != 32 {
-		return nil, errors.New("expected 256 bit key size")
+		return nil, fmt.Errorf("key is the wrong size %v, expected 32 bytes", len(key.unencrypted))
 	}
 
 	blk, err := aes.NewCipher(key.unencrypted)
@@ -80,17 +75,7 @@ func SealRaw(key *SymmetricKey, plain []byte) ([]byte, error) {
 		Nonce:      nonce,
 	}
 
-	marshalledPayload, err := marshalPayload(&payload)
-	if err != nil {
-		return nil, err
-	}
-
-	return marshalledPayload, nil
-}
-
-// Seal encrypts plaintext with a decrypted data key and returns it in base64
-func Seal(key *SymmetricKey, plain []byte) ([]byte, error) {
-	marshalled, err := SealRaw(key, plain)
+	marshalled, err := marshalPayload(&payload)
 	if err != nil {
 		return nil, err
 	}
@@ -101,11 +86,16 @@ func Seal(key *SymmetricKey, plain []byte) ([]byte, error) {
 	return encoded, nil
 }
 
-// UnsealRaw decrypts ciphertext with a decrypted data key and returns a raw binary format
-// TODO: unexport or inline?
-func UnsealRaw(key *SymmetricKey, encrypted []byte) ([]byte, error) {
+// Unseal decrypts base64-encoded ciphertext with a decrypted data key
+func Unseal(key *SymmetricKey, encoded []byte) ([]byte, error) {
 	if len(key.unencrypted) == 0 {
 		return nil, errors.New("missing key")
+	}
+
+	encrypted := make([]byte, base64.RawStdEncoding.DecodedLen(len(encoded)))
+	_, err := base64.RawStdEncoding.Decode(encrypted, encoded)
+	if err != nil {
+		return nil, fmt.Errorf("decoding payload: %w", err)
 	}
 
 	payload := &encryptedPayload{}
@@ -138,18 +128,6 @@ func UnsealRaw(key *SymmetricKey, encrypted []byte) ([]byte, error) {
 	}
 
 	return plaintext, nil
-}
-
-// Unseal decrypts base64-encoded ciphertext with a decrypted data key
-func Unseal(key *SymmetricKey, encoded []byte) ([]byte, error) {
-	encryptedPayload := make([]byte, base64.RawStdEncoding.DecodedLen(len(encoded)))
-
-	_, err := base64.RawStdEncoding.Decode(encryptedPayload, encoded)
-	if err != nil {
-		return nil, fmt.Errorf("decoding payload: %w", err)
-	}
-
-	return UnsealRaw(key, encryptedPayload)
 }
 
 func checksum(b []byte) ([]byte, error) {
