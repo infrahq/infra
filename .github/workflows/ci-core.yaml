@@ -121,6 +121,7 @@ jobs:
         with:
           go-version: "1.19"
           cache: true
+      - run: sudo apt-get update && sudo apt-get install -y checkpolicy semodule-utils
       - run: go install gotest.tools/gotestsum@v1.8.2
 
       - name: Filter goreleaser config to linux only
