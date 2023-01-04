@@ -4,6 +4,8 @@ users:
     accessKey: aaaaaaaaaa.000000000000000000000000
   - name: connector
     accessKey: dest000001.ubuntuubuntuubuntuubuntu
+  - name: connector
+    accessKey: dest000002.debiandebiandebiandebian
   - name: anyuser@example.com
     accessKey: ababababab.000000000000000000000001
 

@@ -42,7 +42,7 @@ nfpms:
     bindir: /usr/local/sbin
     contents:
       - src: package-files/systemd/infra.service
-        dst: /usr/lib/systemd/system/infra.service
+        dst: /lib/systemd/system/infra.service
         type: config
       - src: package-files/connector.example.yaml
         dst: /etc/infra/connector.example.yaml

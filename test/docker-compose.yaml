@@ -37,11 +37,25 @@ services:
   destination_ubuntu:
     build:
       context: ./test
-      dockerfile: dockerfiles/Dockerfile.ubuntu
+      dockerfile: dockerfiles/Dockerfile.debian
+      args:
+        image_tag: ubuntu:22.10
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup
       - ..:/work
     privileged: true
     depends_on: [server]
-    ports:
-      - "127.0.0.1:8220:22"
+    ports: ["127.0.0.1:8220:22"]
+
+  destination_debian:
+    build:
+      context: ./test
+      dockerfile: dockerfiles/Dockerfile.debian
+      args:
+        image_tag: debian:11-slim
+    volumes:
+      - ..:/work
+    privileged: true
+    depends_on: [server]
+    stop_grace_period: 1s
+    ports: ["127.0.0.1:8221:22"]
