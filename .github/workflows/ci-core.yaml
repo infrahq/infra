@@ -134,6 +134,11 @@ jobs:
         env:
           RELEASE_NAME: 0.0.0
 
+      # the ./test module uses the main module, this is an easy way to use the
+      # dependencies from the main module
+      - name: Setup workspace
+        run: go work init . ./test
+
       - name: Start containers
         run: |
           head -c 32 < /dev/urandom > test/root.key
