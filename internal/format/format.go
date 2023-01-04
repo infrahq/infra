@@ -65,10 +65,14 @@ func HumanDurationWithCase(d time.Duration, useCaps bool) string {
 }
 
 func HumanTime(t time.Time, zeroValue string) string {
-	return HumanTimeWithCase(t, zeroValue, true)
+	return humanTimeWithCase(t, zeroValue, true)
 }
 
-func HumanTimeWithCase(t time.Time, zeroValue string, useCaps bool) string {
+func HumanTimeLower(t time.Time, zeroValue string) string {
+	return humanTimeWithCase(t, zeroValue, false)
+}
+
+func humanTimeWithCase(t time.Time, zeroValue string, useCaps bool) string {
 	if t.IsZero() {
 		return zeroValue
 	}

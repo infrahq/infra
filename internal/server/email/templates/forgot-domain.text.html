@@ -1,5 +1,5 @@
 
 <p>Someone has requested links to each of the organizations associated with your Infra account. If this was not you, you can safely ignore this email.</p>
 
-{{range $v := .Domains}}<p>{{$v.OrganizationName}} <a href="https://{{$v.OrganizationDomain}}/login">https://{{$v.OrganizationDomain}}/login</a> (last seen {{$v.LastSeenAt}})</p>
+{{range $v := .Organizations}}<p>{{$v.OrganizationName}} <a href="https://{{$v.OrganizationDomain}}/login">https://{{$v.OrganizationDomain}}/login</a> (last seen {{humanTime $v.LastSeenAt "never"}})</p>
 {{end}}
