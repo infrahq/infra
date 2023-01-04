@@ -13,5 +13,5 @@ fi
 
 . /etc/os-release
 case $ID in
-  rhel) semodule -i /usr/share/infra/selinux/infra.pp ;;
+  rhel) command -v semodule >/dev/null && semodule -i /usr/share/infra/selinux/infra.pp ;;
 esac
