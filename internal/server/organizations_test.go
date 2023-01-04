@@ -550,7 +550,7 @@ func TestAPI_UpdateOrganization(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusForbidden)
 			},
 		},
-		"fails tp update allowed domains when a domain is invalid": {
+		"fails to update allowed domains when a domain is invalid": {
 			urlPath: "/api/organizations/" + org.ID.String(),
 			body: api.UpdateOrganizationRequest{
 				AllowedDomains: []string{"hello.example.com", "@example.com"},

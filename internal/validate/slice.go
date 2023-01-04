@@ -1,12 +1,12 @@
 package validate
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-type StringSliceRule struct {
+type SliceRule struct {
 	// Value to validate
 	Value []string
 	// Name of the field in json.
@@ -15,22 +15,15 @@ type StringSliceRule struct {
 	ItemRule StringRule
 }
 
-// Slice validates a slice field
-func StringSlice(name string, value []string, itemRule StringRule, maxLength int) ValidationRule {
-	return StringSliceRule{Name: name, Value: value, ItemRule: itemRule}
-}
-
-func (s StringSliceRule) Validate() *Failure {
+func (s SliceRule) Validate() *Failure {
 	if len(s.Value) == 0 {
 		return nil
 	}
 
-	for _, val := range s.Value {
-		if strings.ContainsAny(val, ",") {
-			return Fail(s.Name, "list values cannot contain commas")
-		}
+	for i, val := range s.Value {
 		s.ItemRule.Value = val
 		if fail := s.ItemRule.Validate(); fail != nil {
+			fail.Name = fmt.Sprintf("%v.%d", fail.Name, i+1)
 			return fail
 		}
 	}
@@ -39,4 +32,4 @@ func (s StringSliceRule) Validate() *Failure {
 }
 
 // DescribeSchema does nothing, the schema could vary based on the item rule
-func (s StringSliceRule) DescribeSchema(_ *openapi3.Schema) {}
+func (s SliceRule) DescribeSchema(_ *openapi3.Schema) {}

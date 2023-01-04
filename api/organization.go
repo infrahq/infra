@@ -51,11 +51,13 @@ func (r UpdateOrganizationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("id", r.ID),
 		validate.Required("allowedDomains", r.AllowedDomains),
-		validate.StringSliceRule{
+		// permissive validation for a domain field (with no protocol)
+		validate.SliceRule{
 			Value: r.AllowedDomains,
 			Name:  "allowedDomains",
 			ItemRule: validate.StringRule{
 				Name:      "allowedDomains.values",
+				MinLength: 2,
 				MaxLength: 254,
 				CharacterRanges: []validate.CharRange{
 					validate.AlphabetLower,
@@ -66,23 +68,6 @@ func (r UpdateOrganizationRequest) ValidationRules() []validate.ValidationRule {
 				},
 				FirstCharacterRange: validate.AlphaNumeric,
 			},
-		},
-	}
-}
-
-// ValidateDomain returns a permissive validation for a domain field (with no protocol).
-func ValidateDomain(name, value string) validate.StringRule {
-	return validate.StringRule{
-		Value:     value,
-		Name:      name,
-		MinLength: 2,
-		MaxLength: 256, // arbitrary max length
-		CharacterRanges: []validate.CharRange{
-			validate.AlphabetLower,
-			validate.AlphabetUpper,
-			validate.Numbers,
-			validate.Dash,
-			validate.Dot,
 		},
 	}
 }
