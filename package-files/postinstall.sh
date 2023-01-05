@@ -10,3 +10,8 @@ if [ -f "$HOMEDIR/connector.yaml" ]; then
     systemctl restart infra
   fi
 fi
+
+. /etc/os-release
+case $ID in
+  rhel) command -v semodule >/dev/null && semodule -i /usr/share/infra/selinux/infra.pp ;;
+esac
