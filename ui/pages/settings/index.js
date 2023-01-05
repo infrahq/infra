@@ -769,7 +769,7 @@ function Authentication() {
               >
                 {d}
                 <button
-                  className='px-2 font-normal hover:text-blue-600'
+                  className='px-1.5 font-normal hover:text-gray-600'
                   type='button'
                   value={d}
                   onClick={removeDomain}
