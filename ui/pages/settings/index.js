@@ -782,7 +782,7 @@ function Authentication() {
               </span>
             ))}
             <input
-              className='peer bg-transparent focus:outline-none grow'
+              className='peer grow bg-transparent focus:outline-none'
               value={newDomain}
               onChange={e => {
                 setNewDomain(e.target.value)
