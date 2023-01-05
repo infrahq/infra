@@ -65,3 +65,28 @@ func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationReques
 func (a *API) DeleteOrganization(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
 	return nil, access.DeleteOrganization(c, r.ID)
 }
+
+func (a *API) UpdateOrganization(c *gin.Context, r *api.UpdateOrganizationRequest) (*api.Organization, error) {
+	org, err := access.GetOrganization(c, r.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// overwrite the existing domains to the incoming ones
+	org.AllowedDomains = []string{}
+	// remove duplicate domains
+	domains := make(map[string]bool)
+	for _, d := range r.AllowedDomains {
+		if !domains[d] {
+			org.AllowedDomains = append(org.AllowedDomains, d)
+		}
+		domains[d] = true
+	}
+
+	err = access.UpdateOrganization(c, org)
+	if err != nil {
+		return nil, err
+	}
+
+	return org.ToAPI(), nil
+}

@@ -73,3 +73,16 @@ func DomainAvailable(c *gin.Context, domain string) error {
 	}
 	return data.UniqueConstraintError{Table: "organization", Column: "domain", Value: domain}
 }
+
+func UpdateOrganization(c *gin.Context, org *models.Organization) error {
+	rCtx := GetRequestContext(c)
+	if user := rCtx.Authenticated.User; user != nil && user.OrganizationID == org.ID {
+		// admins may update their own org
+		db, err := RequireInfraRole(c, models.InfraAdminRole)
+		if err != nil {
+			return HandleAuthErr(err, "organization", "update", models.InfraAdminRole)
+		}
+		return data.UpdateOrganization(db, org)
+	}
+	return fmt.Errorf("%w: %s", ErrNotAuthorized, "you may only update your own organization")
+}

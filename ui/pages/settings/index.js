@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
 import moment from 'moment'
 import {
   TrashIcon,
@@ -675,19 +675,140 @@ function Admins() {
   )
 }
 
-function Providers() {
+function Authentication() {
   const { data: { items: providers } = {} } = useSWR(
     `/api/providers?&limit=1000`
   )
+  const { data: org } = useSWR('/api/organizations/self')
+  const [allowedDomains, setAllowedDomains] = useState(
+    org?.allowedDomains || []
+  )
+  const [newDomain, setNewDomain] = useState('')
+  const [error, setError] = useState('')
+
+  async function removeDomain(e) {
+    e.preventDefault()
+    let toRemove = e.target.value
+    const newAllowedDomains = allowedDomains.filter(d => d !== toRemove)
+    updateAllowedDomains(newAllowedDomains)
+  }
+
+  async function addDomain(e) {
+    e.preventDefault()
+    if (!newDomain.includes('.')) {
+      setError("invalid domain, '.' required")
+      return
+    }
+    // check that we only have the domain (no protocol), but be lenient on validation
+    let cleanedInput = newDomain
+    if (newDomain.startsWith('http://')) {
+      cleanedInput = cleanedInput.replace('http://', '')
+    }
+    if (newDomain.startsWith('https://')) {
+      cleanedInput = cleanedInput.replace('https://', '')
+    }
+    if (newDomain.startsWith('www.')) {
+      cleanedInput = cleanedInput.replace('www.', '')
+    }
+    if (newDomain.startsWith('@')) {
+      cleanedInput = cleanedInput.replace('@', '')
+    }
+    if (!allowedDomains.includes(cleanedInput)) {
+      const newAllowedDomains = [...allowedDomains, cleanedInput]
+      updateAllowedDomains(newAllowedDomains)
+    }
+    setNewDomain('')
+  }
+
+  function onKeyDown(e) {
+    const { key } = e
+
+    if (key === 'Backspace' && newDomain === '' && allowedDomains.length > 0) {
+      e.preventDefault()
+      const newAllowedDomains = [...allowedDomains]
+      newAllowedDomains.pop()
+      updateAllowedDomains(newAllowedDomains)
+    }
+  }
+
+  async function updateAllowedDomains(allowedDomains) {
+    setError('')
+    try {
+      const res = await fetch('/api/organizations/' + org.id, {
+        method: 'PUT',
+        body: JSON.stringify({ allowedDomains }),
+      })
+      await jsonBody(res)
+      setAllowedDomains(allowedDomains)
+      mutate('/api/organizations/self')
+    } catch (e) {
+      setError(e.message)
+    }
+  }
 
   return (
     <>
-      <header className='my-2 flex items-center justify-end'>
+      {providers?.some(p => p.id === googleSocialLoginID) && (
+        <>
+          <header className='my-6 flex flex-col justify-between md:flex-row md:space-y-0 md:space-x-4'>
+            <div>
+              <h2 className='mb-0.5 flex items-center font-display text-lg font-medium'>
+                Allowed Domains
+              </h2>
+              <h3 className='text-sm text-gray-500'>
+                Users with these domains are able to log in to your
+                organization.
+              </h3>
+            </div>
+          </header>
+          <form
+            className='group form-input flex w-full rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
+            onSubmit={addDomain}
+          >
+            {allowedDomains.map(d => (
+              <span
+                className='mr-1 inline-block rounded-md bg-gray-200 py-1 px-2 pl-2.5 pr-1 text-xs font-medium'
+                key={d}
+              >
+                {d}
+                <button
+                  className='px-1.5 font-normal hover:text-gray-600'
+                  type='button'
+                  value={d}
+                  onClick={removeDomain}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+            <input
+              className='peer grow bg-transparent focus:outline-none'
+              value={newDomain}
+              onChange={e => {
+                setNewDomain(e.target.value)
+              }}
+              onKeyDown={onKeyDown}
+            />
+          </form>
+          {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
+        </>
+      )}
+
+      <header className='my-6 flex flex-col justify-between space-y-4 md:flex-row md:space-y-0 md:space-x-4'>
+        <div>
+          <h2 className='mb-0.5 flex items-center font-display text-lg font-medium'>
+            Identity Providers
+          </h2>
+          <h3 className='text-sm text-gray-500'>
+            Configure additional methods of logging in using custom OpenID
+            Connect (OIDC) identity providers.
+          </h3>
+        </div>
         <Link
           href='/settings/providers/add'
-          className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+          className='inline-flex items-center self-end whitespace-nowrap rounded-md border border-transparent bg-black px-3 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
         >
-          Connect provider
+          <PlusIcon className='mr-1 h-3 w-3' /> Connect provider
         </Link>
       </header>
       <div className='mt-3 flex min-h-0 flex-1 flex-col'>
@@ -775,9 +896,9 @@ export default function Settings() {
             render: <Admins />,
           },
           {
-            name: 'providers',
-            title: 'Identity Providers',
-            render: <Providers />,
+            name: 'authentication',
+            title: 'Authentication',
+            render: <Authentication />,
           },
         ]
       : []),

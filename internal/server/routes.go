@@ -76,6 +76,7 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, authn, "/api/organizations", a.CreateOrganization)
 	get(a, authn, "/api/organizations/:id", a.GetOrganization)
 	del(a, authn, "/api/organizations/:id", a.DeleteOrganization)
+	put(a, authn, "/api/organizations/:id", a.UpdateOrganization)
 
 	get(a, authn, "/api/grants", a.ListGrants)
 	get(a, authn, "/api/grants/:id", a.GetGrant)
