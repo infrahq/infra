@@ -8,9 +8,9 @@ import {
   TrashIcon,
   CheckIcon,
   ChevronDownIcon,
-  CommandLineIcon,
   AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline'
+import { CommandLineIcon } from '@heroicons/react/24/solid'
 import { Dialog, Transition, Combobox, Listbox } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
@@ -22,7 +22,7 @@ import DeleteModal from '../../components/delete-modal'
 
 const OPTION_SELECT_ALL = 'select all'
 
-function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
+function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
   const { data: { items: users } = { items: [] } } = useSWR(
     '/api/users?limit=1000'
   )
@@ -46,6 +46,8 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
   const [selectedRoles, setSelectedRoles] = useState([])
   const [roles, setRoles] = useState([])
 
+  const [error, setError] = useState({})
+
   useEffect(() => {
     if (users && groups) {
       const optionsList = [
@@ -59,7 +61,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
         )
       )
     }
-  }, [users, groups, grants, query])
+  }, [users, groups, query])
 
   useEffect(() => {
     setResourcesOptions(
@@ -81,7 +83,6 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
 
   async function onSubmit(e) {
     e.preventDefault()
-
     try {
       const grantsToAdd = []
       if (selectedResource.kind === 'ssh') {
@@ -117,16 +118,17 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
 
       const newGrants = await fetch('/api/grants', {
         method: 'PATCH',
-        body: JSON.stringify({ GrantsToAdd: grantsToAdd }),
+        body: JSON.stringify({ grantsToAdd }),
       })
 
       onCreated(newGrants)
       setOpen(false)
     } catch (e) {
       console.error(e)
-
-      return false
+      setError({ type: 'error', text: e.message })
     }
+
+    return false
   }
 
   return (
@@ -148,6 +150,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                 className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
                 placeholder='User or group'
                 onChange={e => {
+                  setError({})
                   setQuery(e.target.value)
                   if (e.target.value.length === 0) {
                     setSelected(null)
@@ -197,7 +200,6 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
               <Combobox.Button className='hidden' ref={identityButton} />
             </Combobox>
           </div>
-          {/* {TODO: bug here somewhere} */}
           <>
             {/* Resource / Infrastructure dropdown selection */}
             <div className='relative mt-4 space-y-1'>
@@ -213,6 +215,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                   className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
                   placeholder='infrastructure'
                   onChange={e => {
+                    setError({})
                     setResourceQuery(e.target.value)
                     if (e.target.value.length === 0) {
                       setSelectedResource(null)
@@ -273,6 +276,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                     <Listbox
                       value={selectedNamespaces}
                       onChange={v => {
+                        setError({})
                         if (v.includes(OPTION_SELECT_ALL)) {
                           if (
                             selectedNamespaces.length !==
@@ -369,6 +373,7 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
                     <Listbox
                       value={selectedRoles}
                       onChange={v => {
+                        setError({})
                         if (selectedRoles.length === 1 && v.length === 0) {
                           return
                         }
@@ -442,6 +447,15 @@ function CreateAccessDialog({ setOpen, grants, onCreated = () => {} }) {
             )}
           </>
         </div>
+        {error && (
+          <p
+            className={`my-1 text-xs ${
+              error.type === 'warning' ? 'text-yellow-600' : 'text-red-500'
+            }`}
+          >
+            {error.text}
+          </p>
+        )}
         <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
           <button
             type='button'
@@ -578,7 +592,6 @@ export default function AccessControl() {
                       <Dialog.Panel className='relative w-full transform rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-md'>
                         <CreateAccessDialog
                           setOpen={setOpenCreateAccess}
-                          grants={grants}
                           onCreated={() => {
                             mutate()
                           }}
@@ -616,7 +629,7 @@ export default function AccessControl() {
           {
             id: 'infrastructure',
             cell: function Cell(info) {
-              const { kind, connected, connection } = destinations.find(
+              const { kind, connected, connection } = destinations?.find(
                 d => d.name === info.getValue().split('.')[0]
               ) || {
                 kind: undefined,
@@ -640,7 +653,7 @@ export default function AccessControl() {
                       <AdjustmentsHorizontalIcon className='h-4 text-blue-500' />
                     )}
                     {kind === 'ssh' && (
-                      <CommandLineIcon className='h-4 text-black' />
+                      <CommandLineIcon className='h-5 text-black' />
                     )}
                     {kind === 'kubernetes' && (
                       <img
@@ -710,12 +723,24 @@ export default function AccessControl() {
         open={openSelectedDeleteModal}
         setOpen={setOpenSelectedDeleteModal}
         onSubmit={async () => {
-          const promises = selectedDeleteIds.map(
-            async selectedId =>
-              await fetch(`/api/grants/${selectedId}`, { method: 'DELETE' })
-          )
+          const grantsToRemove = []
 
-          await Promise.all(promises)
+          selectedDeleteIds.forEach(id => {
+            const { user, group, privilege, resource } = allGrants.find(
+              g => g.id === id
+            )
+            grantsToRemove.push({
+              user,
+              group,
+              privilege,
+              resource,
+            })
+          })
+
+          await fetch('/api/grants', {
+            method: 'PATCH',
+            body: JSON.stringify({ grantsToRemove }),
+          })
 
           mutate()
           setSelectedDeleteIds([])
