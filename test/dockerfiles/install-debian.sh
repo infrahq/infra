@@ -2,19 +2,18 @@
 
 set -eu -o pipefail
 
-echo "Running Infra connector install on Ubuntu"
+echo "Running Infra connector install on $DESTINATION_NAME"
 
 PACKAGE_PATH=/work/dist/infra_0.0.0_amd64.deb
-DESTINATION_ADDR=127.0.0.1:8220
 INFRA_SERVER_URL=test-server-1
-INFRA_ACCESS_KEY=dest000001.ubuntuubuntuubuntuubuntu
 
 
 # step=install-package
-dpkg -i "${PACKAGE_PATH}"
-apt-get update && apt-get install --no-install-recommends -y openssh-server
-mkdir -p /run/sshd
+apt-get update && apt-get install --no-install-recommends -y \
+    openssh-server procps
 
+dpkg -i "${PACKAGE_PATH}"
+mkdir -p /run/sshd
 
 # step=write-sshd-config
 cat << EOF > /etc/ssh/sshd_config.d/infra.conf
@@ -29,7 +28,7 @@ EOF
 # step=write-connector.yaml
 cat << EOF > /etc/infra/connector.yaml
 kind: ssh
-name: ubuntu
+name: $DESTINATION_NAME
 endpointAddr: "$DESTINATION_ADDR"
 server:
   url: "$INFRA_SERVER_URL"
@@ -37,11 +36,9 @@ server:
   trustedCertificate: /work/internal/server/testdata/pki/ca.crt
 EOF
 
-echo "Starting infra service"
 
+echo "Starting infra service"
 systemctl start infra
 
-
 echo "Starting sshd service"
-
 systemctl start ssh

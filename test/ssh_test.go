@@ -18,11 +18,10 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func TestSSHDestination(t *testing.T) {
-	ctx := context.Background()
+var infraServerURL = "https://localhost:4443"
+var infraServerCAFile = "../internal/server/testdata/pki/ca.crt"
 
-	infraServerURL := "https://localhost:4443"
-	infraServerCAFile := "../internal/server/testdata/pki/ca.crt"
+func TestSSHDestination(t *testing.T) {
 	adminClient := api.Client{
 		Name:      "testing",
 		Version:   "0.0.1",
@@ -34,9 +33,44 @@ func TestSSHDestination(t *testing.T) {
 		},
 	}
 
+	t.Run("ubuntu", func(t *testing.T) {
+		testSSHDestination(t, testCase{
+			adminClient: adminClient,
+			destination: "ubuntu",
+			port:        "8220",
+		})
+	})
+
+	t.Run("debian", func(t *testing.T) {
+		testSSHDestination(t, testCase{
+			adminClient: adminClient,
+			destination: "debian",
+			port:        "8221",
+		})
+	})
+
+	t.Run("redhat", func(t *testing.T) {
+		testSSHDestination(t, testCase{
+			adminClient: adminClient,
+			destination: "redhat",
+			port:        "8222",
+		})
+	})
+}
+
+type testCase struct {
+	adminClient api.Client
+	destination string
+	port        string
+}
+
+func testSSHDestination(t *testing.T, tc testCase) {
+	ctx := context.Background()
+	adminClient := tc.adminClient
+
 	poll.WaitOn(t, func(t poll.LogT) poll.Result {
 		dests, err := adminClient.ListDestinations(ctx,
-			api.ListDestinationsRequest{Name: "ubuntu"})
+			api.ListDestinationsRequest{Name: tc.destination})
 		switch {
 		case err != nil:
 			return poll.Error(err)
@@ -73,7 +107,7 @@ func TestSSHDestination(t *testing.T) {
 
 	sshArgs := func(args ...string) []string {
 		return append([]string{
-			"-p", "8220",
+			"-p", tc.port,
 			"-o", "StrictHostKeyChecking=yes",
 			"-o", "PasswordAuthentication=no",
 			"-F", sshConfig,
@@ -100,7 +134,7 @@ func TestSSHDestination(t *testing.T) {
 	runStep(t, "succeeds with a grant", func(t *testing.T) {
 		resp, err := adminClient.CreateGrant(ctx, &api.GrantRequest{
 			UserName:  "anyuser@example.com",
-			Resource:  "ubuntu",
+			Resource:  tc.destination,
 			Privilege: "connect",
 		})
 		assert.NilError(t, err)

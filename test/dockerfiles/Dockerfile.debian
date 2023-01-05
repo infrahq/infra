@@ -1,9 +1,12 @@
 
-FROM ubuntu:22.10
+ARG image_tag=ubuntu:22.10
+FROM $image_tag
+
+ENV DEBIAN_FRONTEND noninteractive
 
 RUN set -eux \
     && apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+    && apt-get install --no-install-recommends -y \
       bash \
       systemd \
       systemd-sysv \
