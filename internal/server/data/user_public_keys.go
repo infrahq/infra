@@ -64,3 +64,14 @@ func DeleteUserPublicKeys(tx WriteTxn, userID uid.ID) error {
 	_, err := tx.Exec(stmt, time.Now(), userID)
 	return handleError(err)
 }
+
+func DeleteExpiredUserPublicKeys(tx WriteTxn) error {
+	now := time.Now()
+	query := querybuilder.New("UPDATE user_public_keys")
+	query.B("SET deleted_at = ?", now)
+	query.B("WHERE deleted_at is null")
+	query.B("AND expires_at <= ?", now)
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
+}
