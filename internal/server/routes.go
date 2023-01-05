@@ -96,7 +96,7 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, authn, "/api/logout", a.Logout)
 
 	// auth required, org required, sync with IDP session on interval
-	authnSync := &routeGroup{RouterGroup: apiGroup.Group("/")}
+	authnSync := &routeGroup{RouterGroup: apiGroup.Group("/"), idpSync: true}
 	get(a, authnSync, "/api/users/:id", a.GetUser) // the UI calls this endpoint to check session status
 	post(a, authnSync, "/api/tokens", a.CreateToken)
 
@@ -177,6 +177,7 @@ type routeGroup struct {
 	*gin.RouterGroup
 	noAuthentication bool
 	noOrgRequired    bool
+	idpSync          bool
 }
 
 func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route route[Req, Res]) {
@@ -187,6 +188,7 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 
 	route.authenticationOptional = group.noAuthentication
 	route.organizationOptional = group.noOrgRequired
+	route.idpSync = group.idpSync
 
 	if !route.omitFromDocs {
 		a.register(openAPIRouteDefinition(routeID, route))
