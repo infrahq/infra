@@ -34,6 +34,7 @@ func listUserPublicKeys(tx ReadTxn, userID uid.ID) ([]models.UserPublicKey, erro
 	query.B("FROM user_public_keys")
 	query.B("WHERE deleted_at is null")
 	query.B("AND user_id = ?", userID)
+	query.B("AND expires_at > ?", time.Now())
 
 	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {

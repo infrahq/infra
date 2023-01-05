@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/crypto/bcrypt"
@@ -240,6 +241,7 @@ func TestGetIdentity(t *testing.T) {
 			PublicKey:   "the-key",
 			KeyType:     "ssh-rsa",
 			Fingerprint: "the-fingerprint",
+			ExpiresAt:   time.Now().Add(time.Hour).Truncate(time.Millisecond),
 		}
 		err = AddUserPublicKey(db, bondKey)
 		assert.NilError(t, err)
@@ -286,6 +288,7 @@ func TestGetIdentity(t *testing.T) {
 					PublicKey:   "the-key",
 					KeyType:     "ssh-rsa",
 					Fingerprint: "the-fingerprint",
+					ExpiresAt:   bondKey.ExpiresAt,
 				},
 			}
 			assert.DeepEqual(t, *identity, expected, cmpTimeWithDBPrecision)
@@ -414,6 +417,7 @@ func TestListIdentities(t *testing.T) {
 				Fingerprint: "the-fingerprint",
 				KeyType:     "ssh-rsa",
 				PublicKey:   "the-public-key",
+				ExpiresAt:   time.Now().Add(time.Hour).Truncate(time.Millisecond),
 			}
 			assert.NilError(t, AddUserPublicKey(db, pubKey))
 

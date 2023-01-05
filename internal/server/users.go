@@ -179,6 +179,7 @@ func AddUserPublicKey(c *gin.Context, r *api.AddUserPublicKeyRequest) (*api.User
 		PublicKey:   base64.StdEncoding.EncodeToString(key.Marshal()),
 		KeyType:     key.Type(),
 		Fingerprint: ssh.FingerprintSHA256(key),
+		ExpiresAt:   time.Now().Add(12 * time.Hour),
 	}
 
 	if err := data.AddUserPublicKey(rCtx.DBTxn, userPublicKey); err != nil {

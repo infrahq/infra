@@ -263,7 +263,6 @@ func provisionSSHKey(ctx context.Context, opts provisionSSHKeyOptions) (string, 
 		}
 
 		if userPublicKeyContains(opts.user.PublicKeys, existing.PublicKeyID) {
-			// TODO: check expiration when expiry is added
 			// key exists locally and in the API
 			return filename, nil
 		}
