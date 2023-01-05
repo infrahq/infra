@@ -18,12 +18,14 @@ import (
 
 const DeviceCodeExpirySeconds = 600
 
+const CharsetDeviceFlowUserCode = "BCDFGHJKLMNPQRSTVWXZ" // no vowels to avoid spelling words
+
 func (a *API) StartDeviceFlow(c *gin.Context, req *api.EmptyRequest) (*api.DeviceFlowResponse, error) {
 	rctx := getRequestContext(c)
 	tries := 0
 retry:
 	tries++
-	userCode, err := generate.CryptoRandom(8, generate.CharsetDeviceFlowUserCode)
+	userCode, err := generate.CryptoRandom(8, CharsetDeviceFlowUserCode)
 	if err != nil {
 		return nil, err
 	}
