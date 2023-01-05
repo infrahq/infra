@@ -27,7 +27,12 @@ type API struct {
 	openAPIDoc openapi3.T
 }
 
-func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
+var createTokenRoute = route[api.EmptyRequest, *api.CreateTokenResponse]{
+	routeSettings: routeSettings{idpSync: true},
+	handler:       CreateToken,
+}
+
+func CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
 	rCtx := getRequestContext(c)
 
 	if rCtx.Authenticated.User == nil {

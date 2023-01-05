@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"time"
@@ -46,7 +47,17 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListRespo
 	return result, nil
 }
 
-func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
+var getUserRoute = route[api.GetUserRequest, *api.User]{
+	routeSettings: routeSettings{
+		omitFromTelemetry: true,
+		txnOptions:        &sql.TxOptions{ReadOnly: true},
+		// the UI calls this endpoint to check session status
+		idpSync: true,
+	},
+	handler: GetUser,
+}
+
+func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
 	if r.ID.IsSelf {
 		iden := access.GetRequestContext(c).Authenticated.User
 		if iden == nil {
