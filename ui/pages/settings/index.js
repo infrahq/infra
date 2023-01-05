@@ -764,7 +764,7 @@ function Authentication() {
           >
             {allowedDomains.map(d => (
               <span
-                className='mr-1 inline-block rounded bg-gray-200 py-1 px-2 pl-4 pr-2 text-xs font-medium'
+                className='mr-1 inline-block rounded-md bg-gray-200 py-1 px-2 pl-2.5 pr-1 text-xs font-medium'
                 key={d}
               >
                 {d}
