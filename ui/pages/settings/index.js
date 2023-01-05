@@ -759,7 +759,7 @@ function Authentication() {
             </div>
           </header>
           <form
-            className='group form-input flex w-full rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-blue-500'
+            className='group form-input flex w-full rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-blue-500 focus-within:ring-1'
             onSubmit={addDomain}
           >
             {allowedDomains.map(d => (
