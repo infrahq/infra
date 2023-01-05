@@ -763,7 +763,6 @@ function Authentication() {
             onSubmit={addDomain}
           >
             {allowedDomains.map(d => (
-              // render domains as a "tag" with an x
               <span
                 className='mr-1 inline-block rounded bg-gray-200 py-1 px-2 pl-4 pr-2 text-xs font-medium'
                 key={d}
