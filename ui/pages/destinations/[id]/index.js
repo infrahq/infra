@@ -664,7 +664,7 @@ export default function DestinationDetail() {
   const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
   const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    `/api/grants?destination=${destination?.name}`
+    `/api/grants?destination=${destination?.name}&limit=1000`
   )
   const { data: { items: currentUserGrants } = {} } = useSWR(
     `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
