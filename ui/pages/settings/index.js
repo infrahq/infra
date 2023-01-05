@@ -695,6 +695,10 @@ function Authentication() {
 
   async function addDomain(e) {
     e.preventDefault()
+    if (!newDomain.includes('.')) {
+      setError("invalid domain, '.' required")
+      return
+    }
     // check that we only have the domain (no protocol), but be lenient on validation
     let cleanedInput = newDomain
     if (newDomain.startsWith('http://')) {
@@ -758,7 +762,7 @@ function Authentication() {
             </div>
           </header>
           <form
-            className='group form-input flex w-full rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-blue-500 focus-within:ring-1'
+            className='group form-input flex w-full rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
             onSubmit={addDomain}
           >
             {allowedDomains.map(d => (
@@ -778,7 +782,7 @@ function Authentication() {
               </span>
             ))}
             <input
-              className='peer bg-transparent focus:outline-none'
+              className='peer bg-transparent focus:outline-none grow'
               value={newDomain}
               onChange={e => {
                 setNewDomain(e.target.value)

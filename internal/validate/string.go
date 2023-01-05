@@ -27,6 +27,9 @@ type StringRule struct {
 	// FirstCharacterRange is a list of character ranges. The first rune in
 	// value must be within one of these ranges.
 	FirstCharacterRange []CharRange
+
+	// RequiredCharacters must be present in the string
+	RequiredCharacters []rune
 }
 
 func String(name, value string, minLength, maxLength int, charset []CharRange) StringRule {
@@ -113,6 +116,15 @@ func (s StringRule) Validate() *Failure {
 		for i, c := range value {
 			if !inRange(s.CharacterRanges, c) {
 				add("character %q at position %v is not allowed", c, i)
+				break
+			}
+		}
+	}
+
+	if len(s.RequiredCharacters) > 0 {
+		for _, c := range s.RequiredCharacters {
+			if !strings.ContainsRune(value, c) {
+				add("%q is required in value", c)
 				break
 			}
 		}

@@ -67,6 +67,7 @@ func (r UpdateOrganizationRequest) ValidationRules() []validate.ValidationRule {
 					validate.Dot,
 				},
 				FirstCharacterRange: validate.AlphaNumeric,
+				RequiredCharacters:  []rune{'.'},
 			},
 		},
 	}
