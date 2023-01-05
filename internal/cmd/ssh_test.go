@@ -34,7 +34,7 @@ func TestSSHHostsCmd(t *testing.T) {
 			{
 				Name:      "admin@example.com",
 				AccessKey: "0000000001.adminadminadminadmin1234",
-				Role:      "admin",
+				InfraRole: "admin",
 			},
 			{
 				Name:      "anyuser@example.com",

@@ -35,7 +35,7 @@ func TestSSHDAuthKeysCmd(t *testing.T) {
 			{
 				Name:      "admin@example.com",
 				AccessKey: "0000000001.adminadminadminadmin1234",
-				Role:      "admin",
+				InfraRole: "admin",
 			},
 			{Name: "connector", AccessKey: "0000000003.connectorsecretconnector"},
 			{Name: "anyuser@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},

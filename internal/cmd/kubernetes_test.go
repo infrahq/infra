@@ -28,7 +28,7 @@ func TestUpdateKubeconfig(t *testing.T) {
 		{
 			Name:      "admin@local",
 			AccessKey: accessKey,
-			Role:      "admin",
+			InfraRole: "admin",
 		},
 	}
 

@@ -72,7 +72,7 @@ func withAdminUser(_ *testing.T, opts *Options) {
 	opts.Users = append(opts.Users, User{
 		Name:      "admin@example.com",
 		AccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
-		Role:      "admin",
+		InfraRole: "admin",
 	})
 }
 
@@ -80,7 +80,7 @@ func withSupportAdminGrant(_ *testing.T, opts *Options) {
 	opts.Users = append(opts.Users, User{
 		Name:      "admin@example.com",
 		AccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
-		Role:      "support-admin",
+		InfraRole: "support-admin",
 	})
 }
 

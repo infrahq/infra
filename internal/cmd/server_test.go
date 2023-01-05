@@ -129,7 +129,7 @@ users:
   - name: username
     accessKey: access-key
     password: the-password
-    role: admin
+    infraRole: admin
 `
 				dir := fs.NewDir(t, t.Name(),
 					fs.WithFile("cfg.yaml", content))
@@ -151,7 +151,7 @@ users:
 						Name:      "username",
 						AccessKey: "access-key",
 						Password:  "the-password",
-						Role:      "admin",
+						InfraRole: "admin",
 					},
 				}
 				return expected
@@ -214,7 +214,7 @@ users:
   - name: username
     accessKey: access-key
     password: the-password
-    role: admin
+    infraRole: admin
 
 redis:
   host: myredis
@@ -296,7 +296,7 @@ api:
 								Name:      "username",
 								AccessKey: "access-key",
 								Password:  "the-password",
-								Role:      "admin",
+								InfraRole: "admin",
 							},
 						},
 					},

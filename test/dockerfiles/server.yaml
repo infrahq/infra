@@ -2,7 +2,7 @@
 users:
   - name: admin@example.com
     accessKey: aaaaaaaaaa.000000000000000000000000
-    role: admin
+    infraRole: admin
   - name: connector
     accessKey: dest000001.ubuntuubuntuubuntuubuntu
   - name: connector
