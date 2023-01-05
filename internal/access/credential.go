@@ -1,8 +1,10 @@
 package access
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
 	"unicode"
 
 	"github.com/gin-gonic/gin"
@@ -105,8 +107,11 @@ func updateCredential(c *gin.Context, user *models.Identity, newPassword string,
 	rCtx := GetRequestContext(c)
 	db := rCtx.DBTxn
 
-	err := checkPasswordRequirements(db, newPassword)
-	if err != nil {
+	if err := checkPasswordRequirements(db, newPassword); err != nil {
+		return err
+	}
+
+	if err := checkBadPasswords(newPassword); err != nil {
 		return err
 	}
 
@@ -221,6 +226,33 @@ func checkPasswordRequirements(db data.ReadTxn, password string) error {
 
 	if !valid {
 		return validate.Error{"password": requirementError}
+	}
+
+	return nil
+}
+
+// checkBadPasswords checks if the password is a known bad password, i.e. a widely reused password.
+func checkBadPasswords(password string) error {
+	badPasswordsFile := os.Getenv("INFRA_SERVER_BAD_PASSWORDS_FILE")
+	if badPasswordsFile == "" {
+		return nil
+	}
+
+	file, err := os.Open(badPasswordsFile)
+	if err != nil {
+		return err
+	}
+
+	scan := bufio.NewScanner(file)
+	scan.Split(bufio.ScanLines)
+	for scan.Scan() {
+		if scan.Text() == password {
+			return fmt.Errorf("%w: cannot use a common password", internal.ErrBadRequest)
+		}
+	}
+
+	if err := file.Close(); err != nil {
+		return err
 	}
 
 	return nil
