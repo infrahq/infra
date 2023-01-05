@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"text/template"
 
 	"github.com/spf13/cobra"
@@ -43,10 +44,22 @@ func newSSHHostsCmd(cli *CLI) *cobra.Command {
 		Args:  ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			host, port := args[0], args[1]
-			if err := runSSHHosts(cli, host, port); err != nil {
+
+			err := runSSHHosts(cli, host, port)
+			switch {
+			case errors.Is(err, errNotInfraDestination) || errors.Is(err, errBeforeDestinationMatch):
 				// Prevent an error from being printed to stderr, because it
 				// is printed every time a user runs ssh for a non-infra host.
 				logging.L.Debug().Err(err).Msg("exit from infra ssh hosts")
+				return exitError{code: 1}
+			case err != nil:
+				// When this returns a non-zero exit status the 'ssh' command may
+				// print "The authenticity of host can't be established" immediately
+				// after our error message. It can be really easy to miss our error
+				// message because the whole block is clumped together. To make
+				// our error message more visually obvious we add extra newlines.
+				fmt.Fprintf(cli.Stderr, "\ninfra: %v\n\n", err)
+				// Suppress printing of error message, because we already printed it
 				return exitError{code: 1}
 			}
 			return nil
@@ -69,28 +82,32 @@ func (e exitError) Error() string {
 	return fmt.Sprintf("exit code %v", e.code)
 }
 
+var errNotInfraDestination = fmt.Errorf("no destination matching that address or hostname")
+
+var errBeforeDestinationMatch = fmt.Errorf("failed to lookup infra destinations")
+
 func runSSHHosts(cli *CLI, hostname, port string) error {
 	ctx := context.Background()
 
 	opts, err := defaultClientOpts()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errBeforeDestinationMatch, err)
 	}
 	client, err := NewAPIClient(opts)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errBeforeDestinationMatch, err)
 	}
 
 	// TODO: check a local file cache to avoid querying the server in all cases
 	dests, err := client.ListDestinations(ctx, api.ListDestinationsRequest{Kind: "ssh"})
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errBeforeDestinationMatch, err)
 	}
 
 	// Exit if the hostname is not known to infra
 	destination := destinationForName(dests.Items, hostname, port)
 	if destination == nil {
-		return fmt.Errorf("no destination matching that hostname")
+		return errNotInfraDestination
 	}
 
 	if err := setupDestinationSSHConfig(ctx, cli, destination); err != nil {
@@ -157,7 +174,9 @@ func setupDestinationSSHConfig(ctx context.Context, cli *CLI, destination *api.D
 		return fmt.Errorf("user home directory: %w", err)
 	}
 	infraSSHDir := filepath.Join(homeDir, ".ssh/infra")
-	_ = os.MkdirAll(infraSSHDir, 0o700)
+	if err := mkdirAll(infraSSHDir); err != nil {
+		return err
+	}
 
 	hostCfg, err := currentHostConfig()
 	if err != nil {
@@ -196,6 +215,19 @@ func setupDestinationSSHConfig(ctx context.Context, cli *CLI, destination *api.D
 		return fmt.Errorf("write infra ssh config: %w", err)
 	}
 	return nil
+}
+
+// mkdirAll creates a directory and all its parents with mode 0o700, or returns
+// an error. mkdirAll is a wrapper around os.MkdirAll to provide a better error
+// message when the path already exists as a file.
+func mkdirAll(path string) error {
+	err := os.MkdirAll(path, 0o700)
+	pathError := &fs.PathError{}
+	if errors.As(err, &pathError) && errors.Is(pathError.Err, syscall.ENOTDIR) {
+		return fmt.Errorf("failed to create directory %v, the path already exists as a regular file",
+			pathError.Path)
+	}
+	return err
 }
 
 type provisionSSHKeyOptions struct {
@@ -248,7 +280,9 @@ func provisionSSHKey(ctx context.Context, opts provisionSSHKeyOptions) (string, 
 		keysCfg.Keys = slices.Delete(keysCfg.Keys, i, i+1)
 	}
 
-	_ = os.MkdirAll(keysDir, 0o700)
+	if err := mkdirAll(keysDir); err != nil {
+		return "", err
+	}
 	fmt.Fprintf(opts.cli.Stderr, "Creating a new RSA 4096 bit key pair in %v\n", keysDir)
 
 	priv, err := rsa.GenerateKey(rand.Reader, 4096)
