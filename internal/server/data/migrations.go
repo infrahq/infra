@@ -84,6 +84,7 @@ func migrations() []*migrator.Migration {
 		deviceFlowAuthRequestsAddUserIDProviderID(),
 		addDestinationCredentials(),
 		setGoogleSocialLoginDefaultID(),
+		addUserPublicKeyUserIDIndex(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1155,6 +1156,19 @@ func setGoogleSocialLoginDefaultID() *migrator.Migration {
 					WHERE provider_id = 0;
 			`, models.InternalGoogleProviderID)
 
+			return err
+		},
+	}
+}
+
+func addUserPublicKeyUserIDIndex() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2023-01-05T17:33",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `CREATE INDEX IF NOT EXISTS idx_user_public_keys_user_id
+					ON user_public_keys USING btree (user_id) WHERE (deleted_at IS NULL)`
+
+			_, err := tx.Exec(stmt)
 			return err
 		},
 	}

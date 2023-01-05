@@ -997,6 +997,12 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.DeepEqual(t, expectedKey, accessKey)
 			},
 		},
+		{
+			label: testCaseLine("2023-01-05T17:33"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
