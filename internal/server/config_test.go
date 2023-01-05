@@ -353,13 +353,13 @@ func TestLoadConfigUpdate(t *testing.T) {
 	config := BootstrapConfig{
 		Users: []User{
 			{
-				Name: "r2d2@example.com",
-				Role: "admin",
+				Name:      "r2d2@example.com",
+				InfraRole: "admin",
 			},
 			{
 				Name:      "c3po@example.com",
 				AccessKey: "TllVlekkUz.NFnxSlaPQLosgkNsyzaMttfC",
-				Role:      "view",
+				InfraRole: "view",
 			},
 			{
 				Name:     "sarah@email.com",
@@ -409,8 +409,8 @@ func TestLoadConfigUpdate(t *testing.T) {
 	updatedConfig := BootstrapConfig{
 		Users: []User{
 			{
-				Name: "c3po@example.com",
-				Role: "admin",
+				Name:      "c3po@example.com",
+				InfraRole: "admin",
 			},
 		},
 	}

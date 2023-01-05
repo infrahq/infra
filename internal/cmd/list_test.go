@@ -25,7 +25,7 @@ func TestListCmd(t *testing.T) {
 	opts := defaultServerOptions(dir)
 	opts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
-			{Name: "admin", AccessKey: "0000000001.adminadminadminadmin1234", Role: "admin"},
+			{Name: "admin", AccessKey: "0000000001.adminadminadminadmin1234", InfraRole: "admin"},
 			{Name: "nogrants@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},
 			{Name: "manygrants@example.com", AccessKey: "0000000003.notadminsecretnotadmin03"},
 		},

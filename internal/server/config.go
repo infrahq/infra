@@ -30,7 +30,7 @@ type User struct {
 	Name      string
 	AccessKey string
 	Password  string
-	Role      string
+	InfraRole string
 }
 
 func (u User) ValidationRules() []validate.ValidationRule {
@@ -642,7 +642,7 @@ func (s Server) loadUser(db data.WriteTxn, input User) error {
 		return err
 	}
 
-	if err := loadGrant(db, identity.ID, input.Role); err != nil {
+	if err := loadGrant(db, identity.ID, input.InfraRole); err != nil {
 		return err
 	}
 
