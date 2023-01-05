@@ -56,7 +56,6 @@ func (s *Server) GenerateRoutes() Routes {
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
-	get(a, authn, "/api/users/:id", a.GetUser)
 	put(a, authn, "/api/users/:id", a.UpdateUser)
 	del(a, authn, "/api/users/:id", a.DeleteUser)
 	put(a, authn, "/api/users/public-key", AddUserPublicKey)
@@ -94,8 +93,12 @@ func (s *Server) GenerateRoutes() Routes {
 	put(a, authn, "/api/destinations/:id", a.UpdateDestination)
 	del(a, authn, "/api/destinations/:id", a.DeleteDestination)
 
-	post(a, authn, "/api/tokens", a.CreateToken)
 	post(a, authn, "/api/logout", a.Logout)
+
+	// auth required, org required, sync with IDP session on interval
+	authnSync := &routeGroup{RouterGroup: apiGroup.Group("/")}
+	get(a, authnSync, "/api/users/:id", a.GetUser) // the UI calls this endpoint to check session status
+	post(a, authnSync, "/api/tokens", a.CreateToken)
 
 	// SCIM inbound provisioning
 	add(a, authn, http.MethodGet, "/api/scim/v2/Users/:id", getProviderUsersRoute)
@@ -159,6 +162,7 @@ type routeSettings struct {
 	infraVersionHeaderOptional bool
 	authenticationOptional     bool
 	organizationOptional       bool
+	idpSync                    bool // when true the user session will be syncronized with the identity provider on a timed interval
 	txnOptions                 *sql.TxOptions
 }
 

@@ -111,6 +111,25 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 		if err := handleInfraDestinationHeader(rCtx, c.Request.Header); err != nil {
 			return authned, err
 		}
+		if route.idpSync {
+			if route.authenticationOptional {
+				// this should be caught during development
+				return authned, fmt.Errorf("idp sync requires authentication")
+			}
+			// sync the identity info here to keep the UI session in sync with IDP session validity
+			if err := srv.syncIdentityInfo(context.Background(), tx, authned.User, authned.AccessKey.ProviderID); err != nil {
+				deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
+				if errors.Is(err, ErrSyncFailed) {
+					logging.L.Debug().Err(err)
+				} else {
+					logging.L.Error().Err(err)
+				}
+				if err = tx.Commit(); err != nil {
+					logging.L.Error().Err(err)
+				}
+				return authned, AuthenticationError{Message: "session in identity provider expired or revoked"}
+			}
+		}
 	}
 
 	err = tx.Commit()
@@ -198,25 +217,12 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 		if err != nil {
 			return u, fmt.Errorf("identity for access key: %w", err)
 		}
-
 		if time.Since(identity.LastSeenAt) > lastSeenUpdateThreshold {
 			identity.LastSeenAt = time.Now().UTC()
 			if err = data.UpdateIdentity(db, identity); err != nil {
 				return u, fmt.Errorf("identity update fail: %w", err)
 			}
 		}
-
-		// sync the identity info here to keep the UI session in sync with IDP session validity
-		if err := srv.syncIdentityInfo(context.Background(), db, identity, accessKey.ProviderID); err != nil {
-			deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
-			if errors.Is(err, ErrSyncFailed) {
-				logging.L.Debug().Err(err)
-			} else {
-				logging.L.Error().Err(err)
-			}
-			return u, AuthenticationError{Message: "session in identity provider expired or revoked"}
-		}
-
 		u.User = identity
 	}
 
