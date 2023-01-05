@@ -15,3 +15,9 @@ docker exec -i $TTY \
   -e DESTINATION_ADDR=127.0.0.1:8221 \
   -e INFRA_ACCESS_KEY=dest000002.debiandebiandebiandebian \
   test-destination_debian-1 /work/test/dockerfiles/install-debian.sh
+
+docker exec -i $TTY \
+  -e DESTINATION_NAME=redhat \
+  -e DESTINATION_ADDR=127.0.0.1:8222 \
+  -e INFRA_ACCESS_KEY=dest000003.redhatredhatredhatredhat \
+  test-destination_redhat-1 /work/test/dockerfiles/install-redhat.sh

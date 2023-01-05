@@ -59,3 +59,14 @@ services:
     depends_on: [server]
     stop_grace_period: 1s
     ports: ["127.0.0.1:8221:22"]
+
+  destination_redhat:
+    build:
+      context: ./test
+      dockerfile: dockerfiles/Dockerfile.redhat
+    volumes:
+      - ..:/work
+    privileged: true
+    depends_on: [server]
+    stop_grace_period: 1s
+    ports: ["127.0.0.1:8222:22"]

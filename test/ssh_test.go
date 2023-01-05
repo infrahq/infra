@@ -48,6 +48,14 @@ func TestSSHDestination(t *testing.T) {
 			port:        "8221",
 		})
 	})
+
+	t.Run("redhat", func(t *testing.T) {
+		testSSHDestination(t, testCase{
+			adminClient: adminClient,
+			destination: "redhat",
+			port:        "8222",
+		})
+	})
 }
 
 type testCase struct {

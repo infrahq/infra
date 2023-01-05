@@ -1,0 +1,13 @@
+ARG image_tag=redhat/ubi9:latest
+FROM $image_tag
+
+RUN set -eux \
+   rm -rf /etc/systemd/system/*.wants/* \
+      /lib/systemd/system/local-fs.target.wants/* \
+      /lib/systemd/system/multi-user.target.wants/* \
+      /lib/systemd/system/sockets.target.wants/*initctl* \
+      /lib/systemd/system/sockets.target.wants/*udev* \
+      /lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup* \
+      /lib/systemd/system/systemd-update-utmp*
+
+CMD ["/sbin/init"]
