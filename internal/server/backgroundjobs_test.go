@@ -29,7 +29,7 @@ func TestJobWrapper(t *testing.T) {
 	}
 
 	var runID int
-	job := func(ctx context.Context, tx *data.Transaction) error {
+	job := func(tx data.WriteTxn) error {
 		chReady <- signal
 		<-chRun
 
@@ -37,13 +37,18 @@ func TestJobWrapper(t *testing.T) {
 			runID++
 		}()
 
-		tx = tx.WithOrgID(db.DefaultOrg.ID)
 		var err error
 		switch runID {
 		case 0: // no error commits transaction
-			err = data.CreateIdentity(tx, &models.Identity{Name: "user0@example.com"})
+			err = data.CreateIdentity(tx, &models.Identity{
+				Name:               "user0@example.com",
+				OrganizationMember: models.OrganizationMember{OrganizationID: db.DefaultOrg.ID},
+			})
 		case 1: // error does rollback
-			err = data.CreateIdentity(tx, &models.Identity{Name: "user1@example.com"})
+			err = data.CreateIdentity(tx, &models.Identity{
+				Name:               "user1@example.com",
+				OrganizationMember: models.OrganizationMember{OrganizationID: db.DefaultOrg.ID},
+			})
 			if err == nil {
 				err = fmt.Errorf("cause an error")
 			}

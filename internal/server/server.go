@@ -244,7 +244,9 @@ func (s *Server) Options() Options {
 func (s *Server) Run(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
 
-	s.SetupBackgroundJobs(ctx)
+	s.registerJob(ctx, data.DeleteExpiredDeviceFlowAuthRequests, 10*time.Minute)
+	s.registerJob(ctx, data.RemoveExpiredAccessKeys, 12*time.Hour)
+	s.registerJob(ctx, data.RemoveExpiredPasswordResetTokens, 15*time.Minute)
 
 	if s.tel != nil {
 		group.Go(func() error {
