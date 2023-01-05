@@ -752,9 +752,8 @@ function Authentication() {
                 Allowed Domains
               </h2>
               <h3 className='text-sm text-gray-500'>
-                Google accounts with these domains are able to log in to your
-                organization. They will not have any infrastructure access by
-                default.
+                Users with these domains are able to log in to your
+                organization.
               </h3>
             </div>
           </header>
