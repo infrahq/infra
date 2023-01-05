@@ -16,33 +16,12 @@ const (
 // This permission gives you permission to authenticate with a destination
 const BasePermissionConnect = "connect"
 
-// Grant is a lean tuple of subject(identity) <-> privilege <-> resource (URN) relationships.
-// field bloat should be avoided here since this model is going to be used heavily.
-//
-// Subject
-//
-//	Subject is mostly an Identity, which is a string specifying a user, group, the name of a role, or another grant
-//		- an identity:  	i:E97WmsYfvo   		 - a user reference
-//		- a group: 			g:CCoJ1ornpf   		 - a group reference
-//		- a role:  			r:role-name   		 - a role definition
-//		- a permission: p:permissionn-name - a permission definition
-//
-// Privilege
-//
-//	Privilege is a predicate that describes what sort of access the identity has to the resource
-//
-// URN
-//
-//	URN is Universal Resource Notation.
-//
-// Expiry
-//
-//	time you want the grant to expire at
+// Grant is an access grant.
 type Grant struct {
 	Model
 	OrganizationMember
 
-	// Subject is the user or group ID the grant applies to.
+	// Subject is the ID of the user or group that is granted access to a resource.
 	Subject uid.PolymorphicID
 	// Privilege is the role or permission being granted.
 	Privilege string
