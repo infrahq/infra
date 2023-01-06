@@ -37,7 +37,10 @@ func handleInfraDestinationHeader(tx *data.Transaction, authned access.Authentic
 		return err
 	}
 
-	rCtx := access.RequestContext{Authenticated: authned, DBTxn: tx}
+	rCtx := access.RequestContext{
+		Authenticated: authned,
+		DBTxn:         tx.WithOrgID(authned.User.OrganizationID),
+	}
 	roles := []string{models.InfraConnectorRole, models.InfraAdminRole}
 	if err := access.IsAuthorized(rCtx, roles...); err != nil {
 		return access.HandleAuthErr(err, "destination", "update", roles...)
@@ -67,13 +70,18 @@ const (
 // If the request identifies an organization (which is required for most routes)
 // a rate limit will be applied to all requests from the same organization.
 func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (access.Authenticated, error) {
-	db := srv.DB()
-	authned, err := requireAccessKey(c, db, srv)
+	tx, err := srv.db.Begin(c.Request.Context(), nil)
+	if err != nil {
+		return access.Authenticated{}, err
+	}
+	defer logError(tx.Rollback, "failed to rollback middleware transaction")
+
+	authned, err := requireAccessKey(c, tx, srv)
 	if !route.authenticationOptional && err != nil {
 		return authned, err
 	}
 
-	org, err := validateOrgMatchesRequest(c.Request, db, authned.Organization)
+	org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
 	if err != nil {
 		return authned, err
 	}
@@ -101,9 +109,13 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 	}
 
 	if authned.User != nil {
-		if err := handleInfraDestinationHeader(db, authned, c.Request.Header); err != nil {
+		if err := handleInfraDestinationHeader(tx, authned, c.Request.Header); err != nil {
 			return authned, err
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return authned, err
 	}
 
 	if authned.User != nil && route.idpSync {
