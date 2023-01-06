@@ -142,6 +142,13 @@ func TestGetProvider(t *testing.T) {
 			_, err := GetProvider(db, GetProviderOptions{ByName: "does-not-exist"})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
+		t.Run("from other organization", func(t *testing.T) {
+			_, err := GetProvider(db, GetProviderOptions{
+				ByName:           "okta-development",
+				FromOrganization: 71234,
+			})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 	})
 }
 

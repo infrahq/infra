@@ -77,6 +77,7 @@ func IsAuthorized(rCtx RequestContext, requiredRole ...string) error {
 	if user == nil {
 		return fmt.Errorf("no authenticated user")
 	}
+
 	grants, err := data.ListGrants(rCtx.DBTxn, data.ListGrantsOptions{
 		Pagination:                 &data.Pagination{Limit: 1},
 		BySubject:                  uid.NewIdentityPolymorphicID(user.ID),

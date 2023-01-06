@@ -270,7 +270,7 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 }
 
 // TODO: move this to access package?
-func ValidateRequestAccessKey(tx *Transaction, authnKey string) (*models.AccessKey, error) {
+func ValidateRequestAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, error) {
 	keyID, secret, ok := strings.Cut(authnKey, ".")
 	if !ok {
 		return nil, fmt.Errorf("invalid access key format")
@@ -280,10 +280,8 @@ func ValidateRequestAccessKey(tx *Transaction, authnKey string) (*models.AccessK
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
-	tx = tx.WithOrgID(t.OrganizationID)
 
 	sum := secretChecksum(secret)
-
 	if subtle.ConstantTimeCompare(t.SecretChecksum, sum) != 1 {
 		return nil, fmt.Errorf("access key invalid secret")
 	}
@@ -297,19 +295,47 @@ func ValidateRequestAccessKey(tx *Transaction, authnKey string) (*models.AccessK
 		if now.After(t.InactivityTimeout) {
 			return nil, ErrAccessInactivityTimeout
 		}
-
-		origTimeout := t.InactivityTimeout
 		t.InactivityTimeout = now.Add(t.InactivityExtension)
-		// Throttle updates when the key is used frequently. Uses the
-		// same value as server.lastSeenUpdateThreshold.
-		if t.InactivityTimeout.Sub(origTimeout) > 2*time.Second {
-			if err := UpdateAccessKey(tx, t); err != nil {
-				return nil, err
-			}
-		}
 	}
 
-	return t, nil
+	err = updateAccessKeyLastSeenAt(tx, t)
+	return t, err
+}
+
+// lastSeenUpdateThreshold is the duration of time that must pass before a
+// LastSeenAt value for a user, access key, or destination is updated again.
+// This prevents excessive writes when a single user performs many requests
+// in a short period of time.
+const lastSeenUpdateThreshold = 2 * time.Second
+
+// updateAccessKeyLastSeenAt sets key.UpdatedAt to now and then updates the
+// user row in the database. Updates are throttled to once every 2 seconds.
+// If the access key was updated recently, or the database row is already locked, the
+// update will be skipped.
+//
+// Unlike most functions in this package, this function uses key.OrganizationID
+// not tx.OrganizationID.
+func updateAccessKeyLastSeenAt(tx WriteTxn, key *models.AccessKey) error {
+	if time.Since(key.UpdatedAt) < lastSeenUpdateThreshold {
+		return nil
+	}
+
+	origUpdatedAt := key.UpdatedAt
+	if err := key.OnUpdate(); err != nil {
+		return err
+	}
+
+	table := (*accessKeyTable)(key)
+	query := querybuilder.New("UPDATE access_keys SET")
+	query.B(columnsForUpdate(table), table.Values()...)
+	query.B("WHERE deleted_at is null")
+	query.B("AND id = ?", table.Primary())
+	query.B("AND organization_id = ?", key.OrganizationID)
+	// only update if the row has not changed since the SELECT
+	query.B("AND updated_at = ?", origUpdatedAt)
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
 }
 
 func RemoveExpiredAccessKeys(tx WriteTxn) error {

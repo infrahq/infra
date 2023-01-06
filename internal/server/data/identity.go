@@ -308,6 +308,10 @@ type GetIdentityOptions struct {
 	LoadGroups     bool
 	LoadProviders  bool
 	LoadPublicKeys bool
+
+	// FromOrganization is the organization ID of the provider. When set to a
+	// non-zero value the organization ID from the transaction is ignored.
+	FromOrganization uid.ID
 }
 
 func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) {
@@ -319,7 +323,14 @@ func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) 
 	query.B(columnsForSelect(identity))
 	query.B("FROM")
 	query.B(identity.Table())
-	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
+	query.B("WHERE deleted_at IS NULL")
+
+	orgID := opts.FromOrganization
+	if orgID == 0 {
+		orgID = tx.OrganizationID()
+	}
+	query.B("AND organization_id = ?", orgID)
+
 	switch {
 	case opts.ByID != 0:
 		query.B("AND identities.id = ?", opts.ByID)
@@ -625,6 +636,37 @@ func loadIdentitiesProviders(tx ReadTxn, identities []models.Identity) error {
 
 func UpdateIdentity(tx WriteTxn, identity *models.Identity) error {
 	return update(tx, (*identitiesTable)(identity))
+}
+
+// UpdateIdentityLastSeenAt sets user.LastSeenAt to now and then updates the
+// user row in the database. Updates are throttled to once every 2 seconds.
+// If the user was updated recently, or the database row is already locked, the
+// update will be skipped.
+//
+// Unlike most functions in this package, this function uses user.OrganizationID
+// not tx.OrganizationID.
+func UpdateIdentityLastSeenAt(tx WriteTxn, user *models.Identity) error {
+	if time.Since(user.LastSeenAt) < lastSeenUpdateThreshold {
+		return nil
+	}
+
+	origUpdatedAt := user.UpdatedAt
+	user.LastSeenAt = time.Now()
+	if err := user.OnUpdate(); err != nil {
+		return err
+	}
+
+	table := (*identitiesTable)(user)
+	query := querybuilder.New("UPDATE identities SET")
+	query.B(columnsForUpdate(table), table.Values()...)
+	query.B("WHERE deleted_at is null")
+	query.B("AND id = ?", table.Primary())
+	query.B("AND organization_id = ?", user.OrganizationID)
+	// only update if the row has not changed since the SELECT
+	query.B("AND updated_at = ?", origUpdatedAt)
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
 }
 
 type DeleteIdentitiesOptions struct {
