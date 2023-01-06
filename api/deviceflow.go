@@ -26,7 +26,7 @@ func (adfr *ApproveDeviceFlowRequest) ValidationRules() []validate.ValidationRul
 				{Low: 'P', High: 'T'},
 				{Low: 'V', High: 'X'},
 				{Low: 'Z', High: 'Z'},
-				{Low: '-', High: '-'},
+				validate.Dash,
 			},
 		},
 	}
