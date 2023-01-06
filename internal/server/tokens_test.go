@@ -12,7 +12,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/server/providers"
 )
 
 func TestAPI_CreateToken(t *testing.T) {
@@ -45,7 +44,7 @@ func TestAPI_CreateToken(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusUnauthorized)
 			},
 		},
-		"infra provider user with valid access key": {
+		"success": {
 			setup: func(t *testing.T, req *http.Request) {
 				user := &models.Identity{
 					Name: "spike@example.com",
@@ -72,126 +71,6 @@ func TestAPI_CreateToken(t *testing.T) {
 				err := json.Unmarshal(resp.Body.Bytes(), respBody)
 				assert.NilError(t, err)
 				assert.Assert(t, respBody.Token != "")
-			},
-		},
-		"infra provider user with expired inactivity timeout on the access key": {
-			setup: func(t *testing.T, req *http.Request) {
-				user := &models.Identity{
-					Name: "spike2@example.com",
-				}
-				err := data.CreateIdentity(srv.DB(), user)
-				assert.NilError(t, err)
-				_, err = data.CreateProviderUser(srv.DB(), data.InfraProvider(srv.DB()), user)
-				assert.NilError(t, err)
-
-				key := &models.AccessKey{
-					IssuedFor:         user.ID,
-					ProviderID:        data.InfraProvider(srv.DB()).ID,
-					ExpiresAt:         time.Now().Add(10 * time.Second),
-					InactivityTimeout: time.Now(),
-				}
-				accessKey, err := data.CreateAccessKey(srv.DB(), key)
-				assert.NilError(t, err)
-
-				req.Header.Set("Authorization", "Bearer "+accessKey)
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusUnauthorized)
-			},
-		},
-		"access key directly created for user not in infra provider": {
-			setup: func(t *testing.T, req *http.Request) {
-				user := &models.Identity{
-					Name: "faye@example.com",
-				}
-				err := data.CreateIdentity(srv.DB(), user)
-				assert.NilError(t, err)
-
-				key := &models.AccessKey{
-					IssuedFor:  user.ID,
-					ProviderID: data.InfraProvider(srv.DB()).ID,
-					ExpiresAt:  time.Now().Add(10 * time.Second),
-				}
-				accessKey, err := data.CreateAccessKey(srv.DB(), key)
-				assert.NilError(t, err)
-
-				req.Header.Set("Authorization", "Bearer "+accessKey)
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusCreated)
-			},
-		},
-		"access key for valid idp user": {
-			setup: func(t *testing.T, req *http.Request) {
-				user := &models.Identity{
-					Name: "jet@example.com",
-				}
-				err := data.CreateIdentity(srv.DB(), user)
-				assert.NilError(t, err)
-
-				provider := &models.Provider{
-					Name: "mockta",
-					Kind: models.ProviderKindOIDC,
-				}
-				err = data.CreateProvider(srv.DB(), provider)
-				assert.NilError(t, err)
-
-				_, err = data.CreateProviderUser(srv.DB(), provider, user)
-				assert.NilError(t, err)
-
-				key := &models.AccessKey{
-					IssuedFor:  user.ID,
-					ProviderID: provider.ID,
-					ExpiresAt:  time.Now().Add(10 * time.Second),
-				}
-				accessKey, err := data.CreateAccessKey(srv.DB(), key)
-				assert.NilError(t, err)
-
-				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
-				*req = *req.WithContext(ctx)
-				req.Header.Set("Authorization", "Bearer "+accessKey)
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusCreated)
-
-				respBody := &api.CreateTokenResponse{}
-				err := json.Unmarshal(resp.Body.Bytes(), respBody)
-				assert.NilError(t, err)
-				assert.Assert(t, respBody.Token != "")
-			},
-		},
-		"access key for revoked idp user": {
-			setup: func(t *testing.T, req *http.Request) {
-				user := &models.Identity{
-					Name: "ein@example.com",
-				}
-				err := data.CreateIdentity(srv.DB(), user)
-				assert.NilError(t, err)
-
-				provider := &models.Provider{
-					Name: "mockta-revoked-user",
-					Kind: models.ProviderKindOIDC,
-				}
-				err = data.CreateProvider(srv.DB(), provider)
-				assert.NilError(t, err)
-
-				_, err = data.CreateProviderUser(srv.DB(), provider, user)
-				assert.NilError(t, err)
-
-				key := &models.AccessKey{
-					IssuedFor:  user.ID,
-					ProviderID: provider.ID,
-					ExpiresAt:  time.Now().Add(10 * time.Second),
-				}
-				accessKey, err := data.CreateAccessKey(srv.DB(), key)
-				assert.NilError(t, err)
-
-				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{UserInfoRevoked: true})
-				*req = *req.WithContext(ctx)
-				req.Header.Set("Authorization", "Bearer "+accessKey)
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusUnauthorized)
 			},
 		},
 	}

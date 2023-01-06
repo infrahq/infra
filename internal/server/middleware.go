@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -112,8 +113,40 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 		}
 	}
 
-	err = tx.Commit()
-	return authned, err
+	if err := tx.Commit(); err != nil {
+		return authned, err
+	}
+
+	if authned.User != nil && route.idpSync {
+		if route.authenticationOptional {
+			// this should be caught during development
+			return authned, fmt.Errorf("idp sync requires authentication")
+		}
+		tx2, err := srv.db.Begin(c.Request.Context(), nil)
+		if err != nil {
+			return authned, err
+		}
+		defer logError(tx2.Rollback, "failed to rollback identity provider sync transaction")
+		tx2 = tx2.WithOrgID(authned.Organization.ID)
+		// sync the identity info here to keep the UI session in sync with IDP session validity
+		if err := srv.syncIdentityInfo(context.Background(), tx2, authned.User, authned.AccessKey.ProviderID); err != nil {
+			deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
+			if errors.Is(err, ErrSyncFailed) {
+				logging.L.Debug().Err(err)
+			} else {
+				logging.L.Error().Err(err)
+			}
+			if err = tx2.Commit(); err != nil {
+				logging.L.Error().Err(err)
+			}
+			return authned, AuthenticationError{Message: "session in identity provider expired or revoked"}
+		}
+		if err = tx2.Commit(); err != nil {
+			return authned, err
+		}
+	}
+
+	return authned, nil
 }
 
 // lastSeenUpdateThreshold is the duration of time that must pass before a
@@ -197,14 +230,12 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 		if err != nil {
 			return u, fmt.Errorf("identity for access key: %w", err)
 		}
-
 		if time.Since(identity.LastSeenAt) > lastSeenUpdateThreshold {
 			identity.LastSeenAt = time.Now().UTC()
 			if err = data.UpdateIdentity(db, identity); err != nil {
 				return u, fmt.Errorf("identity update fail: %w", err)
 			}
 		}
-
 		u.User = identity
 	}
 

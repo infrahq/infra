@@ -31,12 +31,14 @@ func TestDeviceFlow(t *testing.T) {
 	err := data.CreateOrganization(srv.db, org)
 	assert.NilError(t, err)
 
+	tx := txnForTestCase(t, srv.db, org.ID)
+
 	user := &models.Identity{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 		Name:               "joe@example.com",
 	}
 
-	err = data.CreateIdentity(srv.db, user)
+	err = data.CreateIdentity(tx, user)
 	assert.NilError(t, err)
 
 	expires := time.Now().Add(10 * time.Minute).UTC().Truncate(time.Second)
@@ -46,7 +48,7 @@ func TestDeviceFlow(t *testing.T) {
 		Name:               "Scoped",
 		IssuedFor:          user.ID,
 		IssuedForName:      user.Name,
-		ProviderID:         data.InfraProvider(srv.db).ID,
+		ProviderID:         data.InfraProvider(tx).ID,
 		ExpiresAt:          expires,
 		Scopes:             models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
@@ -56,15 +58,17 @@ func TestDeviceFlow(t *testing.T) {
 		Name:               "Not scoped",
 		IssuedFor:          user.ID,
 		IssuedForName:      user.Name,
-		ProviderID:         data.InfraProvider(srv.db).ID,
+		ProviderID:         data.InfraProvider(tx).ID,
 		ExpiresAt:          expires,
 	}
 
-	_, err = data.CreateAccessKey(srv.db, scoped)
+	_, err = data.CreateAccessKey(tx, scoped)
 	assert.NilError(t, err)
 
-	_, err = data.CreateAccessKey(srv.db, notscoped)
+	_, err = data.CreateAccessKey(tx, notscoped)
 	assert.NilError(t, err)
+
+	assert.NilError(t, tx.Commit())
 
 	key := scoped.Token()
 	keyNotscoped := notscoped.Token()

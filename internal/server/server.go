@@ -25,8 +25,10 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/metrics"
+	"github.com/infrahq/infra/uid"
 )
 
 type Options struct {
@@ -450,4 +452,85 @@ func configureEmail(options Options) {
 	if len(options.SMTPServer) > 0 {
 		email.SMTPServer = options.SMTPServer
 	}
+}
+
+// providerUserUpdateThreshold is the duration of time that must pass before a
+// users session is attempted to be validated again with an external identity provider.
+// This prevents hitting IDP rate limits.
+const providerUserUpdateThreshold = 120 * time.Minute
+
+var ErrSyncFailed = fmt.Errorf("user sync failed")
+
+// syncIdentityInfo calls the identity provider used to authenticate this user session to update their current information
+func (s *Server) syncIdentityInfo(ctx context.Context, tx *data.Transaction, identity *models.Identity, sessionProviderID uid.ID) error {
+	var provider *models.Provider
+	if s.Google != nil && sessionProviderID == s.Google.ID {
+		provider = s.Google
+	} else {
+		var err error
+		provider, err = data.GetProvider(tx, data.GetProviderOptions{
+			ByID: sessionProviderID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to get provider for user info: %w", err)
+		}
+
+		if provider.Kind == models.ProviderKindInfra {
+			// no external verification needed
+			logging.L.Trace().Msg("skipped verifying identity within infra provider, not required")
+			return nil
+		}
+	}
+
+	providerUser, err := data.GetProviderUser(tx, provider.ID, identity.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get provider user to update: %w", err)
+	}
+
+	// if provider user was updated recently, skip checking this now to avoid hitting rate limits
+	if time.Since(providerUser.LastUpdate) > providerUserUpdateThreshold {
+		oidc, err := s.providerClient(ctx, provider, providerUser.RedirectURL)
+		if err != nil {
+			return fmt.Errorf("update provider client: %w", err)
+		}
+
+		// update current identity provider groups and account status
+		_, err = data.SyncProviderUser(ctx, tx, providerUser, oidc)
+		if err != nil {
+			if errors.Is(err, internal.ErrBadGateway) {
+				return err
+			}
+
+			if nestedErr := data.DeleteAccessKeys(tx, data.DeleteAccessKeysOptions{ByIssuedForID: providerUser.IdentityID, ByProviderID: providerUser.ProviderID}); nestedErr != nil {
+				logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
+			}
+
+			if nestedErr := data.DeleteProviderUsers(tx, data.DeleteProviderUsersOptions{ByIdentityID: providerUser.IdentityID, ByProviderID: providerUser.ProviderID}); nestedErr != nil {
+				logging.Errorf("failed to delete provider user: %s", nestedErr)
+			}
+
+			return fmt.Errorf("%w: %s", ErrSyncFailed, err)
+		}
+
+		providerUser.LastUpdate = time.Now().UTC()
+		if err := data.UpdateProviderUser(tx, providerUser); err != nil {
+			return fmt.Errorf("update idp user: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) providerClient(ctx context.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
+	if c := providers.OIDCClientFromContext(ctx); c != nil {
+		// oidc is added to the context during unit tests
+		return c, nil
+	}
+
+	if provider.ID == models.InternalGoogleProviderID {
+		// load the secret google information now, it is not set by default to avoid the possibility of returning this secret info externally
+		provider = s.Google
+	}
+
+	return providers.NewOIDCClient(*provider, string(provider.ClientSecret), redirectURL), nil
 }

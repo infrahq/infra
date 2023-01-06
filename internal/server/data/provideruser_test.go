@@ -68,13 +68,13 @@ func TestSyncProviderUser(t *testing.T) {
 
 		tests := []struct {
 			name              string
-			setupProviderUser func(t *testing.T) *models.Identity
+			setupProviderUser func(t *testing.T) *models.ProviderUser
 			oidcClient        providers.OIDCClient
-			verifyFunc        func(t *testing.T, err error, user *models.Identity)
+			verifyFunc        func(t *testing.T, err error, user *models.ProviderUser)
 		}{
 			{
 				name: "invalid/expired access token is updated",
-				setupProviderUser: func(t *testing.T) *models.Identity {
+				setupProviderUser: func(t *testing.T) *models.ProviderUser {
 					user := &models.Identity{
 						Name: "hello@example.com",
 					}
@@ -93,23 +93,24 @@ func TestSyncProviderUser(t *testing.T) {
 					err = UpdateProviderUser(db, pu)
 					assert.NilError(t, err)
 
-					return user
+					return pu
 				},
 				oidcClient: &mockOIDCImplementation{
 					UserEmailResp:  "hello@example.com",
 					UserGroupsResp: []string{"Everyone", "Developers"},
 				},
-				verifyFunc: func(t *testing.T, err error, user *models.Identity) {
+				verifyFunc: func(t *testing.T, err error, user *models.ProviderUser) {
 					assert.NilError(t, err)
 
-					pu, err := GetProviderUser(db, provider.ID, user.ID)
+					// reload the user
+					pu, err := GetProviderUser(db, user.ProviderID, user.IdentityID)
 					assert.NilError(t, err)
 
 					expected := models.ProviderUser{
 						Email:        "hello@example.com",
 						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
-						ProviderID:   provider.ID,
-						IdentityID:   user.ID,
+						ProviderID:   user.ProviderID,
+						IdentityID:   user.IdentityID,
 						RedirectURL:  "http://example.com",
 						RefreshToken: "bbb",
 						AccessToken:  "any-access-token",
@@ -135,7 +136,7 @@ func TestSyncProviderUser(t *testing.T) {
 			},
 			{
 				name: "groups are updated to match user info",
-				setupProviderUser: func(t *testing.T) *models.Identity {
+				setupProviderUser: func(t *testing.T) *models.ProviderUser {
 					user := &models.Identity{
 						Name: "sync@example.com",
 					}
@@ -154,23 +155,24 @@ func TestSyncProviderUser(t *testing.T) {
 					err = UpdateProviderUser(db, pu)
 					assert.NilError(t, err)
 
-					return user
+					return pu
 				},
 				oidcClient: &mockOIDCImplementation{
 					UserEmailResp:  "sync@example.com",
 					UserGroupsResp: []string{"Everyone", "Developers"},
 				},
-				verifyFunc: func(t *testing.T, err error, user *models.Identity) {
+				verifyFunc: func(t *testing.T, err error, user *models.ProviderUser) {
 					assert.NilError(t, err)
 
-					pu, err := GetProviderUser(db, provider.ID, user.ID)
+					// reload the user
+					pu, err := GetProviderUser(db, user.ProviderID, user.IdentityID)
 					assert.NilError(t, err)
 
 					expected := models.ProviderUser{
 						Email:        "sync@example.com",
 						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
-						ProviderID:   provider.ID,
-						IdentityID:   user.ID,
+						ProviderID:   user.ProviderID,
+						IdentityID:   user.IdentityID,
 						RedirectURL:  "http://example.com",
 						RefreshToken: "bbb",
 						AccessToken:  "any-access-token",
@@ -222,7 +224,7 @@ func TestSyncProviderUser(t *testing.T) {
 			t.Run(test.name, func(t *testing.T) {
 				oidc := test.oidcClient
 				user := test.setupProviderUser(t)
-				err = SyncProviderUser(context.Background(), db, user, provider, oidc)
+				_, err = SyncProviderUser(context.Background(), db, user, oidc)
 				test.verifyFunc(t, err, user)
 			})
 		}

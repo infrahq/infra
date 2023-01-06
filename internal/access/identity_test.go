@@ -1,11 +1,7 @@
 package access
 
 import (
-	"context"
-	"fmt"
-	"net/http"
 	"testing"
-	"time"
 
 	"gotest.tools/v3/assert"
 
@@ -13,7 +9,6 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -119,131 +114,4 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	group, err = data.GetGroup(db, data.GetGroupOptions{ByID: group.ID})
 	assert.NilError(t, err)
 	assert.Equal(t, group.TotalUsers, 0)
-}
-
-// mockOIDC is a fake oidc identity provider
-type fakeOIDCImplementation struct {
-	UserInfoRevoked bool // when true returns an error fromt the user info endpoint
-}
-
-func (m *fakeOIDCImplementation) Validate(_ context.Context) error {
-	return nil
-}
-
-func (m *fakeOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.AuthServerInfo, error) {
-	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
-}
-
-func (m *fakeOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (*providers.IdentityProviderAuth, error) {
-	return &providers.IdentityProviderAuth{
-		AccessToken:       "acc",
-		RefreshToken:      "ref",
-		AccessTokenExpiry: time.Now().Add(1 * time.Minute),
-		Email:             "hello@example.com",
-	}, nil
-}
-
-func (m *fakeOIDCImplementation) RefreshAccessToken(_ context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
-	// never update
-	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
-}
-
-func (m *fakeOIDCImplementation) GetUserInfo(_ context.Context, _ *models.ProviderUser) (*providers.UserInfoClaims, error) {
-	if m.UserInfoRevoked {
-		return nil, fmt.Errorf("user revoked")
-	}
-	return &providers.UserInfoClaims{}, nil
-}
-
-func TestUpdateIdentityInfoFromProvider(t *testing.T) {
-	// create the identity
-	c, db, infraProvider := setupAccessTestContext(t)
-
-	rCtx := GetRequestContext(c)
-	rCtx.Request = &http.Request{}
-
-	provider := &models.Provider{
-		Name:         "mockta",
-		URL:          "example.com",
-		ClientID:     "aaa",
-		ClientSecret: "bbb",
-		Kind:         models.ProviderKindOIDC,
-	}
-
-	err := data.CreateProvider(db, provider)
-	assert.NilError(t, err)
-
-	google := &models.Provider{
-		Model: models.Model{
-			ID: models.InternalGoogleProviderID,
-		},
-		Name:         "moogle",
-		URL:          "moogle.example.com",
-		ClientID:     "aaa",
-		ClientSecret: "bbb",
-		Kind:         models.ProviderKindGoogle,
-	}
-
-	t.Run("a revoked OIDC session revokes access keys created by provider login", func(t *testing.T) {
-		_, err = data.CreateProviderUser(db, provider, rCtx.Authenticated.User)
-		assert.NilError(t, err)
-		oidc := &fakeOIDCImplementation{UserInfoRevoked: true}
-
-		toBeRevoked := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: provider.ID}
-		_, err := data.CreateAccessKey(db, toBeRevoked)
-		assert.NilError(t, err)
-		shouldStayValid := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: infraProvider.ID}
-		_, err = data.CreateAccessKey(db, shouldStayValid)
-		assert.NilError(t, err)
-
-		rCtx.Authenticated.AccessKey = toBeRevoked
-
-		err = UpdateIdentityInfoFromProvider(rCtx, provider, oidc)
-		assert.ErrorContains(t, err, "user revoked")
-
-		_, err = data.GetAccessKeyByKeyID(db, toBeRevoked.KeyID)
-		assert.ErrorIs(t, err, internal.ErrNotFound)
-
-		_, err = data.GetAccessKeyByKeyID(db, shouldStayValid.KeyID)
-		assert.NilError(t, err)
-	})
-
-	t.Run("a revoked OIDC session revokes access keys created by social login", func(t *testing.T) {
-		_, err = data.CreateProviderUser(db, google, rCtx.Authenticated.User)
-		assert.NilError(t, err)
-		oidc := &fakeOIDCImplementation{UserInfoRevoked: true}
-
-		toBeRevoked := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: google.ID}
-		_, err := data.CreateAccessKey(db, toBeRevoked)
-		assert.NilError(t, err)
-		shouldStayValid := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: infraProvider.ID}
-		_, err = data.CreateAccessKey(db, shouldStayValid)
-		assert.NilError(t, err)
-
-		rCtx.Authenticated.AccessKey = toBeRevoked
-
-		err = UpdateIdentityInfoFromProvider(rCtx, google, oidc)
-		assert.ErrorContains(t, err, "user revoked")
-
-		_, err = data.GetAccessKeyByKeyID(db, toBeRevoked.KeyID)
-		assert.ErrorIs(t, err, internal.ErrNotFound)
-
-		_, err = data.GetAccessKeyByKeyID(db, shouldStayValid.KeyID)
-		assert.NilError(t, err)
-	})
-
-	t.Run("a valid OIDC session does not result in an error", func(t *testing.T) {
-		_, err = data.CreateProviderUser(db, provider, rCtx.Authenticated.User)
-		assert.NilError(t, err)
-		oidc := &fakeOIDCImplementation{}
-
-		key := &models.AccessKey{IssuedFor: rCtx.Authenticated.User.ID, ProviderID: provider.ID}
-		_, err := data.CreateAccessKey(db, key)
-		assert.NilError(t, err)
-
-		rCtx.Authenticated.AccessKey = key
-
-		err = UpdateIdentityInfoFromProvider(rCtx, provider, oidc)
-		assert.NilError(t, err)
-	})
 }

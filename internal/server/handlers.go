@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"database/sql"
 	"encoding/base64"
 	"errors"
@@ -15,11 +14,9 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/internal/server/redis"
 )
 
@@ -30,16 +27,16 @@ type API struct {
 	openAPIDoc openapi3.T
 }
 
-func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
+var createTokenRoute = route[api.EmptyRequest, *api.CreateTokenResponse]{
+	routeSettings: routeSettings{idpSync: true},
+	handler:       CreateToken,
+}
+
+func CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
 	rCtx := getRequestContext(c)
 
 	if rCtx.Authenticated.User == nil {
 		return nil, fmt.Errorf("no authenticated user")
-	}
-	err := a.UpdateIdentityInfoFromProvider(rCtx)
-	if err != nil {
-		// this will fail if the user was removed from the IDP, which means they no longer are a valid user
-		return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
 	}
 	token, err := data.CreateIdentityToken(rCtx.DBTxn, rCtx.Authenticated.User.ID)
 	if err != nil {
@@ -123,7 +120,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			}
 		}
 
-		providerClient, err := a.providerClient(c, provider, r.OIDC.RedirectURL)
+		providerClient, err := a.server.providerClient(c, provider, r.OIDC.RedirectURL)
 		if err != nil {
 			return nil, fmt.Errorf("login provider client: %w", err)
 		}
@@ -209,53 +206,4 @@ func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, e
 
 func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error) {
 	return &api.Version{Version: internal.FullVersion()}, nil
-}
-
-// UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func (a *API) UpdateIdentityInfoFromProvider(rCtx access.RequestContext) error {
-	// does not need access check, this action is limited to the calling user
-	identity := rCtx.Authenticated.User
-	if identity == nil {
-		return errors.New("user does not have session with an identity provider")
-	}
-
-	var provider *models.Provider
-	if a.server.Google != nil && rCtx.Authenticated.AccessKey.ProviderID == a.server.Google.ID {
-		provider = a.server.Google
-	} else {
-		var err error
-		provider, err = data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{
-			ByID: rCtx.Authenticated.AccessKey.ProviderID,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get provider for user info: %w", err)
-		}
-
-		if provider.Kind == models.ProviderKindInfra {
-			// no external verification needed
-			logging.L.Trace().Msg("skipped verifying identity within infra provider, not required")
-			return nil
-		}
-	}
-
-	providerUser, err := data.GetProviderUser(rCtx.DBTxn, rCtx.Authenticated.AccessKey.ProviderID, identity.ID)
-	if err != nil {
-		return fmt.Errorf("failed to get provider user to update: %w", err)
-	}
-
-	oidc, err := a.providerClient(rCtx.Request.Context(), provider, providerUser.RedirectURL)
-	if err != nil {
-		return fmt.Errorf("update provider client: %w", err)
-	}
-
-	return access.UpdateIdentityInfoFromProvider(rCtx, provider, oidc)
-}
-
-func (a *API) providerClient(ctx context.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
-	if c := providers.OIDCClientFromContext(ctx); c != nil {
-		// oidc is added to the context during unit tests
-		return c, nil
-	}
-
-	return providers.NewOIDCClient(*provider, string(provider.ClientSecret), redirectURL), nil
 }

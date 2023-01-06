@@ -144,7 +144,7 @@ func handleSignupError(err error) error {
 }
 
 func (a *API) socialSignupUserAuth(c *gin.Context, provider *models.Provider, auth *authn.OIDCAuthn) (*providers.IdentityProviderAuth, error) {
-	providerClient, err := a.providerClient(c, provider, auth.RedirectURL)
+	providerClient, err := a.server.providerClient(c, provider, auth.RedirectURL)
 	if err != nil {
 		return nil, fmt.Errorf("sign-up provider client: %w", err)
 	}

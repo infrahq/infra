@@ -184,7 +184,7 @@ func TestAPI_GetUser(t *testing.T) {
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
 
-				var cmpAPIUserJSON = gocmp.Options{
+				cmpAPIUserJSON := gocmp.Options{
 					gocmp.FilterPath(pathMapKey(`created`, `updated`, `lastSeenAt`), cmpApproximateTime),
 					gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 				}
@@ -967,7 +967,7 @@ func TestAddUserPublicKey(t *testing.T) {
 		tc.expected(t, resp)
 	}
 
-	var cmpAPIPublicKeyJSON = gocmp.Options{
+	cmpAPIPublicKeyJSON := gocmp.Options{
 		gocmp.FilterPath(pathMapKey(`created`), cmpApproximateTime),
 		gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 	}

@@ -94,10 +94,13 @@ func (a *OIDCAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 	}
 
 	// update users attributes (such as groups) from the IDP
-	err = data.SyncProviderUser(ctx, db, identity, a.Provider, a.OIDCProviderClient)
+	groups, err := data.SyncProviderUser(ctx, db, providerUser, a.OIDCProviderClient)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("sync user on login: %w", err)
 	}
+
+	// the groups were set in the database, update the identity we have in memory here
+	identity.Groups = groups
 
 	return AuthenticatedIdentity{
 		Identity:      identity,

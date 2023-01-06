@@ -1,16 +1,13 @@
 package access
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -84,38 +81,4 @@ func ListIdentities(c *gin.Context, opts data.ListIdentityOptions) ([]models.Ide
 		return nil, HandleAuthErr(err, "users", "list", roles...)
 	}
 	return data.ListIdentities(db, opts)
-}
-
-// UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func UpdateIdentityInfoFromProvider(c RequestContext, provider *models.Provider, oidc providers.OIDCClient) error {
-	// does not need authorization check, this action is limited to the calling user
-	ctx := c.Request.Context()
-
-	// added by the authentication middleware
-	identity := c.Authenticated.User
-	if identity == nil {
-		return errors.New("user does not have session with an identity provider")
-	}
-
-	db := c.DBTxn
-
-	// get current identity provider groups and account status
-	err := data.SyncProviderUser(ctx, db, identity, provider, oidc)
-	if err != nil {
-		if errors.Is(err, internal.ErrBadGateway) {
-			return err
-		}
-
-		if nestedErr := data.DeleteAccessKeys(db, data.DeleteAccessKeysOptions{ByIssuedForID: identity.ID, ByProviderID: provider.ID}); nestedErr != nil {
-			logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
-		}
-
-		if nestedErr := data.DeleteProviderUsers(db, data.DeleteProviderUsersOptions{ByIdentityID: identity.ID, ByProviderID: provider.ID}); nestedErr != nil {
-			logging.Errorf("failed to delete provider user: %s", nestedErr)
-		}
-
-		return fmt.Errorf("sync user: %w", err)
-	}
-
-	return nil
 }
