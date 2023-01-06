@@ -73,10 +73,10 @@ func UpdateDestinationLastSeenAt(tx WriteTxn, dest *models.Destination) error {
 	query := querybuilder.New("UPDATE destinations SET")
 	query.B(columnsForUpdate(table), table.Values()...)
 	query.B("WHERE deleted_at is null")
-	query.B("AND id = ?", table.Primary())
 	query.B("AND organization_id = ?", dest.OrganizationID)
 	// only update if the row has not changed since the SELECT
 	query.B("AND updated_at = ?", origUpdatedAt)
+	query.B("AND id IN (SELECT id from destinations WHERE id = ? FOR UPDATE SKIP LOCKED)", table.Primary())
 
 	_, err := tx.Exec(query.String(), query.Args...)
 	return handleError(err)

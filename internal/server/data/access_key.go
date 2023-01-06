@@ -329,10 +329,10 @@ func updateAccessKeyLastSeenAt(tx WriteTxn, key *models.AccessKey) error {
 	query := querybuilder.New("UPDATE access_keys SET")
 	query.B(columnsForUpdate(table), table.Values()...)
 	query.B("WHERE deleted_at is null")
-	query.B("AND id = ?", table.Primary())
 	query.B("AND organization_id = ?", key.OrganizationID)
 	// only update if the row has not changed since the SELECT
 	query.B("AND updated_at = ?", origUpdatedAt)
+	query.B("AND id IN (SELECT id from access_keys WHERE id = ? FOR UPDATE SKIP LOCKED)", table.Primary())
 
 	_, err := tx.Exec(query.String(), query.Args...)
 	return handleError(err)
