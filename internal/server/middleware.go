@@ -78,6 +78,8 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 		return authned, err
 	}
 
+	time.Sleep(200 * time.Millisecond)
+
 	org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
 	if err != nil {
 		return authned, err

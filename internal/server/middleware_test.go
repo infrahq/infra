@@ -686,8 +686,8 @@ func TestAuthenticateRequest_HighConcurrency(t *testing.T) {
 	sort.Slice(elapsed, func(i, j int) bool {
 		return elapsed[i] > elapsed[j]
 	})
-	fmt.Println(elapsed[:100])
-	t.Fail()
+
+	assert.Assert(t, elapsed[0] < time.Second, "times=%v", elapsed)
 }
 
 func TestValidateRequestOrganization(t *testing.T) {
