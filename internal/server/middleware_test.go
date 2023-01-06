@@ -7,11 +7,13 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
@@ -634,6 +636,58 @@ func TestAuthenticateRequest(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestAuthenticateRequest_HighConcurrency(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	accessKey := adminAccessKey(srv)
+
+	httpSrv := httptest.NewServer(routes)
+	t.Cleanup(httpSrv.Close)
+
+	ctx := context.Background()
+	group, ctx := errgroup.WithContext(ctx)
+
+	total := 100
+	elapsed := make([]time.Duration, total)
+	chStart := make(chan struct{})
+	for i := 0; i < total; i++ {
+		i := i
+		group.Go(func() error {
+			<-chStart
+
+			// Any authenticated route will do
+			routeURL := httpSrv.URL + "/api/users/self"
+			req, err := http.NewRequestWithContext(ctx, "GET", routeURL, nil)
+			if err != nil {
+				return err
+			}
+			req.Header.Set("Infra-Version", apiVersionLatest)
+			req.Header.Set("Authorization", "Bearer "+accessKey)
+
+			client := httpSrv.Client()
+
+			before := time.Now()
+			resp, err := client.Do(req)
+			if err != nil {
+				return err
+			}
+			elapsed[i] = time.Since(before)
+
+			assert.Check(t, resp.StatusCode == http.StatusOK, "code=%v", resp.StatusCode)
+			return nil
+		})
+	}
+	close(chStart)
+	assert.NilError(t, group.Wait())
+
+	sort.Slice(elapsed, func(i, j int) bool {
+		return elapsed[i] > elapsed[j]
+	})
+	fmt.Println(elapsed[:100])
+	t.Fail()
 }
 
 func TestValidateRequestOrganization(t *testing.T) {
