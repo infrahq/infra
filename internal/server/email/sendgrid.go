@@ -8,10 +8,11 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 type EmailTemplate int8
