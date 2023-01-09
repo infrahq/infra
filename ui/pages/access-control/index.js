@@ -495,7 +495,7 @@ export default function AccessControl() {
   const { data: { items: allGrants, totalCount, totalPages } = {}, mutate } =
     useSWR(() =>
       isAdmin
-        ? `/api/grants?page=${page}&limit=${limit}`
+        ? `/api/grants?page=${page}&limit=${limit}&showSystem=false`
         : `/api/grants?user=${user.id}&page=${page}&limit=${limit}`
     )
   const { data: { items: destinations } = {} } = useSWR(
