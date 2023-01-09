@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/uid"
 )
 
 // NewRegistry creates a new prometheus.Registry and registers common collectors and metrics.
@@ -38,6 +40,33 @@ func NewRegistry(version string) *prometheus.Registry {
 	return registry
 }
 
+var providerMetricsKey = "provider-metrics"
+
+func ProviderCallMetricsFromContext(c context.Context) *prometheus.HistogramVec {
+	if raw := c.Value(providerMetricsKey); raw != nil {
+		return raw.(*prometheus.HistogramVec) // nolint:forcetypeassert
+	}
+	return nil
+}
+
+type ProviderActionOpts struct {
+	ProviderID      uid.ID
+	OrgID           uid.ID
+	Action          string
+	DurationSeconds float64
+}
+
+func ProviderAction(c context.Context, opts ProviderActionOpts) {
+	m := ProviderCallMetricsFromContext(c)
+	if m != nil {
+		m.With(prometheus.Labels{
+			"provider_id":     opts.ProviderID.String(),
+			"organization_id": opts.OrgID.String(),
+			"action":          opts.Action,
+		}).Observe(opts.DurationSeconds)
+	}
+}
+
 // Middleware registers the http_request_duration_seconds histogram metric with registry
 // and returns a middleware that emits a request_duration_seconds metric on every request.
 func Middleware(registry prometheus.Registerer) gin.HandlerFunc {
@@ -54,6 +83,13 @@ func Middleware(registry prometheus.Registerer) gin.HandlerFunc {
 		Help:      "A gauge of the number of requests currently being handled.",
 	}, []string{"blocking"})
 
+	outboundCallDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "http",
+		Name:      "outbound_request_call_seconds",
+		Help:      "A histogram of outbound call durations made from the server to an external source, in seconds.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
+	}, []string{"provider_id", "organization_id", "action"})
+
 	registry.MustRegister(requestDuration, requestCount)
 
 	return func(c *gin.Context) {
@@ -62,6 +98,9 @@ func Middleware(registry prometheus.Registerer) gin.HandlerFunc {
 		count := requestCount.With(prometheus.Labels{"blocking": blocking})
 		count.Inc()
 		defer count.Dec()
+
+		metricContext := context.WithValue(c.Request.Context(), providerMetricsKey, outboundCallDuration)
+		c.Request = c.Request.WithContext(metricContext)
 
 		t := time.Now()
 		c.Next()

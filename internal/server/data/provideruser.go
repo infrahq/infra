@@ -13,6 +13,7 @@ import (
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
+	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -298,6 +299,7 @@ func ProvisionProviderUser(tx WriteTxn, user *models.ProviderUser) error {
 }
 
 func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.ProviderUser, oidcClient providers.OIDCClient) ([]models.Group, error) {
+	t := time.Now() // used to track how long it took to refresh a token, in the case that happens
 	accessToken, expiry, err := oidcClient.RefreshAccessToken(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("refresh provider access: %w", err)
@@ -306,6 +308,12 @@ func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.ProviderUse
 	// update the stored access token if it was refreshed
 	if accessToken != string(user.AccessToken) {
 		logging.Debugf("access token for user at provider %s was refreshed", user.ProviderID)
+		metrics.ProviderAction(ctx, metrics.ProviderActionOpts{
+			ProviderID:      user.ProviderID,
+			OrgID:           tx.OrganizationID(),
+			Action:          "refresh",
+			DurationSeconds: time.Since(t).Seconds(),
+		})
 
 		user.AccessToken = models.EncryptedAtRest(accessToken)
 		user.ExpiresAt = *expiry
@@ -316,7 +324,14 @@ func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.ProviderUse
 		}
 	}
 
+	t = time.Now()
 	info, err := oidcClient.GetUserInfo(ctx, user)
+	metrics.ProviderAction(ctx, metrics.ProviderActionOpts{
+		ProviderID:      user.ProviderID,
+		OrgID:           tx.OrganizationID(),
+		Action:          "info",
+		DurationSeconds: time.Since(t).Seconds(),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("oidc user sync failed: %w", err)
 	}
