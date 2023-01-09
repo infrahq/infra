@@ -6,6 +6,7 @@ on:
       - go.mod
       - go.sum
       - '**/*.go'
+      - 'test/**'
       - '.github/workflows/ci-core.yaml'
       - '.golangci.yml'
 
@@ -16,6 +17,7 @@ on:
       - go.mod
       - go.sum
       - '**/*.go'
+      - 'test/**'
       - '.github/workflows/*-core.yaml'
       - '.golangci.yml'
 

@@ -18,7 +18,7 @@ Match group infra-users
     AuthorizedKeysFile none
     PasswordAuthentication no
     AuthorizedKeysCommand /usr/local/sbin/infra sshd auth-keys %u %f
-    AuthorizedKeysCommandUser nobody
+    AuthorizedKeysCommandUser infra
 EOF
 
 
@@ -32,6 +32,9 @@ server:
   accessKey: "$INFRA_ACCESS_KEY"
   trustedCertificate: /work/internal/server/testdata/pki/ca.crt
 EOF
+
+chmod 600 /etc/infra/connector.yaml
+chown infra:infra /etc/infra/connector.yaml
 
 
 echo "Starting infra service"
