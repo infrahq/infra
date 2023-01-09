@@ -230,7 +230,7 @@ func delete(ctx context.Context, client Client, path string, query Query) error 
 }
 
 func (c Client) ListUsers(ctx context.Context, req ListUsersRequest) (*ListResponse[User], error) {
-	ids := []string{}
+	ids := make([]string, 0, len(req.IDs))
 	for _, id := range req.IDs {
 		ids = append(ids, id.String())
 	}
