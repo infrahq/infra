@@ -120,7 +120,7 @@ export default function ProvidersAddDetails() {
     }
 
     if (!enableSCIM) {
-      router.replace('/settings?tab=providers')
+      router.replace('/settings?tab=authentication')
     }
 
     return false
@@ -194,7 +194,7 @@ export default function ProvidersAddDetails() {
           <Dialog
             as='div'
             className='relative z-50'
-            onClose={() => router.replace('/settings?tab=providers')}
+            onClose={() => router.replace('/settings?tab=authentication')}
           >
             <Transition.Child
               as={Fragment}
@@ -231,7 +231,7 @@ export default function ProvidersAddDetails() {
         <h1 className='my-6 py-1 font-display text-xl font-medium'>
           Connect Provider
         </h1>
-        <Link href='/settings?tab=providers'>
+        <Link href='/settings?tab=authentication'>
           <XMarkIcon
             className='h-5 w-5 text-gray-500 hover:text-gray-800'
             aria-hidden='true'

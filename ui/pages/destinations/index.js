@@ -2,12 +2,14 @@ import useSWR from 'swr'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useState } from 'react'
 
 import { useUser } from '../../lib/hooks'
-import { CommandLineIcon } from '@heroicons/react/24/solid'
+import { CommandLineIcon, TrashIcon } from '@heroicons/react/24/solid'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
+import DeleteModal from '../../components/delete-modal'
 
 export default function Destinations() {
   const router = useRouter()
@@ -16,9 +18,10 @@ export default function Destinations() {
 
   const { isAdmin, loading } = useUser()
 
-  const { data: { items: destinations, totalCount, totalPages } = {} } = useSWR(
-    `/api/destinations?page=${page}&limit=${limit}`
-  )
+  const { data: { items: destinations, totalCount, totalPages } = {}, mutate } =
+    useSWR(`/api/destinations?page=${page}&limit=${limit}`)
+  const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
+  const [selectedDeleteId, setSelectedDeleteId] = useState(null)
 
   if (loading) {
     return null
@@ -138,7 +141,44 @@ export default function Destinations() {
             header: () => <span>Status</span>,
             accessorKey: 'connected',
           },
+          {
+            id: 'delete',
+            cell: function Cell(info) {
+              return (
+                info.row.original.kind === 'ssh' && (
+                  <div className='group invisible rounded-md bg-white group-hover:visible'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setSelectedDeleteId(info.row.original.id)
+                        setOpenSelectedDeleteModal(true)
+                      }}
+                      className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
+                    >
+                      <TrashIcon className='mr-2 h-3.5 w-3.5' />
+                      <span className='hidden sm:block'>Remove</span>
+                    </button>
+                  </div>
+                )
+              )
+            },
+          },
         ]}
+      />
+      <DeleteModal
+        open={openSelectedDeleteModal}
+        setOpen={setOpenSelectedDeleteModal}
+        onSubmit={async () => {
+          await fetch(`/api/destinations/${selectedDeleteId}`, {
+            method: 'DELETE',
+          })
+
+          mutate()
+          setSelectedDeleteId(null)
+          setOpenSelectedDeleteModal(false)
+        }}
+        title={'Remove SSH'}
+        message={<>are you sure you want to remove the selected SSH?</>}
       />
     </div>
   )
