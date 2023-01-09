@@ -164,7 +164,7 @@ func TestTrimWhitespace(t *testing.T) {
 	// nolint:noctx
 	req = httptest.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&userID="+userID.String(), nil)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-	req.Header.Add("Infra-Version", "0.13.1")
+	req.Header.Add("Infra-Version", "0.21.0")
 
 	resp = httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -174,13 +174,13 @@ func TestTrimWhitespace(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), rb)
 	assert.NilError(t, err)
 
-	assert.Equal(t, len(rb.Items), 2, rb.Items)
+	assert.Equal(t, len(rb.Items), 1, rb.Items)
 	expected := api.Grant{
 		User:      userID,
 		Privilege: "admin",
 		Resource:  "kubernetes.production.*",
 	}
-	assert.DeepEqual(t, rb.Items[1], expected, cmpAPIGrantShallow)
+	assert.DeepEqual(t, rb.Items[0], expected, cmpAPIGrantShallow)
 }
 
 func TestWrapRoute_TxnRollbackOnError(t *testing.T) {

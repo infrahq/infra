@@ -626,15 +626,14 @@ func TestListGrants(t *testing.T) {
 			expected := []models.Grant{*grant1, *grant3, *grant4, *gGrant1, *gGrant2}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 		})
-		t.Run("exclude connector grant", func(t *testing.T) {
-			actual, err := ListGrants(tx, ListGrantsOptions{ExcludeConnectorGrant: true})
+		t.Run("exclude infra grants", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{ExcludeInfraGrants: true})
 			assert.NilError(t, err)
 
 			expected := []models.Grant{
 				*grant1,
 				*grant2,
 				*grant3,
-				*grant4,
 				*grant5,
 				*gGrant1,
 				*gGrant2,

@@ -8,7 +8,7 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
   const { data: org } = useSWR('/api/organizations/self')
   const { data: { items: grants } = {}, grantsError } = useSWR(() =>
     user
-      ? `/api/grants?user=${user?.id}&showInherited=1&resource=infra&limit=1000`
+      ? `/api/grants?user=${user?.id}&showInherited=1&resource=infra&limit=1000&showSystem=true`
       : null
   )
   const router = useRouter()
