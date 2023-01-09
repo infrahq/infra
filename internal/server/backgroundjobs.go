@@ -7,7 +7,6 @@ import (
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/jobs"
 )
 
 // BackgroundJobFunc is the interface for running periodic background jobs, like
@@ -15,13 +14,7 @@ import (
 // jobWrapper, and will not stop the goroutine running the job.
 // The job should exit when ctx is cancelled. Unlike most transactions, the
 // transaction passed to this job will not have an OrganizationID.
-type BackgroundJobFunc func(ctx context.Context, tx *data.Transaction) error
-
-func (s *Server) SetupBackgroundJobs(ctx context.Context) {
-	s.registerJob(ctx, jobs.RemoveOldDeviceFlowRequests, 10*time.Minute)
-	s.registerJob(ctx, jobs.RemoveExpiredAccessKeys, 12*time.Hour)
-	s.registerJob(ctx, jobs.RemoveExpiredPasswordResetTokens, 15*time.Minute)
-}
+type BackgroundJobFunc func(tx data.WriteTxn) error
 
 func (s *Server) registerJob(ctx context.Context, job BackgroundJobFunc, every time.Duration) {
 	s.routines = append(s.routines, routine{
@@ -35,7 +28,7 @@ func jobWrapper(ctx context.Context, db *data.DB, job BackgroundJobFunc, every t
 		t := time.NewTicker(every)
 		funcName := getFuncName(job)
 
-		jobWithRescue := func() error {
+		jobWithRecover := func() error {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
@@ -49,7 +42,7 @@ func jobWrapper(ctx context.Context, db *data.DB, job BackgroundJobFunc, every t
 			if err != nil {
 				return fmt.Errorf("failed to start transaction :%w", err)
 			}
-			if err := job(ctx, tx); err != nil {
+			if err := job(tx); err != nil {
 				_ = tx.Rollback()
 				return err
 			}
@@ -61,7 +54,7 @@ func jobWrapper(ctx context.Context, db *data.DB, job BackgroundJobFunc, every t
 			case <-t.C:
 				startAt := time.Now().UTC()
 				logging.Debugf("background job %s starting", funcName)
-				if err := jobWithRescue(); err != nil {
+				if err := jobWithRecover(); err != nil {
 					logging.Errorf("background job %s error: %s", funcName, err.Error())
 				} else {
 					logging.Infof("background job %s successful, elapsed: %s", funcName, time.Since(startAt))
