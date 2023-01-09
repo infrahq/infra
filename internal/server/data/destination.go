@@ -52,7 +52,7 @@ func UpdateDestination(tx WriteTxn, destination *models.Destination) error {
 }
 
 // UpdateDestinationLastSeenAt sets dest.LastSeenAt to now and then updates the
-// user row in the database. Updates are throttled to once every 2 seconds.
+// row in the database. Updates are throttled to once every 2 seconds.
 // If the destination was updated recently, or the database row is already locked, the
 // update will be skipped.
 //
