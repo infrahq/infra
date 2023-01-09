@@ -43,7 +43,8 @@ func diff(x, y []string) []string {
 	difference := []string{}
 
 	for _, val := range x {
-		if !slices.Contains(y, val) {
+		_, contains := slices.BinarySearch(y, val)
+		if !contains {
 			difference = append(difference, val)
 		}
 	}
