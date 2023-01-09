@@ -34,7 +34,7 @@ type Identity struct {
 }
 
 func (i *Identity) ToAPI() *api.User {
-	providerNames := []string{}
+	providerNames := make([]string, 0, len(i.Providers))
 	for _, p := range i.Providers {
 		providerNames = append(providerNames, p.Name)
 	}
