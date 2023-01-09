@@ -170,7 +170,7 @@ func TestLoadAccessKey(t *testing.T) {
 	s := setupServer(t)
 
 	// access key that we will attempt to assign to multiple users
-	testAccessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
+	testAccessKey := Secret("aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb")
 
 	// create a user and assign them an access key
 	bob := &models.Identity{Name: "bob@example.com"}

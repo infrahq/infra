@@ -64,7 +64,7 @@ func TestLoginCmd_Options(t *testing.T) {
 	opts.BootstrapConfig.Users = []server.User{
 		{
 			Name:      "admin@example.com",
-			AccessKey: adminAccessKey,
+			AccessKey: server.Secret(adminAccessKey),
 		},
 	}
 	srv, err := server.New(opts)
@@ -350,7 +350,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	setupServerOptions(t, &opts)
 	accessKey := "0000000001.adminadminadminadmin1234"
 	opts.Users = []server.User{
-		{Name: "admin@example.com", AccessKey: accessKey},
+		{Name: "admin@example.com", AccessKey: server.Secret(accessKey)},
 	}
 	srv, err := server.New(opts)
 	assert.NilError(t, err)

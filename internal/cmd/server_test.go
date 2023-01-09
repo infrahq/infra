@@ -328,9 +328,18 @@ api:
 
 func TestServerCmd_WithSecretsConfig(t *testing.T) {
 	pgDriver := database.PostgresDriver(t, "_cmd")
-	patchRunServer(t, noServerRun)
 
-	rootKeyPath := filepath.Join(t.TempDir(), "root.key")
+	var actual server.Options
+	patchRunServer(t, func(ctx context.Context, s *server.Server) error {
+		actual = s.Options()
+		return nil
+	})
+
+	dir := fs.NewDir(t, t.Name())
+
+	rootKeyPath := dir.Join("root.key")
+	accessKeyPath := dir.Join("accessKey")
+
 	content := `
       dbConnectionString: ` + pgDriver.DSN + `
       dbEncryptionKey: ` + rootKeyPath + `
@@ -343,23 +352,37 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
         ca: testdata/pki/localhost.crt
         caPrivateKey: file:testdata/pki/localhost.key
 
-      secrets:
-        - kind: env
-          name: base64env
-          config:
-            base64: true
-      keys:
-        - kind: native
-          config:
-            secretProvider: base64env
+
+      users:
+        - name: user1@example.com
+          password: env:USER1_PASSWORD
+          accessKey: file:` + accessKeyPath + `
+        - name: user2@example.com
+          password: plaintext:foo
 `
 
-	dir := fs.NewDir(t, t.Name(), fs.WithFile("cfg.yaml", content))
+	fs.Apply(t, dir,
+		fs.WithFile("cfg.yaml", content),
+		fs.WithFile("accessKey", "0123456789.012345678901234567890123"))
 	t.Setenv("HOME", dir.Path())
+	t.Setenv("USER1_PASSWORD", "the-password-1")
 
 	ctx := context.Background()
 	err := Run(ctx, "server", "--config-file", dir.Join("cfg.yaml"))
 	assert.NilError(t, err)
+
+	expected := []server.User{
+		{
+			Name:      "user1@example.com",
+			Password:  "the-password-1",
+			AccessKey: "0123456789.012345678901234567890123",
+		},
+		{
+			Name:     "user2@example.com",
+			Password: "foo",
+		},
+	}
+	assert.DeepEqual(t, actual.BootstrapConfig.Users, expected)
 }
 
 func patchRunServer(t *testing.T, fn func(context.Context, *server.Server) error) {

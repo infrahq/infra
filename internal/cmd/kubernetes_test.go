@@ -27,7 +27,7 @@ func TestUpdateKubeconfig(t *testing.T) {
 	serverOpts.BootstrapConfig.Users = []server.User{
 		{
 			Name:      "admin@local",
-			AccessKey: accessKey,
+			AccessKey: server.Secret(accessKey),
 			InfraRole: "admin",
 		},
 	}
