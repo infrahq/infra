@@ -344,6 +344,7 @@ func sanitizedDomain(subDomain, serverBaseDomain string) string {
 	return strings.ToLower(subDomain) + "." + serverBaseDomain
 }
 
+// See docs/dev/api-versioned-handlers.md for a guide to adding new version handlers.
 func (a *API) addPreviousVersionHandlersSignup() {
 	type signupOrgV0_19_0 struct {
 		Name      string `json:"name"`

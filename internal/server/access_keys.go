@@ -61,6 +61,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	}, nil
 }
 
+// See docs/dev/api-versioned-handlers.md for a guide to adding new version handlers.
 func (a *API) addPreviousVersionHandlersAccessKey() {
 	type listAccessKeysRequest_v0_16_1 struct {
 		UserID      uid.ID `form:"user_id"`

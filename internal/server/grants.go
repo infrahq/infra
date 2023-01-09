@@ -211,6 +211,7 @@ func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant
 	}, nil
 }
 
+// See docs/dev/api-versioned-handlers.md for a guide to adding new version handlers.
 func (a *API) addPreviousVersionHandlersGrants() {
 	type grantV0_18_1 struct {
 		ID        uid.ID   `json:"id"`
