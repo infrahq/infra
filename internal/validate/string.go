@@ -124,21 +124,17 @@ func (s StringRule) Validate() *Failure {
 		}
 	}
 
-	if len(s.RequiredCharacters) > 0 {
-		for _, c := range s.RequiredCharacters {
-			if !strings.ContainsRune(value, c) {
-				add("%q is required in value", c)
-				break
-			}
+	for _, c := range s.RequiredCharacters {
+		if !strings.ContainsRune(value, c) {
+			add("%q is required in value", c)
+			break
 		}
 	}
 
-	if len(s.DenyList) > 0 {
-		for _, deny := range s.DenyList {
-			if value == deny {
-				add("%q is not an allowed value", value)
-				break
-			}
+	for _, deny := range s.DenyList {
+		if value == deny {
+			add("%q is not an allowed value", value)
+			break
 		}
 	}
 
