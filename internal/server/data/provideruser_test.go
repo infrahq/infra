@@ -108,7 +108,7 @@ func TestSyncProviderUser(t *testing.T) {
 
 					expected := models.ProviderUser{
 						Email:        "hello@example.com",
-						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
+						Groups:       models.CommaSeparatedStrings{"Developers", "Everyone"},
 						ProviderID:   user.ProviderID,
 						IdentityID:   user.IdentityID,
 						RedirectURL:  "http://example.com",
@@ -159,7 +159,7 @@ func TestSyncProviderUser(t *testing.T) {
 				},
 				oidcClient: &mockOIDCImplementation{
 					UserEmailResp:  "sync@example.com",
-					UserGroupsResp: []string{"Everyone", "Developers"},
+					UserGroupsResp: []string{"Developers", "Everyone"},
 				},
 				verifyFunc: func(t *testing.T, err error, user *models.ProviderUser) {
 					assert.NilError(t, err)
@@ -170,7 +170,7 @@ func TestSyncProviderUser(t *testing.T) {
 
 					expected := models.ProviderUser{
 						Email:        "sync@example.com",
-						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
+						Groups:       models.CommaSeparatedStrings{"Developers", "Everyone"},
 						ProviderID:   user.ProviderID,
 						IdentityID:   user.IdentityID,
 						RedirectURL:  "http://example.com",

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ssoroka/slice"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
@@ -34,6 +34,23 @@ func (i *identitiesTable) ScanFields() []any {
 	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, &i.SSHLoginName, &i.UpdatedAt, &i.VerificationToken, &i.Verified}
 }
 
+// diff compares two string slices (x and y), it returns a slice of strings that exist in x that do not exist in y
+func diff(x, y []string) []string {
+	// this modifies the order of x and y, but its ok in this case since the order of the groups assigned to a user does not matter
+	slices.Sort(x)
+	slices.Sort(y)
+
+	difference := []string{}
+
+	for _, val := range x {
+		if !slices.Contains(y, val) {
+			difference = append(difference, val)
+		}
+	}
+
+	return difference
+}
+
 // AssignIdentityToGroups updates the identity's group membership relations based on the provider user's groups
 // and returns the identity's current groups after the update has persisted them
 func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []string) ([]models.Group, error) {
@@ -43,8 +60,8 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 	}
 
 	oldGroups := user.Groups
-	groupsToBeRemoved := slice.Subtract(oldGroups, newGroups)
-	groupsToBeAdded := slice.Subtract(newGroups, oldGroups)
+	groupsToBeRemoved := diff(oldGroups, newGroups)
+	groupsToBeAdded := diff(newGroups, oldGroups)
 
 	user.Groups = newGroups
 	user.LastUpdate = time.Now().UTC()

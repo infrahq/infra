@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
@@ -231,9 +230,11 @@ func delete(ctx context.Context, client Client, path string, query Query) error 
 }
 
 func (c Client) ListUsers(ctx context.Context, req ListUsersRequest) (*ListResponse[User], error) {
-	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
-		return id.String()
-	})
+	ids := []string{}
+	for _, id := range req.IDs {
+		ids = append(ids, id.String())
+	}
+
 	return get[ListResponse[User]](ctx, c, "/api/users", Query{
 		"name":                 {req.Name},
 		"group":                {req.Group.String()},

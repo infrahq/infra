@@ -8,10 +8,10 @@ import (
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/ssoroka/slice"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type EmailTemplate int8
@@ -133,9 +133,8 @@ func SendTemplate(name, address string, template EmailTemplate, data any, bypass
 }
 
 func BuildNameFromEmail(email string) (name string) {
-	name = strings.Join(slice.Map[string, string](strings.Split(strings.Split(email, "@")[0], "."), func(s string) string {
-		return strings.ToUpper(s[0:1]) + s[1:]
-	}), " ")
+	name = strings.Split(strings.Split(email, "@")[0], ".")[0]
+	name = cases.Title(language.Und, cases.NoLower).String(name)
 	if name == "Mail" {
 		name = "Admin"
 	}
