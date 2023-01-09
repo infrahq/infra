@@ -65,9 +65,11 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
 
   useEffect(() => {
     setResourcesOptions(
-      resources.filter(r =>
-        r?.name?.toLowerCase()?.includes(resourceQuery.toLowerCase())
-      )
+      resources
+        .filter(r => r.kind !== 'ssh')
+        .filter(r =>
+          r?.name?.toLowerCase()?.includes(resourceQuery.toLowerCase())
+        )
     )
   }, [resourceQuery])
 
