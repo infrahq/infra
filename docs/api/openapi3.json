@@ -420,98 +420,6 @@
           }
         }
       },
-      "ListGrantsResponse": {
-        "properties": {
-          "count": {
-            "description": "Total number of items on the current page",
-            "example": "100",
-            "format": "int",
-            "type": "integer"
-          },
-          "items": {
-            "items": {
-              "properties": {
-                "created": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "createdBy": {
-                  "description": "id of the user that created the grant",
-                  "example": "4yJ3n3D8E2",
-                  "format": "uid",
-                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                },
-                "group": {
-                  "description": "GroupID for a group being granted access",
-                  "example": "3zMaadcd2U",
-                  "format": "uid",
-                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                },
-                "id": {
-                  "description": "ID of grant created",
-                  "example": "3w9XyTrkzk",
-                  "format": "uid",
-                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                },
-                "privilege": {
-                  "description": "a role or permission",
-                  "example": "admin",
-                  "type": "string"
-                },
-                "resource": {
-                  "description": "a resource name in Infra's Universal Resource Notation",
-                  "example": "production.namespace",
-                  "type": "string"
-                },
-                "updated": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "user": {
-                  "description": "UserID for a user being granted access",
-                  "example": "6hNnjfjVcc",
-                  "format": "uid",
-                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "limit": {
-            "description": "Number of objects per page",
-            "example": "100",
-            "format": "int",
-            "type": "integer"
-          },
-          "page": {
-            "description": "Page number retrieved",
-            "example": "1",
-            "format": "int",
-            "type": "integer"
-          },
-          "totalCount": {
-            "description": "Total number of objects",
-            "example": "485",
-            "format": "int",
-            "type": "integer"
-          },
-          "totalPages": {
-            "description": "Total number of pages",
-            "example": "5",
-            "format": "int",
-            "type": "integer"
-          }
-        }
-      },
       "ListResponse_AccessKey": {
         "properties": {
           "count": {
@@ -712,6 +620,98 @@
                 },
                 "version": {
                   "description": "Application version of the connector for this destination",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "description": "Number of objects per page",
+            "example": "100",
+            "format": "int",
+            "type": "integer"
+          },
+          "page": {
+            "description": "Page number retrieved",
+            "example": "1",
+            "format": "int",
+            "type": "integer"
+          },
+          "totalCount": {
+            "description": "Total number of objects",
+            "example": "485",
+            "format": "int",
+            "type": "integer"
+          },
+          "totalPages": {
+            "description": "Total number of pages",
+            "example": "5",
+            "format": "int",
+            "type": "integer"
+          }
+        }
+      },
+      "ListResponse_Grant": {
+        "properties": {
+          "count": {
+            "description": "Total number of items on the current page",
+            "example": "100",
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "createdBy": {
+                  "description": "id of the user that created the grant",
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "group": {
+                  "description": "GroupID for a group being granted access",
+                  "example": "3zMaadcd2U",
+                  "format": "uid",
+                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "ID of grant created",
+                  "example": "3w9XyTrkzk",
+                  "format": "uid",
+                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "privilege": {
+                  "description": "a role or permission",
+                  "example": "admin",
+                  "type": "string"
+                },
+                "resource": {
+                  "description": "a resource name in Infra's Universal Resource Notation",
+                  "example": "production.namespace",
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "user": {
+                  "description": "UserID for a user being granted access",
+                  "example": "6hNnjfjVcc",
+                  "format": "uid",
+                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 }
               },
@@ -3291,7 +3291,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListGrantsResponse"
+                  "$ref": "#/components/schemas/ListResponse_Grant"
                 }
               }
             },

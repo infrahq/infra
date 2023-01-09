@@ -141,6 +141,12 @@ type ListResponse[T any] struct {
 	LastUpdateIndex `json:"-"`
 }
 
+func (r ListResponse[T]) SetHeaders(h http.Header) {
+	if r.LastUpdateIndex.Index > 0 {
+		h.Set("Last-Update-Index", strconv.FormatInt(r.LastUpdateIndex.Index, 10))
+	}
+}
+
 func NewListResponse[T, M any](items []M, pr PaginationResponse, fn func(item M) T) *ListResponse[T] {
 	result := &ListResponse[T]{
 		Items:              make([]T, 0, len(items)),

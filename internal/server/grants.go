@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -17,15 +16,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type ListGrantsResponse api.ListResponse[api.Grant]
-
-func (r ListGrantsResponse) SetHeaders(h http.Header) {
-	if r.LastUpdateIndex.Index > 0 {
-		h.Set("Last-Update-Index", strconv.FormatInt(r.LastUpdateIndex.Index, 10))
-	}
-}
-
-func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsResponse, error) {
+func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
 	rCtx := getRequestContext(c)
 
 	rCtx.Response.AddLogFields(func(event *zerolog.Event) {
@@ -70,7 +61,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsR
 	})
 	result.LastUpdateIndex.Index = grants.MaxUpdateIndex
 
-	return (*ListGrantsResponse)(result), nil
+	return result, nil
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
@@ -248,9 +239,11 @@ func (a *API) addPreviousVersionHandlersGrants() {
 				if err != nil {
 					return nil, err
 				}
-				return api.NewListResponse(resp.Items, resp.PaginationResponse, func(item api.Grant) grantV0_18_1 {
+				result := api.NewListResponse(resp.Items, resp.PaginationResponse, func(item api.Grant) grantV0_18_1 {
 					return *newGrantsV0_18_1FromLatest(&item)
-				}), nil
+				})
+				result.LastUpdateIndex = resp.LastUpdateIndex
+				return result, nil
 			},
 		})
 
