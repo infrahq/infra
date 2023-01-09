@@ -30,6 +30,9 @@ type StringRule struct {
 
 	// RequiredCharacters must be present in the string
 	RequiredCharacters []rune
+
+	// the string cannot be one of these string
+	DenyList []string
 }
 
 func String(name, value string, minLength, maxLength int, charset []CharRange) StringRule {
@@ -125,6 +128,15 @@ func (s StringRule) Validate() *Failure {
 		for _, c := range s.RequiredCharacters {
 			if !strings.ContainsRune(value, c) {
 				add("%q is required in value", c)
+				break
+			}
+		}
+	}
+
+	if len(s.DenyList) > 0 {
+		for _, deny := range s.DenyList {
+			if value == deny {
+				add("%q is not an allowed value", value)
 				break
 			}
 		}
