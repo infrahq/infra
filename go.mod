@@ -49,8 +49,8 @@ require (
 	github.com/rs/zerolog v1.27.0
 	github.com/scim2/filter-parser/v2 v2.2.0
 	github.com/spf13/pflag v1.0.5
-	github.com/ssoroka/slice v0.0.0-20220402005549-78f0cea3df8b
 	golang.org/x/sync v0.1.0
+	golang.org/x/text v0.5.0
 	golang.org/x/tools v0.4.0
 	google.golang.org/api v0.106.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
@@ -86,7 +86,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
 )
 
 require (

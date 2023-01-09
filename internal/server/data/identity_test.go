@@ -864,6 +864,20 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:           "test where user has groups from this provider removed",
+			StartingGroups: []string{"foo"},
+			ExistingGroups: []string{"foo"},
+			IncomingGroups: []string{"foo2"},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "foo2",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
+		},
 	}
 
 	runDBTests(t, func(t *testing.T, db *DB) {
@@ -899,6 +913,9 @@ func TestAssignIdentityToGroups(t *testing.T) {
 
 				pu.Groups = test.ExistingGroups
 				err = UpdateProviderUser(db, pu)
+				assert.NilError(t, err)
+
+				_, err = AssignIdentityToGroups(db, pu, test.ExistingGroups)
 				assert.NilError(t, err)
 
 				result, err := AssignIdentityToGroups(db, pu, test.IncomingGroups)

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ssoroka/slice"
+	"golang.org/x/exp/slices"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
@@ -243,9 +243,9 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				for _, g := range a.Identity.Groups {
 					groupNames = append(groupNames, g.Name)
 				}
-				assert.Assert(t, slice.Contains(groupNames, "Foo"))
-				assert.Assert(t, slice.Contains(groupNames, "existinguserexistinggroups1"))
-				assert.Assert(t, slice.Contains(groupNames, "existinguserexistinggroups2"))
+				assert.Assert(t, slices.Contains(groupNames, "Foo"))
+				assert.Assert(t, slices.Contains(groupNames, "existinguserexistinggroups1"))
+				assert.Assert(t, slices.Contains(groupNames, "existinguserexistinggroups2"))
 			},
 		},
 	}

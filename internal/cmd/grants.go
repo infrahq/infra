@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
@@ -134,7 +133,12 @@ func userGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]api
 		mapUsers[u.ID] = u
 	}
 
-	items := slice.Select(*grants, func(g api.Grant) bool { return g.User != 0 })
+	items := []api.Grant{}
+	for _, g := range *grants {
+		if g.User != 0 {
+			items = append(items, g)
+		}
+	}
 
 	type row struct {
 		User     string `header:"USER"`
@@ -172,7 +176,12 @@ func groupGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]ap
 		mapGroups[u.ID] = u
 	}
 
-	items := slice.Select(*grants, func(g api.Grant) bool { return g.Group != 0 })
+	items := []api.Grant{}
+	for _, g := range *grants {
+		if g.Group != 0 {
+			items = append(items, g)
+		}
+	}
 
 	type row struct {
 		Group    string `header:"GROUP"`
