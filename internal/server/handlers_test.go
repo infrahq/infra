@@ -177,8 +177,9 @@ var cmpWellKnownJWKsJSON = gocmp.Options{
 
 func TestAPI_AddPreviousVersionHandlers_Order(t *testing.T) {
 	a := API{}
-	a.addAccessKeyPreviousVersionHandlers()
-	a.addSignupPreviousVersionHandlers()
+	a.addPreviousVersionHandlersAccessKey()
+	a.addPreviousVersionHandlersSignup()
+	a.addPreviousVersionHandlersGrants()
 
 	for routeID, versions := range a.versions {
 		prev := semver.MustParse("0.0.0")

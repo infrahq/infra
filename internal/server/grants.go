@@ -210,3 +210,73 @@ func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant
 		Privilege: r.Privilege,
 	}, nil
 }
+
+func (a *API) addPreviousVersionHandlersGrants() {
+	type grantV0_18_1 struct {
+		ID        uid.ID   `json:"id"`
+		Created   api.Time `json:"created"`
+		CreatedBy uid.ID   `json:"created_by"`
+		Updated   api.Time `json:"updated"`
+		User      uid.ID   `json:"user,omitempty"`
+		Group     uid.ID   `json:"group,omitempty"`
+		Privilege string   `json:"privilege"`
+		Resource  string   `json:"resource"`
+	}
+
+	newGrantsV0_18_1FromLatest := func(latest *api.Grant) *grantV0_18_1 {
+		if latest == nil {
+			return nil
+		}
+		return &grantV0_18_1{
+			ID:        latest.ID,
+			Created:   latest.Created,
+			CreatedBy: latest.CreatedBy,
+			Updated:   latest.Updated,
+			User:      latest.User,
+			Group:     latest.Group,
+			Privilege: latest.Privilege,
+			Resource:  latest.Resource,
+		}
+	}
+
+	addVersionHandler(a, http.MethodGet, "/api/grants", "0.18.1",
+		route[api.ListGrantsRequest, *api.ListResponse[grantV0_18_1]]{
+			routeSettings: defaultRouteSettingsGet,
+			handler: func(c *gin.Context, req *api.ListGrantsRequest) (*api.ListResponse[grantV0_18_1], error) {
+				resp, err := a.ListGrants(c, req)
+				if err != nil {
+					return nil, err
+				}
+				return api.NewListResponse(resp.Items, resp.PaginationResponse, func(item api.Grant) grantV0_18_1 {
+					return *newGrantsV0_18_1FromLatest(&item)
+				}), nil
+			},
+		})
+
+	addVersionHandler(a, http.MethodGet, "/api/grants/:id", "0.18.1",
+		route[api.Resource, *grantV0_18_1]{
+			routeSettings: defaultRouteSettingsGet,
+			handler: func(c *gin.Context, req *api.Resource) (*grantV0_18_1, error) {
+				resp, err := a.GetGrant(c, req)
+				return newGrantsV0_18_1FromLatest(resp), err
+			},
+		})
+
+	type createGrantResponseV0_18_1 struct {
+		*grantV0_18_1 `json:",inline"`
+		WasCreated    bool `json:"wasCreated"`
+	}
+	addVersionHandler(a, http.MethodPost, "/api/grants", "0.18.1",
+		route[api.GrantRequest, *createGrantResponseV0_18_1]{
+			handler: func(c *gin.Context, req *api.GrantRequest) (*createGrantResponseV0_18_1, error) {
+				resp, err := a.CreateGrant(c, req)
+				if err != nil {
+					return nil, err
+				}
+				return &createGrantResponseV0_18_1{
+					grantV0_18_1: newGrantsV0_18_1FromLatest(resp.Grant),
+					WasCreated:   resp.WasCreated,
+				}, nil
+			},
+		})
+}

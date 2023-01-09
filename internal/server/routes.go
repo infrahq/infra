@@ -137,8 +137,9 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, authn, "/api/device/approve", a.ApproveDeviceFlow)
 
 	a.deprecatedRoutes(noAuthnNoOrg)
-	a.addAccessKeyPreviousVersionHandlers()
-	a.addSignupPreviousVersionHandlers()
+	a.addPreviousVersionHandlersAccessKey()
+	a.addPreviousVersionHandlersSignup()
+	a.addPreviousVersionHandlersGrants()
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the

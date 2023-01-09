@@ -344,7 +344,7 @@ func sanitizedDomain(subDomain, serverBaseDomain string) string {
 	return strings.ToLower(subDomain) + "." + serverBaseDomain
 }
 
-func (a *API) addSignupPreviousVersionHandlers() {
+func (a *API) addPreviousVersionHandlersSignup() {
 	type signupOrgV0_19_0 struct {
 		Name      string `json:"name"`
 		Subdomain string `json:"subDomain"`

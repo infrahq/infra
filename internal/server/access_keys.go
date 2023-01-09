@@ -61,7 +61,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	}, nil
 }
 
-func (a *API) addAccessKeyPreviousVersionHandlers() {
+func (a *API) addPreviousVersionHandlersAccessKey() {
 	type listAccessKeysRequest_v0_16_1 struct {
 		UserID      uid.ID `form:"user_id"`
 		Name        string `form:"name"`
