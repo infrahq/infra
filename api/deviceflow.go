@@ -14,7 +14,21 @@ type ApproveDeviceFlowRequest struct {
 
 func (adfr *ApproveDeviceFlowRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.String("userCode", adfr.UserCode, 8, 9, append(validate.DeviceFlowUserCode, validate.CharRange{Low: '-', High: '-'})),
+		validate.StringRule{
+			Name:      "userCode",
+			Value:     adfr.UserCode,
+			MinLength: 8,
+			MaxLength: 9,
+			CharacterRanges: []validate.CharRange{
+				{Low: 'B', High: 'D'},
+				{Low: 'F', High: 'H'},
+				{Low: 'J', High: 'N'},
+				{Low: 'P', High: 'T'},
+				{Low: 'V', High: 'X'},
+				{Low: 'Z', High: 'Z'},
+				validate.Dash,
+			},
+		},
 	}
 }
 
@@ -32,7 +46,13 @@ type DeviceFlowStatusRequest struct {
 
 func (pdfr *DeviceFlowStatusRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.String("deviceCode", pdfr.DeviceCode, 38, 38, validate.AlphaNumeric),
+		validate.StringRule{
+			Name:            "deviceCode",
+			Value:           pdfr.DeviceCode,
+			MinLength:       38,
+			MaxLength:       38,
+			CharacterRanges: validate.AlphaNumeric,
+		},
 	}
 }
 

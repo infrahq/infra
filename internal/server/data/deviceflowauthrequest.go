@@ -2,11 +2,11 @@ package data
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -28,22 +28,14 @@ func (d *deviceFlowAuthRequestTable) ScanFields() []any {
 	return []any{&d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode, &d.UserID, &d.ProviderID}
 }
 
-// TODO: use regular if conditions here. There's no benefit to using the validate functions.
 func validateDeviceFlowAuthRequest(dfar *models.DeviceFlowAuthRequest) error {
-	err := validate.Error{}
-	validationRules := []validate.ValidationRule{
-		validate.String("user_code", dfar.UserCode, 8, 8, validate.DeviceFlowUserCode),
-		validate.String("device_code", dfar.DeviceCode, 38, 38, validate.AlphaNumeric),
-		validate.Required("expires_at", dfar.ExpiresAt),
-		validate.Date("expires_at", dfar.ExpiresAt, time.Now().Add(-1*time.Second), time.Now().Add(30*time.Minute)), // must be short-lived
-	}
-	for _, rule := range validationRules {
-		if failure := rule.Validate(); failure != nil {
-			err[failure.Name] = append(err[failure.Name], failure.Problems...)
-		}
-	}
-	if len(err) > 0 {
-		return errors.New(err.Error())
+	switch {
+	case len(dfar.UserCode) != 8:
+		return fmt.Errorf("a user code with length 8 is required")
+	case len(dfar.DeviceCode) != 38:
+		return fmt.Errorf("a device code with legnth 38 is required")
+	case dfar.ExpiresAt.IsZero():
+		return fmt.Errorf("an expiry is required")
 	}
 	return nil
 }

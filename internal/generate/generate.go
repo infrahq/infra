@@ -13,7 +13,6 @@ const (
 	CharsetAlphaNumericNoVowels = "0123456789BCDFGHJKLMNPQRSTVWXYZbcdfghjklmnpqrstvwxyz" // For user-facing areas, to avoid profanity
 	CharsetNumbers              = "0123456789"
 	CharsetPassword             = CharsetAlphaNumeric + `!@#$%^&*()_+-=[]|;:,./<>?`
-	CharsetDeviceFlowUserCode   = "BCDFGHJKLMNPQRSTVWXZ" // no vowels to avoid spelling words
 )
 
 // CryptoRandom generates a cryptographically-safe random number. defaults to alphanumeric charset.
