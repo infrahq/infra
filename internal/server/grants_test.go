@@ -103,6 +103,9 @@ func TestAPI_ListGrants(t *testing.T) {
 	admin, err := data.GetIdentity(srv.DB(), data.GetIdentityOptions{ByName: "admin@example.com"})
 	assert.NilError(t, err)
 
+	connector, err := data.GetIdentity(srv.DB(), data.GetIdentityOptions{ByName: "connector"})
+	assert.NilError(t, err)
+
 	otherOrg := createOtherOrg(t, srv.db)
 
 	type testCase struct {
@@ -114,7 +117,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.18.2")
+		req.Header.Add("Infra-Version", "0.21.0")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -220,31 +223,18 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
-		"no filters": {
-			urlPath: "/api/grants?showSystem=true",
+		"no filter args": {
+			urlPath: "/api/grants",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				connector, err := data.GetIdentity(srv.DB(), data.GetIdentityOptions{ByName: "connector"})
-				assert.NilError(t, err)
-
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 
 				expected := []api.Grant{
-					{
-						User:      connector.ID,
-						Privilege: "connector",
-						Resource:  "infra",
-					},
-					{
-						User:      admin.ID,
-						Privilege: "admin",
-						Resource:  "infra",
-					},
 					{
 						User:      idInGroup,
 						Privilege: "custom1",
@@ -268,8 +258,8 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
-		"no filter, page 2": {
-			urlPath: "/api/grants?page=2&limit=2&showSystem=true",
+		"no filter args, page 2": {
+			urlPath: "/api/grants?page=2&limit=2",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -281,22 +271,17 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						User:      idInGroup,
-						Privilege: "custom1",
-						Resource:  "res1",
-					},
-					{
 						User:      idOther,
-						Privilege: "custom2",
-						Resource:  "res1.ns1",
+						Privilege: "connector",
+						Resource:  "res1.ns2",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-				assert.Equal(t, grants.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 5, TotalPages: 3})
+				assert.Equal(t, grants.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 3, TotalPages: 2})
 			},
 		},
-		"hide infra connector": {
-			urlPath: "/api/grants",
+		"show infra grants": {
+			urlPath: "/api/grants?showSystem=true",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -307,6 +292,11 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.Grant{
+					{
+						User:      connector.ID,
+						Privilege: "connector",
+						Resource:  "infra",
+					},
 					{
 						User:      admin.ID,
 						Privilege: "admin",
@@ -502,6 +492,51 @@ func TestAPI_ListGrants(t *testing.T) {
 				}
 				assert.DeepEqual(t, grants, expected, cmpAPIGrantShallow)
 				assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10004")
+			},
+		},
+		"migration from <= 0.20.0 show system grants": {
+			urlPath: "/api/grants?showSystem=true",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Infra-Version", "0.19.0")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+
+				expected := []api.Grant{
+					{User: connector.ID, Privilege: "connector", Resource: "infra"},
+					{User: admin.ID, Privilege: "admin", Resource: "infra"},
+					{User: idInGroup, Privilege: "custom1", Resource: "res1"},
+					{User: idOther, Privilege: "custom2", Resource: "res1.ns1"},
+					{User: idOther, Privilege: "connector", Resource: "res1.ns2"},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+			},
+		},
+		"migration from <= 0.20.0 don't show system grants": {
+			urlPath: "/api/grants?showSystem=false",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Infra-Version", "0.19.0")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+
+				expected := []api.Grant{
+					{User: admin.ID, Privilege: "admin", Resource: "infra"},
+					{User: idInGroup, Privilege: "custom1", Resource: "res1"},
+					{User: idOther, Privilege: "custom2", Resource: "res1.ns1"},
+					{User: idOther, Privilege: "connector", Resource: "res1.ns2"},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"migration from <= 0.18.1": {

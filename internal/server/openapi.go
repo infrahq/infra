@@ -534,6 +534,9 @@ func removeString(seq []string, name string) []string {
 
 func getFieldName(f reflect.StructField, parent reflect.Type) string {
 	if name, ok := f.Tag.Lookup("form"); ok {
+		if name == "-" {
+			return ""
+		}
 		validateFieldName(name)
 		return name
 	}
@@ -561,6 +564,8 @@ func validateFieldName(name string) {
 	// temporary allow list
 	switch name {
 	case "unique_id":
+		return
+	case "-":
 		return
 	}
 

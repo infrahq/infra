@@ -36,7 +36,8 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		ByResource:                 r.Resource,
 		BySubject:                  subject,
 		ByDestination:              r.Destination,
-		ExcludeConnectorGrant:      !r.ShowSystem,
+		ExcludeConnectorGrant:      r.ExcludeConnector,
+		ExcludeInfraGrants:         !r.ShowSystem,
 		IncludeInheritedFromGroups: r.ShowInherited,
 	}
 	if r.Privilege != "" {
@@ -239,10 +240,22 @@ func (a *API) addPreviousVersionHandlersGrants() {
 		route[api.ListGrantsRequest, *api.ListResponse[grantV0_18_1]]{
 			routeSettings: defaultRouteSettingsGet,
 			handler: func(c *gin.Context, req *api.ListGrantsRequest) (*api.ListResponse[grantV0_18_1], error) {
+				req.ExcludeConnector = !req.ShowSystem
+				req.ShowSystem = true
 				resp, err := a.ListGrants(c, req)
 				return api.CopyListResponse(resp, func(item api.Grant) grantV0_18_1 {
 					return *newGrantsV0_18_1FromLatest(&item)
 				}), err
+			},
+		})
+
+	addVersionHandler(a, http.MethodGet, "/api/grants", "0.20.0",
+		route[api.ListGrantsRequest, *api.ListResponse[api.Grant]]{
+			routeSettings: defaultRouteSettingsGet,
+			handler: func(c *gin.Context, req *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
+				req.ExcludeConnector = !req.ShowSystem
+				req.ShowSystem = true
+				return a.ListGrants(c, req)
 			},
 		})
 

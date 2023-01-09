@@ -104,7 +104,7 @@ export default function GroupDetails() {
   } = useSWR(`/api/users?group=${group?.id}&limit=${limit}&p=${page}`)
   const { data: { items: allUsers } = {} } = useSWR(`/api/users?limit=1000`)
   const { data: { items: infraAdmins } = {} } = useSWR(
-    '/api/grants?resource=infra&privilege=admin&limit=1000'
+    '/api/grants?resource=infra&privilege=admin&limit=1000&showSystem=true'
   )
   const [addUser, setAddUser] = useState('')
   const [selectedDeleteIds, setSelectedDeleteIds] = useState([])

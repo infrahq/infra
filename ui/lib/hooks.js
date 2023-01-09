@@ -8,7 +8,7 @@ export function useUser() {
   const { data: org } = useSWR(() => (user ? '/api/organizations/self' : null))
   const { data: { items: grants } = {}, grantsError } = useSWR(() =>
     user
-      ? `/api/grants?user=${user?.id}&showInherited=1&resource=infra&limit=1000`
+      ? `/api/grants?user=${user?.id}&showInherited=1&resource=infra&limit=1000&showSystem=true`
       : null
   )
 

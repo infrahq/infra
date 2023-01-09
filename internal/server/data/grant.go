@@ -131,8 +131,13 @@ type ListGrantsOptions struct {
 	IncludeInheritedFromGroups bool
 
 	// ExcludeConnectorGrant instructs ListGrants to exclude grants where
-	// privilege=connector and resource=infra.
+	// privilege=connector and resource=infra. Note that this is only used
+	// for legacy API calls.
 	ExcludeConnectorGrant bool
+
+	// ExcludeInfraGrants instructs ListGrants to exclude grants which
+	// have their resource set to infra
+	ExcludeInfraGrants bool
 
 	Pagination *Pagination
 }
@@ -185,6 +190,9 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	}
 	if opts.ExcludeConnectorGrant {
 		query.B("AND NOT (privilege = 'connector' AND resource = 'infra')")
+	}
+	if opts.ExcludeInfraGrants {
+		query.B("AND NOT resource = 'infra'")
 	}
 
 	query.B("ORDER BY id ASC")

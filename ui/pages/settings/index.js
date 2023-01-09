@@ -547,7 +547,7 @@ function Admins() {
   const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
   const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    '/api/grants?resource=infra&privilege=admin&limit=1000'
+    '/api/grants?resource=infra&privilege=admin&limit=1000&showSystem=true'
   )
   const { data: { items: selfGroups } = {} } = useSWR(
     () => `/api/groups?userID=${user?.id}&limit=1000`
