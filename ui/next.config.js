@@ -1,18 +1,5 @@
 const { PHASE_DEVELOPMENT_SERVER } = require('next/constants')
 
-const ContentSecurityPolicy = `
-  base-uri 'none';
-  default-src 'none';
-  connect-src 'self';
-  font-src 'self';
-  img-src 'self' data:;
-  script-src 'self';
-  style-src 'self';
-  frame-ancestors 'none';
-  form-action 'self';
-  require-trusted-types-for 'script';
-`
-
 module.exports = phase => ({
   reactStrictMode: true,
   generateBuildId: async () => {
@@ -37,7 +24,7 @@ module.exports = phase => ({
             value:
               phase === PHASE_DEVELOPMENT_SERVER
                 ? ''
-                : ContentSecurityPolicy.replace(/\s{2,}/g, ' ').trim(),
+                : `default-src 'self'; img-src * 'self' data: https:;`,
           },
           {
             key: 'X-Content-Type-Options',
