@@ -138,6 +138,7 @@ func (s *Server) GenerateRoutes() Routes {
 
 	a.deprecatedRoutes(noAuthnNoOrg)
 	a.addAccessKeyPreviousVersionHandlers()
+	a.addSignupPreviousVersionHandlers()
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
