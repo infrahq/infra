@@ -23,6 +23,7 @@ func (s StringExample) ValidationRules() []ValidationRule {
 			CharacterRanges:     []CharRange{AlphabetLower, AlphabetUpper},
 			FirstCharacterRange: []CharRange{AlphabetLower},
 			RequiredCharacters:  []rune{'a'},
+			DenyList:            []string{"repudiate"},
 		},
 	}
 }
@@ -85,6 +86,17 @@ func TestStringRule_Validate(t *testing.T) {
 		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
 		expected := Error{
 			"strField": {"'a' is required in value"},
+		}
+		assert.DeepEqual(t, verr, expected)
+	})
+	t.Run("denied value is rejected", func(t *testing.T) {
+		r := StringExample{Field: "repudiate"}
+		err := Validate(r)
+
+		var verr Error
+		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
+		expected := Error{
+			"strField": {"\"repudiate\" is not an allowed value"},
 		}
 		assert.DeepEqual(t, verr, expected)
 	})

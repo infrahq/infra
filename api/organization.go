@@ -68,6 +68,7 @@ func (r UpdateOrganizationRequest) ValidationRules() []validate.ValidationRule {
 				},
 				FirstCharacterRange: validate.AlphaNumeric,
 				RequiredCharacters:  []rune{'.'},
+				DenyList:            []string{"gmail.com", "googlemail.com"},
 			},
 		},
 	}
