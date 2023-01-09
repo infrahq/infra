@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -51,10 +50,8 @@ func TestEncryptedAtRest(t *testing.T) {
 
 	assert.Assert(t, "don't tell" != result)
 	assert.Assert(t, "" != result)
-	assert.Assert(t, is.Len(result, 88)) // encrypts to this many bytes
 
 	m2 := &StructForTesting{}
-
 	err = db.QueryRow(`SELECT a_secret FROM struct_for_testings where id = ?`, id).Scan(&m2.ASecret)
 	assert.NilError(t, err)
 

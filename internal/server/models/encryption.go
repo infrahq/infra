@@ -4,7 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
-	"github.com/infrahq/secrets"
+	"github.com/infrahq/infra/internal/server/data/encrypt"
 )
 
 // EncryptedAtRest defines a field that knows how to encrypt and decrypt itself with Gorm
@@ -12,7 +12,7 @@ import (
 type EncryptedAtRest string
 
 // SymmetricKey is the key used to encrypt and decrypt this field.
-var SymmetricKey *secrets.SymmetricKey
+var SymmetricKey *encrypt.SymmetricKey
 
 // SkipSymmetricKey is used for tests that specifically want to avoid field encryption
 var SkipSymmetricKey bool
@@ -26,7 +26,7 @@ func (s EncryptedAtRest) Encrypt() (string, error) {
 		return "", fmt.Errorf("models.SymmetricKey is not set")
 	}
 
-	b, err := secrets.Seal(SymmetricKey, []byte(s))
+	b, err := encrypt.Seal(SymmetricKey, []byte(s))
 	if err != nil {
 		return "", fmt.Errorf("sealing secret field: %w", err)
 	}
@@ -47,7 +47,7 @@ func decrypt(s string) (string, error) {
 		return "", fmt.Errorf("models.SymmetricKey is not set")
 	}
 
-	b, err := secrets.Unseal(SymmetricKey, []byte(s))
+	b, err := encrypt.Unseal(SymmetricKey, []byte(s))
 	if err != nil {
 		return "", fmt.Errorf("unsealing secret field: %w", err)
 	}

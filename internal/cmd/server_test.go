@@ -175,7 +175,6 @@ sessionDuration: 3m
 sessionInactivityTimeout: 1m
 
 dbEncryptionKey: /this-is-the-path
-dbEncryptionKeyProvider: the-provider
 dbHost: the-host
 dbPort: 5432
 dbName: infradbname
@@ -257,14 +256,13 @@ api:
 					SessionDuration:          3 * time.Minute,
 					SessionInactivityTimeout: 1 * time.Minute,
 
-					DBEncryptionKey:         "/this-is-the-path",
-					DBEncryptionKeyProvider: "the-provider",
-					DBHost:                  "the-host",
-					DBPort:                  5432,
-					DBParameters:            "sslmode=require",
-					DBPassword:              "env:POSTGRES_DB_PASSWORD",
-					DBUsername:              "infra",
-					DBName:                  "infradbname",
+					DBEncryptionKey: "/this-is-the-path",
+					DBHost:          "the-host",
+					DBPort:          5432,
+					DBParameters:    "sslmode=require",
+					DBPassword:      "env:POSTGRES_DB_PASSWORD",
+					DBUsername:      "infra",
+					DBName:          "infradbname",
 
 					BaseDomain:         "foo.example.com",
 					LoginDomainPrefix:  "login",
@@ -399,8 +397,10 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
 	pgDriver := database.PostgresDriver(t, "_cmd")
 	patchRunServer(t, noServerRun)
 
+	rootKeyPath := filepath.Join(t.TempDir(), "root.key")
 	content := `
       dbConnectionString: ` + pgDriver.DSN + `
+      dbEncryptionKey: ` + rootKeyPath + `
       addr:
         http: "127.0.0.1:0"
         https: "127.0.0.1:0"
@@ -509,6 +509,47 @@ func TestCanonicalPath(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("in=%v out=%v", tc.path, tc.expected), func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestServerCmd_DeprecatedConfig(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir) // Windows
+
+	type testCase struct {
+		name        string
+		setup       func(t *testing.T, cmd *cobra.Command)
+		expectedErr string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		patchRunServer(t, noServerRun)
+
+		cmd := newServerCmd()
+		cmd.SetArgs([]string{}) // prevent reading of os.Args
+		if tc.setup != nil {
+			tc.setup(t, cmd)
+		}
+
+		err := cmd.Execute()
+		assert.ErrorContains(t, err, tc.expectedErr)
+	}
+
+	testCases := []testCase{
+		{
+			name: "dbEncryptionKeyProvider",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				t.Setenv("INFRA_SERVER_DB_ENCRYPTION_KEY_PROVIDER", "vault")
+			},
+			expectedErr: "dbEncryptionKeyProvider is no longer supported",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			run(t, tc)
 		})
 	}

@@ -5,9 +5,8 @@ import (
 	"fmt"
 	mathrand "math/rand"
 
-	"github.com/infrahq/secrets"
-
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data/encrypt"
 	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
@@ -78,23 +77,18 @@ func GetEncryptionKeyByName(tx StdlibTxn, name string) (*models.EncryptionKey, e
 	return (*models.EncryptionKey)(table), nil
 }
 
-type EncryptionKeyProvider interface {
-	GenerateDataKey(rootKeyID string) (*secrets.SymmetricKey, error)
-	DecryptDataKey(rootKeyID string, keyData []byte) (*secrets.SymmetricKey, error)
-}
-
 var dbKeyName = "dbkey"
 
-func loadDBKey(tx StdlibTxn, provider EncryptionKeyProvider, rootKeyId string) error {
+func loadDBKey(tx StdlibTxn, rootKeyPath string) error {
 	keyRec, err := GetEncryptionKeyByName(tx, dbKeyName)
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
-			return createDBKey(tx, provider, rootKeyId)
+			return createDataKey(tx, rootKeyPath)
 		}
 		return err
 	}
 
-	sKey, err := provider.DecryptDataKey(rootKeyId, keyRec.Encrypted)
+	sKey, err := encrypt.DecryptDataKey(rootKeyPath, keyRec.Encrypted)
 	if err != nil {
 		return err
 	}
@@ -103,8 +97,8 @@ func loadDBKey(tx StdlibTxn, provider EncryptionKeyProvider, rootKeyId string) e
 	return nil
 }
 
-func createDBKey(tx StdlibTxn, provider EncryptionKeyProvider, rootKeyId string) error {
-	sKey, err := provider.GenerateDataKey(rootKeyId)
+func createDataKey(tx StdlibTxn, rootKeyPath string) error {
+	sKey, err := encrypt.CreateDataKey(rootKeyPath)
 	if err != nil {
 		return err
 	}
