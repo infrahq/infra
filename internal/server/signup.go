@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -341,4 +342,34 @@ func signupUser(c *gin.Context, keyExpiresAt time.Time, user *models.ProviderUse
 
 func sanitizedDomain(subDomain, serverBaseDomain string) string {
 	return strings.ToLower(subDomain) + "." + serverBaseDomain
+}
+
+// See docs/dev/api-versioned-handlers.md for a guide to adding new version handlers.
+func (a *API) addPreviousVersionHandlersSignup() {
+	type signupOrgV0_19_0 struct {
+		Name      string `json:"name"`
+		Subdomain string `json:"subDomain"`
+	}
+	type signupRequestV0_19_0 struct {
+		Name     string           `json:"name"`
+		Password string           `json:"password"`
+		Org      signupOrgV0_19_0 `json:"org"`
+	}
+
+	addVersionHandler(a,
+		http.MethodPost, "/api/signup", "0.19.0",
+		route[signupRequestV0_19_0, *api.SignupResponse]{
+			handler: func(c *gin.Context, reqOld *signupRequestV0_19_0) (*api.SignupResponse, error) {
+				req := &api.SignupRequest{
+					User: &api.SignupUser{
+						UserName: reqOld.Name,
+						Password: reqOld.Password,
+					},
+					OrgName:   reqOld.Org.Name,
+					Subdomain: reqOld.Org.Subdomain,
+				}
+				return a.Signup(c, req)
+			},
+		},
+	)
 }

@@ -141,6 +141,12 @@ type ListResponse[T any] struct {
 	LastUpdateIndex `json:"-"`
 }
 
+func (r ListResponse[T]) SetHeaders(h http.Header) {
+	if r.LastUpdateIndex.Index > 0 {
+		h.Set("Last-Update-Index", strconv.FormatInt(r.LastUpdateIndex.Index, 10))
+	}
+}
+
 func NewListResponse[T, M any](items []M, pr PaginationResponse, fn func(item M) T) *ListResponse[T] {
 	result := &ListResponse[T]{
 		Items:              make([]T, 0, len(items)),
@@ -166,6 +172,17 @@ func (l *LastUpdateIndex) setValuesFromHeader(header http.Header) error {
 		return err
 	}
 	return nil
+}
+
+// CopyListResponse makes a copy of old, and translates the items from old type
+// to the new type using fn. A nil input is ignored and returns a nil.
+func CopyListResponse[Old, New any](old *ListResponse[Old], fn func(item Old) New) *ListResponse[New] {
+	if old == nil {
+		return nil
+	}
+	result := NewListResponse(old.Items, old.PaginationResponse, fn)
+	result.LastUpdateIndex = old.LastUpdateIndex
+	return result
 }
 
 // BlockingRequest is used to identify the last update index that was

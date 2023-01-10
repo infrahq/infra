@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/square/go-jose.v2"
@@ -23,8 +24,32 @@ import (
 type API struct {
 	t          *Telemetry
 	server     *Server
-	migrations []apiMigration
 	openAPIDoc openapi3.T
+	versions   map[routeIdentifier][]routeVersion
+}
+
+type routeVersion struct {
+	version *semver.Version
+	handler func(c *gin.Context)
+}
+
+func addVersionHandler[Req, Res any](a *API, method, path, version string, routeDef route[Req, Res]) {
+	if a.versions == nil {
+		a.versions = make(map[routeIdentifier][]routeVersion)
+	}
+
+	routeDef.routeSettings.omitFromDocs = true
+
+	key := routeIdentifier{method: method, path: path}
+	a.versions[key] = append(a.versions[key], routeVersion{
+		version: semver.MustParse(version),
+		handler: func(c *gin.Context) {
+			wrapped := wrapRoute(a, key, routeDef)
+			if err := wrapped(c); err != nil {
+				sendAPIError(c, err)
+			}
+		},
+	})
 }
 
 var createTokenRoute = route[api.EmptyRequest, *api.CreateTokenResponse]{

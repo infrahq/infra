@@ -9,9 +9,11 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
@@ -36,8 +38,6 @@ type Routes struct {
 // Router.{GET,POST,etc} method is called.
 func (s *Server) GenerateRoutes() Routes {
 	a := &API{t: s.tel, server: s}
-	a.addRewrites()
-	a.addRedirects()
 
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)
@@ -111,14 +111,14 @@ func (s *Server) GenerateRoutes() Routes {
 	add(a, authn, http.MethodGet, "/api/debug/pprof/*profile", pprofRoute)
 
 	// no auth required, org not required
-	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true, noOrgRequired: true}
+	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), authenticationOptional: true, organizationOptional: true}
 	add(a, noAuthnNoOrg, http.MethodPost, "/api/signup", a.SignupRoute())
 	get(a, noAuthnNoOrg, "/api/version", a.Version)
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
 	post(a, noAuthnNoOrg, "/api/forgot-domain-request", a.RequestForgotDomains)
 
 	// no auth required, org required
-	noAuthnWithOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true}
+	noAuthnWithOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), authenticationOptional: true}
 
 	post(a, noAuthnWithOrg, "/api/login", a.Login)
 	post(a, noAuthnWithOrg, "/api/password-reset-request", a.RequestPasswordReset)
@@ -137,6 +137,9 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, authn, "/api/device/approve", a.ApproveDeviceFlow)
 
 	a.deprecatedRoutes(noAuthnNoOrg)
+	a.addPreviousVersionHandlersAccessKey()
+	a.addPreviousVersionHandlersSignup()
+	a.addPreviousVersionHandlersGrants()
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
@@ -173,8 +176,8 @@ type routeIdentifier struct {
 // constructed from the get, post, put, del helper functions.
 type routeGroup struct {
 	*gin.RouterGroup
-	noAuthentication bool
-	noOrgRequired    bool
+	authenticationOptional bool
+	organizationOptional   bool
 }
 
 func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route route[Req, Res]) {
@@ -183,19 +186,31 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 		path:   path.Join(group.BasePath(), urlPath),
 	}
 
-	route.authenticationOptional = group.noAuthentication
-	route.organizationOptional = group.noOrgRequired
+	route.authenticationOptional = group.authenticationOptional
+	route.organizationOptional = group.organizationOptional
 
 	if !route.omitFromDocs {
 		a.register(openAPIRouteDefinition(routeID, route))
 	}
 
 	handler := func(c *gin.Context) {
+		reqVer, err := requestVersion(c.Request)
+		if err != nil && !route.infraVersionHeaderOptional {
+			sendAPIError(c, err)
+			return
+		}
+
+		versions := a.versions[routeID]
+		if versionedHandler := handlerForVersion(versions, reqVer); versionedHandler != nil {
+			versionedHandler(c)
+			return
+		}
+
 		if err := wrapRoute(a, routeID, route)(c); err != nil {
 			sendAPIError(c, err)
 		}
 	}
-	bindRoute(a, group.RouterGroup, routeID, handler)
+	group.RouterGroup.Handle(routeID.method, routeID.path, handler)
 }
 
 // wrapRoute builds a gin.HandlerFunc from a route. The returned function
@@ -211,12 +226,6 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		ctx, cancel := context.WithTimeout(origRequestContext, a.server.options.API.RequestTimeout)
 		defer cancel()
 		c.Request = c.Request.WithContext(ctx)
-
-		if !route.infraVersionHeaderOptional {
-			if _, err := requestVersion(c.Request); err != nil {
-				return err
-			}
-		}
 
 		authned, err := authenticateRequest(c, route.routeSettings, a.server)
 		if err != nil {
@@ -300,6 +309,32 @@ type isBlockingRequest interface {
 	IsBlockingRequest() bool
 }
 
+func requestVersion(req *http.Request) (*semver.Version, error) {
+	headerVer := req.Header.Get("Infra-Version")
+	if headerVer == "" {
+		return nil, fmt.Errorf("%w: Infra-Version header is required. The current version is %s", internal.ErrBadRequest, internal.FullVersion())
+	}
+	reqVer, err := semver.NewVersion(headerVer)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid Infra-Version header: %v. Current version is %s", internal.ErrBadRequest, err, internal.FullVersion())
+	}
+	return reqVer, nil
+}
+
+func handlerForVersion(versions []routeVersion, reqVer *semver.Version) func(c *gin.Context) {
+	if reqVer == nil {
+		return nil
+	}
+
+	for _, v := range versions {
+		if reqVer.GreaterThan(v.version) {
+			continue
+		}
+		return v.handler
+	}
+	return nil
+}
+
 var reflectTypeString = reflect.TypeOf("")
 
 // trimWhitespace trims leading and trailing whitespace from any string fields
@@ -334,12 +369,14 @@ func responseStatusCode(method string, resp any) int {
 
 func get[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, http.MethodGet, path, route[Req, Res]{
-		handler: handler,
-		routeSettings: routeSettings{
-			omitFromTelemetry: true,
-			txnOptions:        &sql.TxOptions{ReadOnly: true},
-		},
+		handler:       handler,
+		routeSettings: defaultRouteSettingsGet,
 	})
+}
+
+var defaultRouteSettingsGet = routeSettings{
+	omitFromTelemetry: true,
+	txnOptions:        &sql.TxOptions{ReadOnly: true},
 }
 
 func post[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
@@ -404,4 +441,22 @@ func (a *API) notFoundHandler(c *gin.Context) {
 	if err != nil {
 		logging.Errorf("%s", err.Error())
 	}
+}
+
+func (a *API) deprecatedRoutes(noAuthnNoOrg *routeGroup) {
+	// CLI clients before v0.14.4 rely on sign-up being false to continue with login
+	type SignupEnabledResponse struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	add(a, noAuthnNoOrg, http.MethodGet, "/api/signup", route[api.EmptyRequest, *SignupEnabledResponse]{
+		handler: func(c *gin.Context, _ *api.EmptyRequest) (*SignupEnabledResponse, error) {
+			return &SignupEnabledResponse{Enabled: false}, nil
+		},
+		routeSettings: routeSettings{
+			omitFromTelemetry: true,
+			omitFromDocs:      true,
+			txnOptions:        &sql.TxOptions{ReadOnly: true},
+		},
+	})
 }

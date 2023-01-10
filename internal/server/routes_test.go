@@ -210,7 +210,7 @@ func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
 	}
 
 	api := &API{server: srv}
-	add(api, rg(router.Group("/")), "POST", "/do", r)
+	add(api, newRouterGroup(router.Group("/")), "POST", "/do", r)
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/do", nil)
@@ -243,13 +243,17 @@ func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
 	}
 
 	api := &API{server: srv}
-	add(api, rg(router.Group("/")), "POST", "/do", r)
+	add(api, newRouterGroup(router.Group("/")), "POST", "/do", r)
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/do", nil)
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+}
+
+func newRouterGroup(g *gin.RouterGroup) *routeGroup {
+	return &routeGroup{RouterGroup: g, authenticationOptional: true, organizationOptional: true}
 }
 
 func TestInfraVersionHeader(t *testing.T) {
@@ -286,7 +290,7 @@ func TestRequestTimeout(t *testing.T) {
 	assert.Assert(t, ok)
 	a := &API{server: srv}
 
-	group := &routeGroup{RouterGroup: router.Group("/"), noAuthentication: true, noOrgRequired: true}
+	group := &routeGroup{RouterGroup: router.Group("/"), authenticationOptional: true, organizationOptional: true}
 	add(a, group, http.MethodGet, "/sleep", route[api.EmptyRequest, *api.EmptyResponse]{
 		handler: func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
 			ctx := getRequestContext(c)
