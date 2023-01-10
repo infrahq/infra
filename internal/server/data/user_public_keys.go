@@ -34,6 +34,7 @@ func listUserPublicKeys(tx ReadTxn, userID uid.ID) ([]models.UserPublicKey, erro
 	query.B("FROM user_public_keys")
 	query.B("WHERE deleted_at is null")
 	query.B("AND user_id = ?", userID)
+	query.B("AND expires_at > ?", time.Now())
 
 	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
@@ -62,4 +63,15 @@ func DeleteUserPublicKeys(tx WriteTxn, userID uid.ID) error {
 	stmt := "UPDATE user_public_keys SET deleted_at = ? WHERE deleted_at is null AND user_id = ?"
 	_, err := tx.Exec(stmt, time.Now(), userID)
 	return handleError(err)
+}
+
+func DeleteExpiredUserPublicKeys(tx WriteTxn) error {
+	now := time.Now()
+	query := querybuilder.New("UPDATE user_public_keys")
+	query.B("SET deleted_at = ?", now)
+	query.B("WHERE deleted_at is null")
+	query.B("AND expires_at <= ?", now)
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
 }

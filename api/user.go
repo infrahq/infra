@@ -105,4 +105,5 @@ type UserPublicKey struct {
 	KeyType string `json:"keyType"`
 	// Fingerprint is the SHA256 fingerprint of the public key.
 	Fingerprint string `json:"fingerprint" note:"SHA256 fingerprint of the key"`
+	Expires     Time   `json:"expires"`
 }

@@ -78,5 +78,6 @@ func (u UserPublicKey) ToAPI() api.UserPublicKey {
 		PublicKey:   u.PublicKey,
 		KeyType:     u.KeyType,
 		Fingerprint: u.Fingerprint,
+		Expires:     api.Time(u.ExpiresAt),
 	}
 }

@@ -403,6 +403,8 @@ CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (organization_id
 
 CREATE UNIQUE INDEX idx_user_public_keys_user_fingerprint ON user_public_keys USING btree (fingerprint) WHERE (deleted_at IS NULL);
 
+CREATE INDEX idx_user_public_keys_user_id ON user_public_keys USING btree (user_id) WHERE (deleted_at IS NULL);
+
 CREATE UNIQUE INDEX idx_user_ssh_login_name ON identities USING btree (organization_id, ssh_login_name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);

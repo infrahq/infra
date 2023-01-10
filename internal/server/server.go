@@ -263,6 +263,7 @@ func (s *Server) Run(ctx context.Context) error {
 	s.registerJob(ctx, data.DeleteExpiredDeviceFlowAuthRequests, 10*time.Minute)
 	s.registerJob(ctx, data.RemoveExpiredAccessKeys, 12*time.Hour)
 	s.registerJob(ctx, data.RemoveExpiredPasswordResetTokens, 15*time.Minute)
+	s.registerJob(ctx, data.DeleteExpiredUserPublicKeys, time.Hour)
 
 	if s.tel != nil {
 		group.Go(func() error {

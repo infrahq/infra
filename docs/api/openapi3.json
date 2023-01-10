@@ -1045,6 +1045,12 @@
                         "format": "date-time",
                         "type": "string"
                       },
+                      "expires": {
+                        "description": "formatted as an RFC3339 date-time",
+                        "example": "2022-03-14T09:48:00Z",
+                        "format": "date-time",
+                        "type": "string"
+                      },
                       "fingerprint": {
                         "description": "SHA256 fingerprint of the key",
                         "type": "string"
@@ -1392,6 +1398,12 @@
                   "format": "date-time",
                   "type": "string"
                 },
+                "expires": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
                 "fingerprint": {
                   "description": "SHA256 fingerprint of the key",
                   "type": "string"
@@ -1432,6 +1444,12 @@
       "UserPublicKey": {
         "properties": {
           "created": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "expires": {
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
