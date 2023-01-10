@@ -236,14 +236,9 @@ func (a *API) addPreviousVersionHandlersGrants() {
 			routeSettings: defaultRouteSettingsGet,
 			handler: func(c *gin.Context, req *api.ListGrantsRequest) (*api.ListResponse[grantV0_18_1], error) {
 				resp, err := a.ListGrants(c, req)
-				if err != nil {
-					return nil, err
-				}
-				result := api.NewListResponse(resp.Items, resp.PaginationResponse, func(item api.Grant) grantV0_18_1 {
+				return api.CopyListResponse(resp, func(item api.Grant) grantV0_18_1 {
 					return *newGrantsV0_18_1FromLatest(&item)
-				})
-				result.LastUpdateIndex = resp.LastUpdateIndex
-				return result, nil
+				}), err
 			},
 		})
 

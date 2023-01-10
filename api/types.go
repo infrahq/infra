@@ -174,6 +174,17 @@ func (l *LastUpdateIndex) setValuesFromHeader(header http.Header) error {
 	return nil
 }
 
+// CopyListResponse makes a copy of old, and translates the items from old type
+// to the new type using fn. A nil input is ignored and returns a nil.
+func CopyListResponse[Old, New any](old *ListResponse[Old], fn func(item Old) New) *ListResponse[New] {
+	if old == nil {
+		return nil
+	}
+	result := NewListResponse(old.Items, old.PaginationResponse, fn)
+	result.LastUpdateIndex = old.LastUpdateIndex
+	return result
+}
+
 // BlockingRequest is used to identify the last update index that was
 // visible to the client. The API endpoint will block until there is a
 // new updated index for the query.

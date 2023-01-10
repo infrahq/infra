@@ -326,7 +326,6 @@ func handlerForVersion(versions []routeVersion, reqVer *semver.Version) func(c *
 		return nil
 	}
 
-	// TODO: iterate in reverse order to benefit newer versions over older versions
 	for _, v := range versions {
 		if reqVer.GreaterThan(v.version) {
 			continue

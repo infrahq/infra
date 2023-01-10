@@ -93,21 +93,6 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 			ExtensionDeadline: latest.InactivityTimeout,
 		}
 	}
-	newAccessKeyListResponseV0_18_0FromLatest := func(latest *api.ListResponse[api.AccessKey]) *api.ListResponse[accessKeyV0_18_0] {
-		if latest == nil {
-			return nil
-		}
-		oldResp := &api.ListResponse[accessKeyV0_18_0]{
-			PaginationResponse: latest.PaginationResponse,
-			Count:              latest.Count,
-			LastUpdateIndex:    latest.LastUpdateIndex,
-			Items:              make([]accessKeyV0_18_0, len(latest.Items)),
-		}
-		for i, item := range latest.Items {
-			oldResp.Items[i] = newAccessKeyV0_18_0FromLatest(item)
-		}
-		return oldResp
-	}
 
 	addVersionHandler(a,
 		http.MethodGet, "/api/access-keys", "0.16.1",
@@ -121,7 +106,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 					PaginationRequest: reqOld.PaginationRequest,
 				}
 				resp, err := a.ListAccessKeys(c, req)
-				return newAccessKeyListResponseV0_18_0FromLatest(resp), err
+				return api.CopyListResponse(resp, newAccessKeyV0_18_0FromLatest), err
 			},
 		})
 
@@ -173,7 +158,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 		route[api.ListAccessKeysRequest, *api.ListResponse[accessKeyV0_18_0]]{
 			handler: func(c *gin.Context, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_18_0], error) {
 				resp, err := a.ListAccessKeys(c, req)
-				return newAccessKeyListResponseV0_18_0FromLatest(resp), err
+				return api.CopyListResponse(resp, newAccessKeyV0_18_0FromLatest), err
 			},
 		})
 }
