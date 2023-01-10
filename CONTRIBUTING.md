@@ -45,9 +45,7 @@ documentation which describes how to:
    brew install node
    ```
 
-### Run locally
-
-Run the CLI:
+### Run the CLI locally
 
 ```
 go run .
@@ -74,22 +72,21 @@ npm run dev
 
 Visit http://localhost/signup and create an organization (e.g. `acme`).
 
-### Run the connector locally
+### Run the connector
 
-First log in:
+Note: make sure your current Kubernetes context is set to the desired cluster.
 
-```
-infra login acme.localhost
-```
-
-Then create an access key:
+Create a connector access key:
 
 ```
 export INFRA_ACCESS_KEY=$(infra keys add --connector -q)
-go run . connector -f ./dev/connector.yaml
 ```
 
-Note: make sure your current Kubernetes context is set to the desired cluster.
+Then run the connector:
+
+```
+go run . connector -f ./dev/connector.yaml
+```
 
 ### Run tests
 
