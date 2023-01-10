@@ -28,15 +28,3 @@ func GetSettings(c *gin.Context) (*models.Settings, error) {
 	rCtx := GetRequestContext(c)
 	return data.GetSettings(rCtx.DBTxn)
 }
-
-func SaveSettings(c *gin.Context, settings *models.Settings) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
-	if err != nil {
-		return HandleAuthErr(err, "settings", "update", models.InfraAdminRole)
-	}
-
-	if err = data.UpdateSettings(db, settings); err != nil {
-		return err
-	}
-	return nil
-}
