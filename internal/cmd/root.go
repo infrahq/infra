@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	teakey "github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -32,9 +33,13 @@ func runRootCmd(cli *CLI) error {
 		tea.WithAltScreen(), // TODO: try without this
 		tea.WithContext(ctx),
 	)
-	if _, err := program.Run(); err != nil {
+	result, err := program.Run()
+	if err != nil {
 		return err
 	}
+
+	fmt.Println(result.(*destinationListModel).selection.Name)
+
 	return nil
 }
 
@@ -55,6 +60,11 @@ func (i destinationItem) Description() string {
 func (i destinationItem) FilterValue() string {
 	return i.destination.Kind + " " + i.destination.Name + " " + i.destination.Connection.URL
 }
+
+var connectKeyBinding = teakey.NewBinding(
+	teakey.WithKeys("enter"),
+	teakey.WithHelp("enter", "connect to destination"),
+)
 
 func newDestinationListModel(dests []api.Destination, grants []api.Grant) *destinationListModel {
 	items := make([]list.Item, 0, len(dests))
@@ -88,6 +98,7 @@ func newDestinationListModel(dests []api.Destination, grants []api.Grant) *desti
 type destinationListModel struct {
 	appStyle     lipgloss.Style
 	destinations list.Model
+	selection    api.Destination
 }
 
 func (d *destinationListModel) Init() tea.Cmd {
@@ -104,6 +115,12 @@ func (d *destinationListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Don't match any of the keys below if we're actively filtering.
 		if d.destinations.FilterState() == list.Filtering {
 			break
+		}
+
+		switch {
+		case teakey.Matches(msg, connectKeyBinding):
+			d.selection = d.destinations.SelectedItem().(destinationItem).destination
+			return d, tea.Quit
 		}
 	}
 
