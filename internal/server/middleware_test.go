@@ -325,8 +325,7 @@ func TestRequireAccessKey(t *testing.T) {
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Request = req
 
-			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
-			authned, err := requireAccessKey(c, tx, srv)
+			authned, err := requireAccessKey(c, db, srv)
 			tc.expected(t, authned, err)
 		})
 	}
@@ -470,8 +469,9 @@ func TestAuthenticateRequest(t *testing.T) {
 	token := &models.AccessKey{
 		IssuedFor:           user.ID,
 		ProviderID:          data.InfraProvider(tx).ID,
-		ExpiresAt:           time.Now().Add(10 * time.Second),
+		ExpiresAt:           time.Now().Add(time.Minute),
 		InactivityExtension: time.Hour,
+		InactivityTimeout:   time.Now().Add(30 * time.Second),
 		OrganizationMember:  models.OrganizationMember{OrganizationID: org.ID},
 	}
 
@@ -572,9 +572,9 @@ func TestAuthenticateRequest(t *testing.T) {
 				user.LastSeenAt = time.Date(2022, 1, 2, 3, 4, 5, 0, time.UTC)
 				assert.NilError(t, data.UpdateIdentity(tx, &user))
 
-				ak := *token // shallow copy access key
-				ak.InactivityTimeout = time.Now().Add(2 * time.Minute)
-				assert.NilError(t, data.UpdateAccessKey(tx, &ak))
+				_, err = tx.Exec("UPDATE access_keys SET updated_at = ? WHERE id = ?",
+					user.LastSeenAt, token.ID)
+				assert.NilError(t, err)
 
 				assert.NilError(t, tx.Commit())
 
@@ -604,9 +604,9 @@ func TestAuthenticateRequest(t *testing.T) {
 				user.LastSeenAt = now
 				assert.NilError(t, data.UpdateIdentity(tx, &user))
 
-				ak := *token // shallow copy access key
-				ak.InactivityTimeout = now.Add(ak.InactivityExtension)
-				assert.NilError(t, data.UpdateAccessKey(tx, &ak))
+				_, err = tx.Exec("UPDATE access_keys SET updated_at = ?, inactivity_timeout = ? WHERE id = ?",
+					user.LastSeenAt, now.Add(5*time.Minute), token.ID)
+				assert.NilError(t, err)
 
 				assert.NilError(t, tx.Commit())
 
@@ -623,7 +623,7 @@ func TestAuthenticateRequest(t *testing.T) {
 
 				ak, err := data.GetAccessKey(tx, data.GetAccessKeysOptions{ByID: token.ID})
 				assert.NilError(t, err)
-				assert.Equal(t, ak.InactivityTimeout, now.Add(token.InactivityExtension),
+				assert.Equal(t, ak.InactivityTimeout, now.Add(5*time.Minute),
 					"expected no update")
 			},
 		},

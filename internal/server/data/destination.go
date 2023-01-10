@@ -51,6 +51,37 @@ func UpdateDestination(tx WriteTxn, destination *models.Destination) error {
 	return update(tx, (*destinationsTable)(destination))
 }
 
+// UpdateDestinationLastSeenAt sets dest.LastSeenAt to now and then updates the
+// row in the database. Updates are throttled to once every 2 seconds.
+// If the destination was updated recently, or the database row is already locked, the
+// update will be skipped.
+//
+// Unlike most functions in this package, this function uses dest.OrganizationID
+// not tx.OrganizationID.
+func UpdateDestinationLastSeenAt(tx WriteTxn, dest *models.Destination) error {
+	if time.Since(dest.LastSeenAt) < lastSeenUpdateThreshold {
+		return nil
+	}
+
+	origUpdatedAt := dest.UpdatedAt
+	dest.LastSeenAt = time.Now()
+	if err := dest.OnUpdate(); err != nil {
+		return err
+	}
+
+	table := (*destinationsTable)(dest)
+	query := querybuilder.New("UPDATE destinations SET")
+	query.B(columnsForUpdate(table), table.Values()...)
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", dest.OrganizationID)
+	// only update if the row has not changed since the SELECT
+	query.B("AND updated_at = ?", origUpdatedAt)
+	query.B("AND id IN (SELECT id from destinations WHERE id = ? FOR UPDATE SKIP LOCKED)", table.Primary())
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
+}
+
 type GetDestinationOptions struct {
 	// ByID instructs GetDestination to return the row matching this ID. When
 	// this value is set, all other fields on this strut will be ignored
@@ -60,6 +91,10 @@ type GetDestinationOptions struct {
 	ByUniqueID string
 	// ByName instructs GetDestination to return the row matching this name.
 	ByName string
+
+	// FromOrganization is the organization ID of the provider. When set to a
+	// non-zero value the organization ID from the transaction is ignored.
+	FromOrganization uid.ID
 }
 
 func GetDestination(tx ReadTxn, opts GetDestinationOptions) (*models.Destination, error) {
@@ -67,7 +102,13 @@ func GetDestination(tx ReadTxn, opts GetDestinationOptions) (*models.Destination
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(destination))
 	query.B("FROM destinations")
-	query.B("WHERE deleted_at is null AND organization_id = ?", tx.OrganizationID())
+	query.B("WHERE deleted_at is null")
+
+	orgID := opts.FromOrganization
+	if orgID == 0 {
+		orgID = tx.OrganizationID()
+	}
+	query.B("AND organization_id = ?", orgID)
 
 	switch {
 	case opts.ByID != 0:

@@ -54,6 +54,10 @@ type GetProviderOptions struct {
 	// KindInfra instructs GetProvider to return the infra provider. There should
 	// only ever be a single provider with this kind for each org.
 	KindInfra bool
+
+	// FromOrganization is the organization ID of the provider. When set to a
+	// non-zero value the organization ID from the transaction is ignored.
+	FromOrganization uid.ID
 }
 
 func GetProvider(tx ReadTxn, opts GetProviderOptions) (*models.Provider, error) {
@@ -62,7 +66,12 @@ func GetProvider(tx ReadTxn, opts GetProviderOptions) (*models.Provider, error) 
 	query.B(columnsForSelect(provider))
 	query.B("FROM providers")
 	query.B("WHERE deleted_at is null")
-	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	orgID := opts.FromOrganization
+	if orgID == 0 {
+		orgID = tx.OrganizationID()
+	}
+	query.B("AND organization_id = ?", orgID)
 
 	switch {
 	case opts.ByID != 0:

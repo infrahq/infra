@@ -228,6 +228,13 @@ func TestGetDestination(t *testing.T) {
 			_, err := GetDestination(db, GetDestinationOptions{ByID: deleted.ID})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
+		t.Run("from other organization", func(t *testing.T) {
+			_, err := GetDestination(db, GetDestinationOptions{
+				ByID:             destination.ID,
+				FromOrganization: 723,
+			})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 	})
 }
 

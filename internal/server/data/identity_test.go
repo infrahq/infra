@@ -290,6 +290,13 @@ func TestGetIdentity(t *testing.T) {
 			}
 			assert.DeepEqual(t, *identity, expected, cmpTimeWithDBPrecision)
 		})
+		t.Run("from other organization", func(t *testing.T) {
+			_, err := GetIdentity(db, GetIdentityOptions{
+				ByID:             bond.ID,
+				FromOrganization: 71234,
+			})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 	})
 }
 
