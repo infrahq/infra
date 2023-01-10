@@ -189,7 +189,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
+			return runRootCmd(cli)
 		},
 	}
 

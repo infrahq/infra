@@ -19,12 +19,12 @@ func newListCmd(cli *CLI) *cobra.Command {
 		Args:    NoArgs,
 		GroupID: groupCore,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return list(cli)
+			return runList(cli)
 		},
 	}
 }
 
-func list(cli *CLI) error {
+func runList(cli *CLI) error {
 	client, err := cli.apiClient()
 	if err != nil {
 		return err
@@ -35,25 +35,7 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	grantsByResource := make(map[string]map[string]struct{})
-	resources := []string{}
-	for _, g := range grants {
-		if isResourceForDestination(g.Resource, "infra") {
-			continue
-		}
-
-		if !destinationForResourceExists(g.Resource, destinations) {
-			continue
-		}
-
-		if grantsByResource[g.Resource] == nil {
-			grantsByResource[g.Resource] = make(map[string]struct{})
-			resources = append(resources, g.Resource)
-		}
-
-		grantsByResource[g.Resource][g.Privilege] = struct{}{}
-	}
-	sort.Strings(resources)
+	grantsByResource, resources := groupGrantsByResource(grants, destinations)
 
 	type row struct {
 		Name   string `header:"NAME"`
@@ -86,6 +68,29 @@ func list(cli *CLI) error {
 	}
 
 	return updateKubeconfig(client)
+}
+
+func groupGrantsByResource(grants []api.Grant, destinations []api.Destination) (map[string]map[string]struct{}, []string) {
+	grantsByResource := make(map[string]map[string]struct{})
+	resources := []string{}
+	for _, g := range grants {
+		if isResourceForDestination(g.Resource, "infra") {
+			continue
+		}
+
+		if !destinationForResourceExists(g.Resource, destinations) {
+			continue
+		}
+
+		if grantsByResource[g.Resource] == nil {
+			grantsByResource[g.Resource] = make(map[string]struct{})
+			resources = append(resources, g.Resource)
+		}
+
+		grantsByResource[g.Resource][g.Privilege] = struct{}{}
+	}
+	sort.Strings(resources)
+	return grantsByResource, resources
 }
 
 func destinationForResourceExists(resource string, destinations []api.Destination) bool {
