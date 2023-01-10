@@ -10,6 +10,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/square/go-jose.v2"
 	"gotest.tools/v3/assert"
 
@@ -176,12 +177,11 @@ var cmpWellKnownJWKsJSON = gocmp.Options{
 }
 
 func TestAPI_AddPreviousVersionHandlers_Order(t *testing.T) {
-	a := API{}
-	a.addPreviousVersionHandlersAccessKey()
-	a.addPreviousVersionHandlersSignup()
-	a.addPreviousVersionHandlersGrants()
+	srv := newServer(Options{})
+	srv.metricsRegistry = prometheus.NewRegistry()
+	routes := srv.GenerateRoutes()
 
-	for routeID, versions := range a.versions {
+	for routeID, versions := range routes.api.versions {
 		prev := semver.MustParse("0.0.0")
 		for _, v := range versions {
 			assert.Assert(t, prev.LessThan(v.version),
