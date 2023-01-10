@@ -184,7 +184,7 @@ export default function ProvidersEditDetails() {
         <div className='flex flex-col justify-between md:flex-row md:items-center'>
           <h1 className='flex max-w-[75%] truncate py-1 font-display text-xl font-medium'>
             <Link
-              href='/settings?tab=providers'
+              href='/settings?tab=authentication'
               className='text-gray-500/75 hover:text-gray-600'
             >
               Providers
@@ -256,7 +256,7 @@ export default function ProvidersEditDetails() {
                   method: 'DELETE',
                 })
 
-                router.replace('/settings?tab=providers')
+                router.replace('/settings?tab=authentication')
               }}
               modalTitle='Remove Identity Provider'
               modalMessage={
