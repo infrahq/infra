@@ -69,7 +69,7 @@ INFRA_ACCESS_KEY=$(infra keys add --connector -q)
 Install Infra connector via [helm](https://helm.sh):
 
 ```
-helm repo add infrahq https://helm.infrahq.com
+helm repo add infrahq https://infrahq.github.io/helm-charts
 helm repo update
 helm install infra infrahq/infra --set config.server.url=$INFRA_SERVER --set config.accessKey=$INFRA_ACCESS_KEY --set config.name=example
 ```
