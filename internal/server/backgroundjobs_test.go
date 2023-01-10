@@ -63,7 +63,7 @@ func TestJobWrapper(t *testing.T) {
 	}
 
 	g := errgroup.Group{}
-	fn := jobWrapper(ctx, db, job, time.Millisecond)
+	fn := backgroundJob(ctx, db, job, time.Millisecond)
 	g.Go(fn)
 	<-chReady
 

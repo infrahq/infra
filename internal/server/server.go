@@ -260,10 +260,10 @@ func (s *Server) Options() Options {
 func (s *Server) Run(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
 
-	s.registerJob(ctx, data.DeleteExpiredDeviceFlowAuthRequests, 10*time.Minute)
-	s.registerJob(ctx, data.RemoveExpiredAccessKeys, 12*time.Hour)
-	s.registerJob(ctx, data.RemoveExpiredPasswordResetTokens, 15*time.Minute)
-	s.registerJob(ctx, data.DeleteExpiredUserPublicKeys, time.Hour)
+	group.Go(backgroundJob(ctx, s.db, data.DeleteExpiredDeviceFlowAuthRequests, 10*time.Minute))
+	group.Go(backgroundJob(ctx, s.db, data.RemoveExpiredAccessKeys, 12*time.Hour))
+	group.Go(backgroundJob(ctx, s.db, data.RemoveExpiredPasswordResetTokens, 15*time.Minute))
+	group.Go(backgroundJob(ctx, s.db, data.DeleteExpiredUserPublicKeys, time.Hour))
 
 	if s.tel != nil {
 		group.Go(func() error {
