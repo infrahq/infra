@@ -140,7 +140,7 @@ export default function Dashboard({ children }) {
         <div className='mt-5 h-0 flex-1 overflow-y-auto'>
           <nav className='flex-1 space-y-1'>
             {navigation
-              ?.filter(n => n.hide !== true)
+              ?.filter(n => !n.hide)
               ?.filter(n => (n.admin ? isAdmin : true))
               .map(item => (
                 <Link

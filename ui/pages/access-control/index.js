@@ -284,7 +284,7 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
                             selectedNamespaces.length !==
                             selectedResource?.resources?.length
                           ) {
-                            if (selectedResource !== undefined) {
+                            if (selectedResource) {
                               setSelectedNamespaces([
                                 ...selectedResource.resources,
                               ])

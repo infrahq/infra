@@ -14,7 +14,6 @@ export default function Table({
   data,
   href,
   empty = 'No data',
-  deleteText = 'Remove selected',
   count = data?.length,
   allowDelete = false,
   selectedRowIds = [],
@@ -70,7 +69,7 @@ export default function Table({
   }, [pageIndex])
 
   function toggleAll() {
-    setSelectedRowIds(checkedAll || indeterminate ? [] : data.map(d => d.id))
+    setSelectedRowIds(checkedAll || indeterminate ? [] : data?.map(d => d.id))
     setCheckedAll(!checkedAll && !indeterminate)
     setIndeterminate(false)
   }
@@ -88,7 +87,7 @@ export default function Table({
           >
             <div className='flex flex-row items-center'>
               <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
-              {deleteText}
+              'Remoeve selected'
             </div>
           </button>
         </div>
