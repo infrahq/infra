@@ -251,6 +251,9 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 	if opts.ByID == 0 && opts.ByIssuedForID == 0 && opts.ByProviderID == 0 {
 		return fmt.Errorf("DeleteAccessKeys requires an ID, IssuedForID, or ProviderID")
 	}
+	if opts.ByIssuedForID != 0 && opts.ByProviderID == 0 {
+		return fmt.Errorf("DeleteAccessKeys by IssuedForID requires ProviderID")
+	}
 	query := querybuilder.New("UPDATE access_keys")
 	query.B("SET deleted_at = ?", time.Now())
 	query.B("WHERE organization_id = ?", tx.OrganizationID())
