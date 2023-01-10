@@ -8,16 +8,14 @@ us make Infra better.
 ### Report Bugs or Suggest Enhancements
 
 We use [GitHub Issues](https://github.com/infrahq/infra/issues) to track bug reports and feature requests. We're always
-looking for ways to improve the project, and well written issues help us find things we may have missed. Before filing an issue though,
-please check to see if it has been filed before.
+looking for ways to improve the project, and well written issues help us find things we may have missed. Before filing an issue though, please check to see if it has been filed before.
 
 When filing the issue, we ask that you use good bug/feature etiquette. Make sure that you:
 
 - Use a clear and descriptive title
 - Include a description of what you expected to happen
 - Attach a screenshot if relevant
-- Include the Infra and Kubernetes versions you're using
-- Describe where you're running Kubernetes
+- Include the Infra version you're using
 
 ### Fix a Bug or Implement a Feature
 
@@ -36,26 +34,77 @@ documentation which describes how to:
 
 ### Setup
 
-1. Install [Go](https://go.dev/dl), version 1.19 or higher
-1. Clone the project
-   ```shell
-   git clone https://github.com/infrahq/infra
-   cd infra
+1. Install [Go 1.19](https://go.dev/dl/#go1.19)
+2. Install Postgres locally. On macOS:
+   ```
+   brew install postgresql
+   brew services start postgresql
+   ```
+3. For building the infra Dashboard (under `ui/`), install Node. On macOS:
+   ```
+   brew install node
    ```
 
-### Run locally
+### Run the CLI locally
 
-```shell
+```
 go run .
+```
+
+### Run the server
+
+Run the server
+
+```
+export INFRA_DB_USERNAME=$(whoami)
+go run . server -f ./dev/server.yaml
+```
+
+### Run the Dashboard
+
+```
+cd ui
+npm install
+npm run dev
+```
+
+### Sign up
+
+Visit http://localhost/signup and create an organization (e.g. `acme`).
+
+### Run the connector
+
+Note: make sure your current Kubernetes context is set to the desired cluster.
+
+Create a connector access key:
+
+```
+export INFRA_ACCESS_KEY=$(infra keys add --connector -q)
+```
+
+Then run the connector:
+
+```
+go run . connector -f ./dev/connector.yaml
 ```
 
 ### Run tests
 
 ```shell
 go test ./...
+```
 
-# for shorter tests
-go test -short ./...
+Run tests with database:
+
+```
+POSTGRESQL_CONNECTION="host=localhost port=5432 user=$(whoami) dbname=postgres" go test ./...
+```
+
+#### Dashboard tests
+
+```
+cd ui
+npm run test
 ```
 
 ### Linting
@@ -63,42 +112,6 @@ go test -short ./...
 ```shell
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 make lint
-```
-
-### Run in Kubernetes
-
-#### Setup
-
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and enable Kubernetes.
-1. Add the `infrahq` Helm repo
-
-   ```shell
-   helm repo add infrahq https://infrahq.github.io/helm-charts
-   helm repo update
-   ```
-
-For a full list of configurable options, use `helm show values infrahq/infra` and `helm show values infrahq/infra-server`.
-
-#### Install the server
-
-```shell
-make dev
-```
-
-#### Install the connector
-
-```shell
-make dev/connector flags='--set config.accessKey=... --set config.server.url=...'
-```
-
-###
-
-### CLI documentation
-
-To generate CLI documentation, run the `docgen` package:
-
-```shell
-go run ./internal/docgen
 ```
 
 ## Contributor License Agreement

@@ -1,0 +1,14 @@
+ui:
+  proxyUrl: http://localhost:3000
+
+tls:
+  ca: internal/server/testdata/pki/ca.crt
+  caPrivateKey: file:internal/server/testdata/pki/ca.key
+
+dbHost: localhost
+dbName: postgres
+dbPort: 5432
+dbPassword: postgres
+
+enableSignup: true
+baseDomain: localhost
