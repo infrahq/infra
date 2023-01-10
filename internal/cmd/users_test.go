@@ -18,23 +18,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func TestCheckPasswordRequirements(t *testing.T) {
-	err := checkPasswordRequirements("")("password")
-	assert.NilError(t, err)
-
-	err = checkPasswordRequirements("")("short")
-	assert.NilError(t, err)
-
-	err = checkPasswordRequirements("")("")
-	assert.ErrorContains(t, err, "Value is required")
-
-	err = checkPasswordRequirements("password")("password")
-	assert.ErrorContains(t, err, "input must be different than the current password")
-
-	err = checkPasswordRequirements("password")(nil)
-	assert.ErrorContains(t, err, "unexpected type for password")
-}
-
 func TestUsersCmd(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
