@@ -10,6 +10,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -348,5 +349,6 @@ func RemoveExpiredAccessKeys(tx WriteTxn) error {
 	query.B("AND expires_at <= ?", time.Now().UTC().Add(-1*time.Hour)) // leave buffer so keys aren't immediately deleted on expiry.
 
 	_, err := tx.Exec(query.String(), query.Args...)
+	logging.L.Info().Msg("removed expired access key")
 	return err
 }
