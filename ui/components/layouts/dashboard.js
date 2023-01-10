@@ -11,7 +11,6 @@ import {
   Bars3Icon,
   UserCircleIcon,
   ArrowLeftOnRectangleIcon,
-  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
@@ -93,12 +92,6 @@ export default function Dashboard({ children }) {
 
   const navigation = [
     {
-      name: 'Access Control',
-      href: '/access-control',
-      icon: AdjustmentsHorizontalIcon,
-      hide: true,
-    },
-    {
       name: 'Infrastructure',
       href: '/destinations',
       icon: CpuChipIcon,
@@ -140,7 +133,6 @@ export default function Dashboard({ children }) {
         <div className='mt-5 h-0 flex-1 overflow-y-auto'>
           <nav className='flex-1 space-y-1'>
             {navigation
-              ?.filter(n => !n.hide)
               ?.filter(n => (n.admin ? isAdmin : true))
               .map(item => (
                 <Link
