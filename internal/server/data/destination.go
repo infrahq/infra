@@ -176,11 +176,25 @@ func ListDestinations(tx ReadTxn, opts ListDestinationsOptions) ([]models.Destin
 }
 
 func DeleteDestination(tx WriteTxn, id uid.ID) error {
+	// Delete any grants for the destination before deleting it
 	stmt := `
+		UPDATE grants SET deleted_at = ?
+		WHERE resource =
+			(SELECT name FROM destinations
+			WHERE id = ? AND organization_id = ? AND deleted_at is null)
+		AND organization_id = ? AND deleted_at is null
+	`
+
+	_, err := tx.Exec(stmt, time.Now(), id, tx.OrganizationID(), tx.OrganizationID())
+	if err != nil {
+		return handleError(err)
+	}
+
+	stmt = `
 		UPDATE destinations SET deleted_at = ?
 		WHERE id = ? AND organization_id = ? AND deleted_at is null
 	`
-	_, err := tx.Exec(stmt, time.Now(), id, tx.OrganizationID())
+	_, err = tx.Exec(stmt, time.Now(), id, tx.OrganizationID())
 	return handleError(err)
 }
 

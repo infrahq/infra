@@ -140,6 +140,86 @@ var cmpAPIDestinationJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
 
+func TestAPI_DeleteDestination(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	dest := &models.Destination{
+		Name:     "wow",
+		Kind:     models.DestinationKindKubernetes,
+		UniqueID: "deadbeef",
+	}
+	assert.NilError(t, data.CreateDestination(srv.db, dest))
+
+	type testCase struct {
+		name     string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		req := httptest.NewRequest(http.MethodDelete, "/api/destinations/"+dest.ID.String(), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := []testCase{
+		{
+			name: "not authenticated",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, (*responseDebug)(resp))
+			},
+		},
+		{
+			name: "not authorized",
+			setup: func(t *testing.T, req *http.Request) {
+				token, _ := createAccessKey(t, srv.db, "notauth@example.com")
+				req.Header.Set("Authorization", "Bearer "+token)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden, (*responseDebug)(resp))
+			},
+		},
+		{
+			name: "success delete w/ grants",
+			setup: func(t *testing.T, req *http.Request) {
+				g1 := &models.Grant{
+					Subject:   "i:7654321",
+					Privilege: "cluster-admin",
+					Resource:  "wow",
+				}
+				assert.NilError(t, data.CreateGrant(srv.db, g1))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusNoContent, (*responseDebug)(resp))
+
+				grants, err := data.ListGrants(srv.db, data.ListGrantsOptions{ByDestination: "wow"})
+				assert.NilError(t, err)
+				assert.Equal(t, len(grants), 0)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+
+}
+
 func TestAPI_UpdateDestination(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
