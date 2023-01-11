@@ -18,10 +18,6 @@ module.exports = phase => ({
             type: 'cookie',
             key: 'auth',
           },
-          // {
-          //   type: 'header',
-          //   key: 'Authorization',
-          // },
         ],
         destination: '/destinations',
         permanent: false,
