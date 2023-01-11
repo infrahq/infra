@@ -5,7 +5,7 @@ import Head from 'next/head'
 
 import useSWR from 'swr'
 import dayjs from 'dayjs'
-import { CheckIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { CheckIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Combobox as HeadlessUIComboBox } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
@@ -97,7 +97,7 @@ export default function GroupDetails() {
   const page = Math.max(parseInt(router.query.p) || 1, 1)
   const limit = 999
   const { isAdmin } = useUser()
-  const { data: group, mutate: mutate } = useSWR(`/api/groups/${id}`)
+  const { data: group, mutate } = useSWR(`/api/groups/${id}`)
   const {
     data: { items: users, totalCount, totalPages } = {},
     mutate: mutateUsers,
@@ -151,6 +151,7 @@ export default function GroupDetails() {
                     method: 'DELETE',
                   })
 
+                  mutate()
                   router.replace('/groups')
                 }}
                 modalTitle='Remove group'
@@ -215,7 +216,6 @@ export default function GroupDetails() {
 
                 // TODO: show optimistic results
                 mutateUsers()
-                mutate()
                 setAddUser('')
               }}
               className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
@@ -255,15 +255,20 @@ export default function GroupDetails() {
 
               return (
                 <div className='text-right'>
-                  <button
-                    onClick={() => {
-                      setOpen(true)
-                    }}
-                    className='p-1 text-2xs text-gray-500/75 hover:text-gray-600'
-                  >
-                    Remove
-                    <span className='sr-only'>{info.row.original.name}</span>
-                  </button>
+                  <div className='group invisible rounded-md bg-white group-hover:visible'>
+                    <button
+                      onClick={() => {
+                        setOpen(true)
+                      }}
+                      className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                    >
+                      <div className='flex flex-row items-center'>
+                        <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                        Remove
+                      </div>
+                      <span className='sr-only'>{info.row.original.name}</span>
+                    </button>
+                  </div>
                   <DeleteModal
                     open={open}
                     setOpen={setOpen}
