@@ -206,11 +206,6 @@ func DeleteProviders(db WriteTxn, opts DeleteProvidersOptions) error {
 		return fmt.Errorf("delete access keys: %w", err)
 	}
 
-	// delete any access keys used for SCIM
-	if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByIssuedForID: id}); err != nil {
-		return fmt.Errorf("delete provider access keys: %w", err)
-	}
-
 	query := querybuilder.New(`UPDATE providers`)
 	query.B(`SET deleted_at = ?`, time.Now())
 	query.B(`WHERE deleted_at is null`)

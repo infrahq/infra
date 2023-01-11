@@ -530,6 +530,8 @@ func (s *Server) syncIdentityInfo(ctx context.Context, tx *data.Transaction, ide
 				return err
 			}
 
+			logging.L.Info().Msg("user session expired, pruning keys created for this session")
+
 			if nestedErr := data.DeleteAccessKeys(tx, data.DeleteAccessKeysOptions{ByIssuedForID: providerUser.IdentityID, ByProviderID: providerUser.ProviderID}); nestedErr != nil {
 				logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
 			}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -251,6 +252,9 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 	if opts.ByID == 0 && opts.ByIssuedForID == 0 && opts.ByProviderID == 0 {
 		return fmt.Errorf("DeleteAccessKeys requires an ID, IssuedForID, or ProviderID")
 	}
+	if opts.ByIssuedForID != 0 && opts.ByProviderID == 0 {
+		return fmt.Errorf("DeleteAccessKeys by IssuedForID requires ProviderID")
+	}
 	query := querybuilder.New("UPDATE access_keys")
 	query.B("SET deleted_at = ?", time.Now())
 	query.B("WHERE organization_id = ?", tx.OrganizationID())
@@ -344,6 +348,16 @@ func RemoveExpiredAccessKeys(tx WriteTxn) error {
 	query.B("WHERE deleted_at is null")
 	query.B("AND expires_at <= ?", time.Now().UTC().Add(-1*time.Hour)) // leave buffer so keys aren't immediately deleted on expiry.
 
-	_, err := tx.Exec(query.String(), query.Args...)
+	result, err := tx.Exec(query.String(), query.Args...)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		logging.L.Info().Int64("count", count).Msg("removed expired access keys")
+	}
 	return err
 }

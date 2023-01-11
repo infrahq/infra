@@ -220,15 +220,23 @@ func TestDeleteAccessKeys(t *testing.T) {
 			toKeep := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: otherProvider.ID}
 			createAccessKeys(t, tx, key1, key2, toKeep)
 
-			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: user.ID})
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: user.ID, ByProviderID: provider.ID})
 			assert.NilError(t, err)
 
 			remaining, err := ListAccessKeys(tx, ListAccessKeyOptions{})
 			assert.NilError(t, err)
 			expected := []models.AccessKey{
+				{Model: models.Model{ID: key2.ID}},
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, remaining, expected, cmpModelByID)
+		})
+
+		t.Run("by user id requires provider id", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: uid.New()})
+			assert.ErrorContains(t, err, "DeleteAccessKeys by IssuedForID requires ProviderID")
 		})
 
 		t.Run("by provider id", func(t *testing.T) {
