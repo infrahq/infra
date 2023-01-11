@@ -9,6 +9,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/uid"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -416,5 +418,86 @@ func TestCountAllDestinations(t *testing.T) {
 		assert.NilError(t, err)
 
 		assert.Equal(t, actual, int64(5))
+	})
+}
+
+func TestListDestinationAccess(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		userA := &models.Identity{Name: "usera@example.com"}
+		userB := &models.Identity{Name: "userb@example.com"}
+		userC := &models.Identity{Name: "userc@example.com"}
+		userD := &models.Identity{Name: "userd@example.com"}
+		createIdentities(t, db, userA, userB, userC, userD)
+
+		groupA := &models.Group{Name: "groupa"}
+		groupB := &models.Group{Name: "groupb"}
+		createGroups(t, db, groupA, groupB)
+
+		err := AddUsersToGroup(db, groupA.ID, []uid.ID{userA.ID, userB.ID})
+		assert.NilError(t, err)
+
+		createGrants(t, db,
+			&models.Grant{
+				Subject:   models.NewSubjectForUser(userA.ID),
+				Privilege: "connect",
+				Resource:  "destination1",
+			},
+			&models.Grant{
+				Subject:   models.NewSubjectForGroup(groupA.ID),
+				Privilege: "admin",
+				Resource:  "destination1",
+			},
+			&models.Grant{
+				Subject:   models.NewSubjectForUser(userA.ID),
+				Privilege: "view",
+				Resource:  "other",
+			},
+			&models.Grant{
+				Subject:   models.NewSubjectForUser(userC.ID),
+				Privilege: "connect",
+				Resource:  "other",
+			},
+			&models.Grant{
+				Subject:   models.NewSubjectForUser(userD.ID),
+				Privilege: "special",
+				Resource:  "destination1",
+			},
+			&models.Grant{
+				Subject:   models.NewSubjectForGroup(groupB.ID),
+				Privilege: "connect",
+				Resource:  "other2",
+			},
+		)
+
+		actual, err := ListDestinationAccess(db, "destination1")
+		assert.NilError(t, err)
+
+		expected := []DestinationAccess{
+			{
+				UserID:           userA.ID,
+				UserSSHLoginName: "usera",
+				Privilege:        "admin",
+				Resource:         "destination1",
+			},
+			{
+				UserID:           userA.ID,
+				UserSSHLoginName: "usera",
+				Privilege:        "connect",
+				Resource:         "destination1",
+			},
+			{
+				UserID:           userB.ID,
+				UserSSHLoginName: "userb",
+				Privilege:        "admin",
+				Resource:         "destination1",
+			},
+			{
+				UserID:           userD.ID,
+				UserSSHLoginName: "userd",
+				Privilege:        "special",
+				Resource:         "destination1",
+			},
+		}
+		assert.DeepEqual(t, actual, expected)
 	})
 }

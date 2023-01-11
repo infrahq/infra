@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
@@ -220,4 +221,52 @@ func CountDestinationsByConnectedVersion(tx ReadTxn) ([]DestinationsCount, error
 
 func CountAllDestinations(tx ReadTxn) (int64, error) {
 	return countRows(tx, destinationsTable{})
+}
+
+type DestinationAccess struct {
+	UserID           uid.ID
+	UserSSHLoginName string
+	Privilege        string
+	Resource         string
+}
+
+func ListDestinationAccess(tx ReadTxn, destination string) ([]DestinationAccess, error) {
+	query := querybuilder.New("SELECT")
+	query.B("identities.id, identities.ssh_login_name, grants.privilege, grants.resource")
+	query.B("FROM grants")
+	query.B("JOIN identities ON grants.subject_id = identities.id")
+	query.B("AND grants.subject_kind = ?", models.SubjectKindUser)
+	query.B("WHERE grants.deleted_at is null")
+	grantsByDestination(query, destination)
+	query.B("AND grants.organization_id = ?", tx.OrganizationID())
+	query.B("UNION ALL SELECT")
+	query.B("identities.id, identities.ssh_login_name, grants.privilege, grants.resource")
+	query.B("FROM grants")
+	query.B("JOIN groups ON grants.subject_id = groups.id")
+	query.B("AND grants.subject_kind = ?", models.SubjectKindGroup)
+	query.B("JOIN identities_groups ON identities_groups.group_id = groups.id")
+	query.B("JOIN identities ON identities_groups.identity_id = identities.id")
+	query.B("WHERE grants.deleted_at is null")
+	grantsByDestination(query, destination)
+	query.B("AND grants.organization_id = ?", tx.OrganizationID())
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	userAccess, err := scanRows(rows, func(a *DestinationAccess) []any {
+		return []any{&a.UserID, &a.UserSSHLoginName, &a.Privilege, &a.Resource}
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort after the query to avoid creating a temporary DB table
+	sort.Slice(userAccess, func(i, j int) bool {
+		if userAccess[i].UserID == userAccess[j].UserID {
+			return userAccess[i].Privilege < userAccess[j].Privilege
+		}
+		return userAccess[i].UserID < userAccess[j].UserID
+	})
+	return userAccess, nil
 }
