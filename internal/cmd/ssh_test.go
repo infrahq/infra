@@ -29,14 +29,17 @@ func TestSSHHostsCmd(t *testing.T) {
 
 	srvDir := t.TempDir()
 	opts := defaultServerOptions(srvDir)
-	opts.Config = server.Config{
+	opts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
-			{Name: "admin@example.com", AccessKey: "0000000001.adminadminadminadmin1234"},
-			{Name: "anyuser@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},
-		},
-		Grants: []server.Grant{
-			{User: "admin@example.com", Resource: "infra", Role: "admin"},
-			{User: "anyuser@example.com", Resource: "prodhost", Role: "connect"},
+			{
+				Name:      "admin@example.com",
+				AccessKey: "0000000001.adminadminadminadmin1234",
+				InfraRole: "admin",
+			},
+			{
+				Name:      "anyuser@example.com",
+				AccessKey: "0000000002.notadminsecretnotadmin02",
+			},
 		},
 	}
 	setupServerOptions(t, &opts)
@@ -45,6 +48,9 @@ func TestSSHHostsCmd(t *testing.T) {
 
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
+
+	createGrants(t, srv.DB(),
+		api.GrantRequest{UserName: "anyuser@example.com", Resource: "prodhost", Privilege: "connect"})
 
 	client, err := NewAPIClient(&APIClientOpts{
 		AccessKey: "0000000001.adminadminadminadmin1234",
@@ -337,7 +343,7 @@ func TestProvisionSSHKey(t *testing.T) {
 
 	srvDir := t.TempDir()
 	opts := defaultServerOptions(srvDir)
-	opts.Config = server.Config{
+	opts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
 			{Name: "admin@example.com", AccessKey: "0000000001.adminadminadminadmin1234"},
 			{Name: "anyuser@example.com", AccessKey: "0000000002.notadminsecretnotadmin02"},

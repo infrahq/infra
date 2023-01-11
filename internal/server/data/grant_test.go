@@ -174,35 +174,6 @@ func TestDeleteGrants(t *testing.T) {
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
 		})
-		t.Run("by created_by and not ids", func(t *testing.T) {
-			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
-
-			createdBy := uid.ID(9234)
-			grant1 := &models.Grant{Subject: "i:any1", Privilege: "view", Resource: "any", CreatedBy: createdBy}
-			grant2 := &models.Grant{Subject: "i:any2", Privilege: "view", Resource: "any", CreatedBy: createdBy}
-			toKeep1 := &models.Grant{Subject: "i:any3", Privilege: "view", Resource: "any", CreatedBy: createdBy}
-			toKeep2 := &models.Grant{Subject: "i:any4", Privilege: "view", Resource: "any"}
-			createGrants(t, tx, grant1, grant2, toKeep1, toKeep2)
-
-			err := DeleteGrants(tx, DeleteGrantsOptions{
-				ByCreatedBy: createdBy,
-				NotIDs:      []uid.ID{toKeep1.ID},
-			})
-			assert.NilError(t, err)
-
-			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
-			assert.NilError(t, err)
-			expected := []models.Grant{
-				{Model: models.Model{ID: toKeep1.ID}},
-				{Model: models.Model{ID: toKeep2.ID}},
-			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
-
-			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
-			assert.NilError(t, err)
-			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
-			startUpdateIndex = maxIndex
-		})
 		t.Run("notify", func(t *testing.T) {
 			g := models.Grant{
 				Subject:   "i:1234567",

@@ -96,15 +96,6 @@ type ListProvidersOptions struct {
 	ExcludeInfraProvider bool
 	ByIDs                []uid.ID
 
-	// CreatedBy instructs DeleteProviders to delete all the providers that were
-	// created by this user. Can be used with NotIDs.
-	CreatedBy uid.ID
-	// NotIDs instructs DeleteProviders to exclude any providers with these IDs to
-	// be excluded. In other words, these IDs will not be deleted, even if they
-	// match CreatedBy.
-	// Can only be used with CreatedBy.
-	NotIDs []uid.ID
-
 	Pagination *Pagination
 }
 
@@ -128,13 +119,6 @@ func ListProviders(tx ReadTxn, opts ListProvidersOptions) ([]models.Provider, er
 	if len(opts.ByIDs) > 0 {
 		query.B("AND id IN")
 		queryInClause(query, opts.ByIDs)
-	}
-	if opts.CreatedBy != 0 {
-		query.B("AND created_by = ?", opts.CreatedBy)
-		if len(opts.NotIDs) > 0 {
-			query.B("AND id NOT IN")
-			queryInClause(query, opts.NotIDs)
-		}
 	}
 
 	query.B("ORDER BY name ASC")
@@ -166,91 +150,74 @@ type DeleteProvidersOptions struct {
 	// ByID instructs DeleteProviders to delete the provider matching this ID.
 	// When non-zero all other fields on this struct will be ignored
 	ByID uid.ID
-
-	// CreatedBy instructs DeleteProviders to delete all the providers that were
-	// created by this user. Can be used with NotIDs.
-	CreatedBy uid.ID
-	// NotIDs instructs DeleteProviders to exclude any providers with these IDs to
-	// be excluded. In other words, these IDs will not be deleted, even if they
-	// match CreatedBy.
-	// Can only be used with CreatedBy.
-	NotIDs []uid.ID
 }
 
+// TODO: accept only id instead of options struct
 func DeleteProviders(db WriteTxn, opts DeleteProvidersOptions) error {
-	var toDelete []models.Provider
-	if opts.ByID != 0 {
-		if provider, _ := GetProvider(db, GetProviderOptions{ByID: opts.ByID}); provider != nil {
-			toDelete = []models.Provider{*provider}
-		}
-	} else {
-		var err error
-		toDelete, err = ListProviders(db, ListProvidersOptions{
-			CreatedBy: opts.CreatedBy,
-			NotIDs:    opts.NotIDs,
-		})
+	if opts.ByID == 0 {
+		return fmt.Errorf("an ID is required to delete provider")
+	}
+	_, err := GetProvider(db, GetProviderOptions{ByID: opts.ByID})
+	switch {
+	case errors.Is(err, internal.ErrNotFound):
+		return nil // already deleted
+	case err != nil:
+		return err
+	}
+
+	id := opts.ByID
+
+	providerUsers, err := ListProviderUsers(db, ListProviderUsersOptions{ByProviderID: id})
+	if err != nil {
+		return fmt.Errorf("listing provider users: %w", err)
+	}
+
+	// if a user has no other providers, we need to remove the user.
+	userIDsToDelete := []uid.ID{}
+	for _, providerUser := range providerUsers {
+		user, err := GetIdentity(db, GetIdentityOptions{ByID: providerUser.IdentityID, LoadProviders: true})
 		if err != nil {
-			return fmt.Errorf("listing providers: %w", err)
+			if errors.Is(err, internal.ErrNotFound) {
+				continue
+			}
+			return fmt.Errorf("get user: %w", err)
+		}
+
+		if len(user.Providers) == 1 && user.Providers[0].ID == id {
+			userIDsToDelete = append(userIDsToDelete, user.ID)
 		}
 	}
 
-	ids := make([]uid.ID, 0)
-	for _, p := range toDelete {
-		ids = append(ids, p.ID)
-
-		providerUsers, err := ListProviderUsers(db, ListProviderUsersOptions{ByProviderID: p.ID})
-		if err != nil {
-			return fmt.Errorf("listing provider users: %w", err)
+	if len(userIDsToDelete) > 0 {
+		opts := DeleteIdentitiesOptions{
+			ByProviderID: id,
+			ByIDs:        userIDsToDelete,
 		}
-
-		// if a user has no other providers, we need to remove the user.
-		userIDsToDelete := []uid.ID{}
-		for _, providerUser := range providerUsers {
-			user, err := GetIdentity(db, GetIdentityOptions{ByID: providerUser.IdentityID, LoadProviders: true})
-			if err != nil {
-				if errors.Is(err, internal.ErrNotFound) {
-					continue
-				}
-				return fmt.Errorf("get user: %w", err)
-			}
-
-			if len(user.Providers) == 1 && user.Providers[0].ID == p.ID {
-				userIDsToDelete = append(userIDsToDelete, user.ID)
-			}
+		if err := DeleteIdentities(db, opts); err != nil {
+			return fmt.Errorf("delete users: %w", err)
 		}
+	}
 
-		if len(userIDsToDelete) > 0 {
-			opts := DeleteIdentitiesOptions{
-				ByProviderID: p.ID,
-				ByIDs:        userIDsToDelete,
-			}
-			if err := DeleteIdentities(db, opts); err != nil {
-				return fmt.Errorf("delete users: %w", err)
-			}
-		}
+	if err := DeleteProviderUsers(db, DeleteProviderUsersOptions{ByProviderID: id}); err != nil {
+		return fmt.Errorf("delete provider users: %w", err)
+	}
 
-		if err := DeleteProviderUsers(db, DeleteProviderUsersOptions{ByProviderID: p.ID}); err != nil {
-			return fmt.Errorf("delete provider users: %w", err)
-		}
+	if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByProviderID: id}); err != nil {
+		return fmt.Errorf("delete access keys: %w", err)
+	}
 
-		if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByProviderID: p.ID}); err != nil {
-			return fmt.Errorf("delete access keys: %w", err)
-		}
-
-		// delete any access keys used for SCIM
-		if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByIssuedForID: p.ID}); err != nil {
-			return fmt.Errorf("delete provider access keys: %w", err)
-		}
+	// delete any access keys used for SCIM
+	if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByIssuedForID: id}); err != nil {
+		return fmt.Errorf("delete provider access keys: %w", err)
 	}
 
 	query := querybuilder.New(`UPDATE providers`)
 	query.B(`SET deleted_at = ?`, time.Now())
 	query.B(`WHERE deleted_at is null`)
 	query.B(`AND organization_id = ?`, db.OrganizationID())
-	query.B(`AND id IN`)
-	queryInClause(query, ids)
-	_, err := db.Exec(query.String(), query.Args...)
-	return err
+	query.B(`AND id = ?`, id)
+	_, err = db.Exec(query.String(), query.Args...)
+	return handleError(err)
 }
 
 type providersCount struct {

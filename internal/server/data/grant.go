@@ -250,15 +250,6 @@ type DeleteGrantsOptions struct {
 	// BySubject instructs DeleteGrants to delete all grants that match this
 	// subject. When set other fields below this on this struct are ignored.
 	BySubject uid.PolymorphicID
-
-	// ByCreatedBy instructs DeleteGrants to delete all the grants that were
-	// created by this user. Can be used with NotIDs
-	ByCreatedBy uid.ID
-	// NotIDs instructs DeleteGrants to exclude any grants with these IDs to
-	// be excluded. In other words, these IDs will not be deleted, even if they
-	// match ByCreatedBy.
-	// Can only be used with ByCreatedBy.
-	NotIDs []uid.ID
 }
 
 func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
@@ -273,12 +264,6 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 		query.B("id = ?", opts.ByID)
 	case opts.BySubject != "":
 		query.B("subject = ?", opts.BySubject)
-	case opts.ByCreatedBy != 0:
-		query.B("created_by = ?", opts.ByCreatedBy)
-		if len(opts.NotIDs) > 0 {
-			query.B("AND id NOT IN")
-			queryInClause(query, opts.NotIDs)
-		}
 	default:
 		return fmt.Errorf("DeleteGrants requires an ID to delete")
 	}

@@ -29,8 +29,9 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
+	k8sapi "k8s.io/client-go/tools/clientcmd/api"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/cmd/types"
@@ -54,15 +55,12 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 	dir := t.TempDir()
 	serverOpts := defaultServerOptions(dir)
 	setupServerOptions(t, &serverOpts)
-	serverOpts.Config = server.Config{
+	serverOpts.BootstrapConfig = server.BootstrapConfig{
 		Users: []server.User{
 			{Name: "admin@example.com", AccessKey: "0000000001.adminadminadminadmin1234"},
 			{Name: "connector", AccessKey: "0000000002.connectorconnectorconnec"},
-		},
-		Grants: []server.Grant{
-			{User: "user1@example.com", Resource: "testing.ns1", Role: "admin"},
-			{User: "user2@example.com", Resource: "testing", Role: "view"},
-			{Group: "group1@example.com", Resource: "testing.ns1", Role: "logs"},
+			{Name: "user1@example.com"},
+			{Name: "user2@example.com"},
 		},
 	}
 
@@ -76,12 +74,21 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
 
+	err = data.CreateGroup(srv.DB(), &models.Group{Name: "group1@example.com"})
+	assert.NilError(t, err)
+
+	createGrants(t, srv.DB(),
+		api.GrantRequest{UserName: "user1@example.com", Resource: "testing.ns1", Privilege: "admin"},
+		api.GrantRequest{UserName: "user2@example.com", Resource: "testing", Privilege: "view"},
+		api.GrantRequest{GroupName: "group1@example.com", Resource: "testing.ns1", Privilege: "logs"},
+	)
+
 	kubeconfig := path.Join(dir, "kubeconfig")
 	os.Setenv("KUBECONFIG", kubeconfig)
-	err = clientcmd.WriteToFile(api.Config{
-		Clusters:       map[string]*api.Cluster{"test": {Server: kubeSrv.URL, CertificateAuthorityData: certs.PEMEncodeCertificate(kubeSrv.Certificate().Raw)}},
-		Contexts:       map[string]*api.Context{"test": {Cluster: "test", AuthInfo: "test"}},
-		AuthInfos:      map[string]*api.AuthInfo{"test": {Token: "auth-token"}},
+	err = clientcmd.WriteToFile(k8sapi.Config{
+		Clusters:       map[string]*k8sapi.Cluster{"test": {Server: kubeSrv.URL, CertificateAuthorityData: certs.PEMEncodeCertificate(kubeSrv.Certificate().Raw)}},
+		Contexts:       map[string]*k8sapi.Context{"test": {Cluster: "test", AuthInfo: "test"}},
+		AuthInfos:      map[string]*k8sapi.AuthInfo{"test": {Token: "auth-token"}},
 		CurrentContext: "test",
 	}, kubeconfig)
 
