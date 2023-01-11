@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 
 	teakey "github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -38,9 +40,36 @@ func runRootCmd(cli *CLI) error {
 		return err
 	}
 
-	fmt.Println(result.(*destinationListModel).selection.Name)
+	destination := result.(*destinationListModel).selection
+	if destination.Name == "" {
+		return nil
+	}
 
+	switch destination.Kind {
+	case "ssh":
+		host, port := splitHostPortSSH(destination.Connection.URL)
+		cli.Output("Connecting: ssh -p %v %v", port, host)
+		cmd := exec.CommandContext(ctx, "ssh", "-p", port, host)
+		return runCmd(cmd)
+	case "kubernetes":
+		// TODO: use an env var to set KUBECONFIG instead of 'infra use'
+		cmd := exec.CommandContext(ctx, "infra", "use", destination.Name)
+		if err := runCmd(cmd); err != nil {
+			return err
+		}
+
+		cli.Output("Starting a shell with KUBECONFIG=/tmp/kubeconfig-124xyz\n")
+		cmd = exec.CommandContext(ctx, "bash")
+		return runCmd(cmd)
+	}
 	return nil
+}
+
+func runCmd(cmd *exec.Cmd) error {
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 type destinationItem struct {
@@ -52,7 +81,7 @@ func (i destinationItem) Title() string { return i.destination.Name }
 
 func (i destinationItem) Description() string {
 	// TODO: add access
-	return fmt.Sprintf("kind:%v url:%v",
+	return fmt.Sprintf("%v %v",
 		i.destination.Kind,
 		i.destination.Connection.URL)
 }
