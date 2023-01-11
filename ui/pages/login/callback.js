@@ -28,7 +28,7 @@ export default function Callback() {
           },
         })
 
-        router.replace(next ? decodeURIComponent(next) : '/')
+        router.replace(next ? decodeURIComponent(next) : '/destinations')
 
         window.localStorage.removeItem('next')
         saveToVisitedOrgs(window.location.host, user?.organizationName)

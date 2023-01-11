@@ -9,6 +9,9 @@ module.exports = phase => ({
 
     return null
   },
+  async redirects() {
+    return [{ source: '/', destination: '/destinations', permanent: true }]
+  },
   async headers() {
     return [
       {
