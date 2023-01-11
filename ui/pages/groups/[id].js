@@ -96,7 +96,7 @@ export default function GroupDetails() {
   const id = router.query.id
   const page = Math.max(parseInt(router.query.p) || 1, 1)
   const limit = 999
-  const { isAdmin } = useUser()
+  const { user, isAdmin } = useUser()
   const { data: group, mutate } = useSWR(`/api/groups/${id}`)
   const {
     data: { items: users, totalCount, totalPages } = {},
@@ -251,50 +251,53 @@ export default function GroupDetails() {
           },
           {
             cell: function Cell(info) {
+              const { id, name } = info.row.original
               const [open, setOpen] = useState(false)
 
-              return (
-                <div className='text-right'>
-                  <div className='group invisible rounded-md bg-white group-hover:visible'>
-                    <button
-                      onClick={() => {
-                        setOpen(true)
-                      }}
-                      className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <div className='flex flex-row items-center'>
-                        <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
-                        Remove
-                      </div>
-                      <span className='sr-only'>{info.row.original.name}</span>
-                    </button>
-                  </div>
-                  <DeleteModal
-                    open={open}
-                    setOpen={setOpen}
-                    onSubmit={async () => {
-                      await fetch(`/api/groups/${group?.id}/users`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                          usersToRemove: [info.row.original.id],
-                        }),
-                      })
+              const hideRemoveUserBtn = hideRemoveGroupBtn && user.id === id
 
-                      // TODO: show optimistic result
-                      mutateUsers()
-                    }}
-                    title='Remove user from this group?'
-                    message={
-                      <div>
-                        Are you sure you want to remove{' '}
-                        <span className='font-bold'>
-                          {info.row.original.name}
-                        </span>{' '}
-                        from the group ?
-                      </div>
-                    }
-                  />
-                </div>
+              return (
+                !hideRemoveUserBtn && (
+                  <div className='text-right'>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        onClick={() => {
+                          setOpen(true)
+                        }}
+                        className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <div className='flex flex-row items-center'>
+                          <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                          Remove
+                        </div>
+                        <span className='sr-only'>{name}</span>
+                      </button>
+                    </div>
+                    <DeleteModal
+                      open={open}
+                      setOpen={setOpen}
+                      onSubmit={async () => {
+                        await fetch(`/api/groups/${group?.id}/users`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({
+                            usersToRemove: [id],
+                          }),
+                        })
+
+                        // TODO: show optimistic result
+                        mutateUsers()
+                      }}
+                      title='Remove user from this group?'
+                      message={
+                        <div>
+                          Are you sure you want to remove{' '}
+                          <span className='font-bold'>{name}</span> from the
+                          group ?
+                        </div>
+                      }
+                    />
+                  </div>
+                )
               )
             },
             id: 'delete',

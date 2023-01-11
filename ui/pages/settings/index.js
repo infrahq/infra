@@ -644,6 +644,9 @@ function Admins() {
                         await fetch(`/api/grants/${deleteId}`, {
                           method: 'DELETE',
                         })
+
+                        mutate()
+
                         setOpen(false)
                       }}
                       title='Revoke Admin'
