@@ -348,7 +348,16 @@ func RemoveExpiredAccessKeys(tx WriteTxn) error {
 	query.B("WHERE deleted_at is null")
 	query.B("AND expires_at <= ?", time.Now().UTC().Add(-1*time.Hour)) // leave buffer so keys aren't immediately deleted on expiry.
 
-	_, err := tx.Exec(query.String(), query.Args...)
-	logging.L.Info().Msg("removed expired access key")
+	result, err := tx.Exec(query.String(), query.Args...)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		logging.L.Info().Int64("count", count).Msg("removed expired access keys")
+	}
 	return err
 }
