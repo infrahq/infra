@@ -176,11 +176,21 @@ func ListDestinations(tx ReadTxn, opts ListDestinationsOptions) ([]models.Destin
 }
 
 func DeleteDestination(tx WriteTxn, id uid.ID) error {
+	dest, err := GetDestination(tx, GetDestinationOptions{ByID: id})
+	if err != nil {
+		return handleError(err)
+	}
+
+	err = DeleteGrants(tx, DeleteGrantsOptions{ByDestination: dest.Name})
+	if err != nil {
+		return handleError(err)
+	}
+
 	stmt := `
 		UPDATE destinations SET deleted_at = ?
 		WHERE id = ? AND organization_id = ? AND deleted_at is null
 	`
-	_, err := tx.Exec(stmt, time.Now(), id, tx.OrganizationID())
+	_, err = tx.Exec(stmt, time.Now(), id, tx.OrganizationID())
 	return handleError(err)
 }
 
