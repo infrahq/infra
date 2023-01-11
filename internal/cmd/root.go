@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	teakey "github.com/charmbracelet/bubbles/key"
+	bubkey "github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -90,10 +90,19 @@ func (i destinationItem) FilterValue() string {
 	return i.destination.Kind + " " + i.destination.Name + " " + i.destination.Connection.URL
 }
 
-var connectKeyBinding = teakey.NewBinding(
-	teakey.WithKeys("enter"),
-	teakey.WithHelp("enter", "connect to destination"),
-)
+var keyBindings = struct {
+	connect bubkey.Binding
+	quit    bubkey.Binding
+}{
+	connect: bubkey.NewBinding(
+		bubkey.WithKeys("enter"),
+		bubkey.WithHelp("enter", "connect to destination"),
+	),
+	quit: bubkey.NewBinding(
+		bubkey.WithKeys("esc"),
+		bubkey.WithHelp("esc", "exit"),
+	),
+}
 
 func newDestinationListModel(dests []api.Destination, grants []api.Grant) *destinationListModel {
 	items := make([]list.Item, 0, len(dests))
@@ -147,10 +156,13 @@ func (d *destinationListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch {
-		case teakey.Matches(msg, connectKeyBinding):
+		case bubkey.Matches(msg, keyBindings.connect):
 			d.selection = d.destinations.SelectedItem().(destinationItem).destination
 			return d, tea.Quit
+		case bubkey.Matches(msg, keyBindings.quit):
+			return d, tea.Quit
 		}
+
 	}
 
 	var cmd tea.Cmd
