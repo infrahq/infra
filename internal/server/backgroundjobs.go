@@ -16,14 +16,7 @@ import (
 // transaction passed to this job will not have an OrganizationID.
 type BackgroundJobFunc func(tx data.WriteTxn) error
 
-func (s *Server) registerJob(ctx context.Context, job BackgroundJobFunc, every time.Duration) {
-	s.routines = append(s.routines, routine{
-		run:  jobWrapper(ctx, s.db, job, every),
-		stop: func() {}, // uses the context to stop
-	})
-}
-
-func jobWrapper(ctx context.Context, db *data.DB, job BackgroundJobFunc, every time.Duration) func() error {
+func backgroundJob(ctx context.Context, db *data.DB, job BackgroundJobFunc, every time.Duration) func() error {
 	return func() error {
 		t := time.NewTicker(every)
 		funcName := getFuncName(job)

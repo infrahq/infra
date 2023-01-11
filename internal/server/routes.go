@@ -25,6 +25,7 @@ import (
 type Routes struct {
 	http.Handler
 	OpenAPIDocument openapi3.T
+	api             *API
 }
 
 // GenerateRoutes constructs a http.Handler for the primary http and https servers.
@@ -147,7 +148,7 @@ func (s *Server) GenerateRoutes() Routes {
 	// This is a limitation because we serve the UI from / instead of a specific
 	// path prefix.
 	registerUIRoutes(router, s.options.UI)
-	return Routes{Handler: router, OpenAPIDocument: a.openAPIDoc}
+	return Routes{Handler: router, OpenAPIDocument: a.openAPIDoc, api: a}
 }
 
 type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)

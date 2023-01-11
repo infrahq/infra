@@ -12,8 +12,7 @@ endpoint.
 
 1. Find the appropriate `API.addPreviousVersionHandlers<Type>` function in
    `internal/server`. If one does not exist for the type you are changing, create it and
-   call it from the same 2 locations as the other `API.addPreviousVersionHandlers<Type>`
-   functions.
+   call it from the same place in `server.GenerateRoutes`.
 2. If the request or response struct are changing, create a copy of that struct with
    the current infra version as a suffix. For example, if the `api.Grant` struct is
    being changed, and the current version is `v0.20.2`, the copy of the existing struct
