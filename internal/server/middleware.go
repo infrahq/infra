@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -128,7 +129,7 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 		defer logError(tx2.Rollback, "failed to rollback identity provider sync transaction")
 		tx2 = tx2.WithOrgID(authned.Organization.ID)
 		// sync the identity info here to keep the UI session in sync with IDP session validity
-		if err := srv.syncIdentityInfo(c.Request.Context(), tx2, authned.User, authned.AccessKey.ProviderID); err != nil {
+		if err := srv.syncIdentityInfo(context.Background(), tx2, authned.User, authned.AccessKey.ProviderID); err != nil {
 			deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
 			if errors.Is(err, ErrSyncFailed) {
 				logging.L.Debug().Err(err)
