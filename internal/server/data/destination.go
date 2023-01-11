@@ -176,21 +176,24 @@ func ListDestinations(tx ReadTxn, opts ListDestinationsOptions) ([]models.Destin
 }
 
 func DeleteDestination(tx WriteTxn, id uid.ID) error {
-	// Delete any grants for the destination before deleting it
-	stmt := `
-		UPDATE grants SET deleted_at = ?
-		WHERE resource =
-			(SELECT name FROM destinations
-			WHERE id = ? AND organization_id = ? AND deleted_at is null)
-		AND organization_id = ? AND deleted_at is null
-	`
-
-	_, err := tx.Exec(stmt, time.Now(), id, tx.OrganizationID(), tx.OrganizationID())
+	dest, err := GetDestination(tx, GetDestinationOptions{ByID: id})
 	if err != nil {
 		return handleError(err)
 	}
 
-	stmt = `
+	query := querybuilder.New("UPDATE grants")
+	query.B("SET deleted_at = ?,", time.Now())
+	query.B("update_index = nextval('seq_update_index')")
+	query.B("WHERE organization_id = ? AND", tx.OrganizationID())
+	query.B("deleted_at is null")
+	grantsByDestination(query, dest.Name)
+
+	_, err = tx.Exec(query.String(), query.Args...)
+	if err != nil {
+		return handleError(err)
+	}
+
+	stmt := `
 		UPDATE destinations SET deleted_at = ?
 		WHERE id = ? AND organization_id = ? AND deleted_at is null
 	`

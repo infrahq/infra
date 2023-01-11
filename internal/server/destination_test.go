@@ -193,21 +193,35 @@ func TestAPI_DeleteDestination(t *testing.T) {
 			},
 		},
 		{
-			name: "success delete w/ grants",
+			name: "grants w/ more destinations",
 			setup: func(t *testing.T, req *http.Request) {
-				g1 := &models.Grant{
-					Subject:   "i:7654321",
-					Privilege: "cluster-admin",
-					Resource:  "wow",
+				grants := []*models.Grant{
+					{
+						Subject:   "i:7654321",
+						Privilege: "view",
+						Resource:  "wow",
+					},
+					{
+						Subject:   "i:7654321",
+						Privilege: "view",
+						Resource:  "wow.awesome",
+					},
+					{
+						Subject:   "i:7654321",
+						Privilege: "view",
+						Resource:  "anotherthing",
+					},
 				}
-				assert.NilError(t, data.CreateGrant(srv.db, g1))
+				for _, g := range grants {
+					assert.NilError(t, data.CreateGrant(srv.db, g))
+				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, (*responseDebug)(resp))
 
-				grants, err := data.ListGrants(srv.db, data.ListGrantsOptions{ByDestination: "wow"})
+				grants, err := data.ListGrants(srv.db, data.ListGrantsOptions{BySubject: "i:7654321"})
 				assert.NilError(t, err)
-				assert.Equal(t, len(grants), 0)
+				assert.Equal(t, len(grants), 1)
 			},
 		},
 	}
