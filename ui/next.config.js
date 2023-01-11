@@ -10,7 +10,23 @@ module.exports = phase => ({
     return null
   },
   async redirects() {
-    return [{ source: '/', destination: '/destinations', permanent: true }]
+    return [
+      {
+        source: '/',
+        has: [
+          {
+            type: 'cookie',
+            key: 'auth',
+          },
+          // {
+          //   type: 'header',
+          //   key: 'Authorization',
+          // },
+        ],
+        destination: '/destinations',
+        permanent: false,
+      },
+    ]
   },
   async headers() {
     return [
