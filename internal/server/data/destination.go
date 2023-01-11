@@ -181,14 +181,7 @@ func DeleteDestination(tx WriteTxn, id uid.ID) error {
 		return handleError(err)
 	}
 
-	query := querybuilder.New("UPDATE grants")
-	query.B("SET deleted_at = ?,", time.Now())
-	query.B("update_index = nextval('seq_update_index')")
-	query.B("WHERE organization_id = ? AND", tx.OrganizationID())
-	query.B("deleted_at is null")
-	grantsByDestination(query, dest.Name)
-
-	_, err = tx.Exec(query.String(), query.Args...)
+	err = DeleteGrants(tx, DeleteGrantsOptions{ByDestination: dest.Name})
 	if err != nil {
 		return handleError(err)
 	}

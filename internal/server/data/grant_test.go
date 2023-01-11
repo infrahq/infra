@@ -174,6 +174,33 @@ func TestDeleteGrants(t *testing.T) {
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
 		})
+		t.Run("by destination", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			toKeep := &models.Grant{Subject: "i:any1", Privilege: "view", Resource: "somethingelse"}
+			createGrants(t, tx, toKeep)
+
+			grants := []*models.Grant{
+				{Subject: "i:any1", Privilege: "view", Resource: "any"},
+				{Subject: "i:any1", Privilege: "view", Resource: "any.one"},
+				{Subject: "i:any1", Privilege: "view", Resource: "any.two"},
+			}
+			createGrants(t, tx, grants...)
+
+			actual, err := ListGrants(tx, ListGrantsOptions{BySubject: "i:any1"})
+			assert.NilError(t, err)
+			assert.Equal(t, len(actual), 4)
+
+			err = DeleteGrants(tx, DeleteGrantsOptions{ByDestination: "any"})
+			assert.NilError(t, err)
+
+			actual, err = ListGrants(tx, ListGrantsOptions{BySubject: "i:any1"})
+			assert.NilError(t, err)
+			expected := []models.Grant{
+				{Model: models.Model{ID: toKeep.ID}},
+			}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
 		t.Run("notify", func(t *testing.T) {
 			g := models.Grant{
 				Subject:   "i:1234567",
