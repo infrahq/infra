@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
@@ -105,7 +106,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	}
 
 	// Always create a temporary password for infra users.
-	tmpPassword, err := access.CreateCredential(c, *user)
+	tmpPassword, err := access.CreateCredential(c, user)
 	if err != nil {
 		return nil, fmt.Errorf("create credential: %w", err)
 	}
@@ -138,20 +139,38 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 }
 
 func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {
-	// right now this endpoint can only update a user's credentials, so get the user identity
-	identity, err := access.GetIdentity(c, data.GetIdentityOptions{ByID: r.ID, LoadProviders: true})
+	rCtx := access.GetRequestContext(c)
+	if rCtx.Authenticated.User.ID == r.ID {
+		if err := access.UpdateCredential(c, rCtx.Authenticated.User, r.OldPassword, r.Password); err != nil {
+			return nil, err
+		}
+
+		return rCtx.Authenticated.User.ToAPI(), nil
+	}
+
+	user, err := access.GetIdentity(c, data.GetIdentityOptions{ByID: r.ID, LoadProviders: true})
 	if err != nil {
 		return nil, err
 	}
 
-	err = access.UpdateCredential(c, identity, r.OldPassword, r.Password)
+	_, err = access.ResetCredential(c, user, r.Password)
 	if err != nil {
 		return nil, err
 	}
-	return identity.ToAPI(), nil
+
+	return user.ToAPI(), nil
 }
 
 func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	rCtx := access.GetRequestContext(c)
+	if rCtx.Authenticated.User.ID == r.ID {
+		return nil, fmt.Errorf("%w: cannot delete own user", internal.ErrBadRequest)
+	}
+
+	if data.InfraConnectorIdentity(rCtx.DBTxn).ID == r.ID {
+		return nil, fmt.Errorf("%w: cannot delete connector user", internal.ErrBadRequest)
+	}
+
 	return nil, access.DeleteIdentity(c, r.ID)
 }
 

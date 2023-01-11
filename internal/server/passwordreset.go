@@ -45,6 +45,7 @@ func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) 
 	err = email.SendPasswordResetEmail("", r.Email, email.PasswordResetData{
 		Link: wrapLinkWithVerification(fmt.Sprintf("https://%s/password-reset?token=%s", org.Domain, token), org.Domain, user.VerificationToken),
 	})
+
 	return nil, err
 }
 

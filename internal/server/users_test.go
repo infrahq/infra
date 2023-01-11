@@ -694,7 +694,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 						OldPassword: "whatever",
 						Password:    "1234567890987654321a!",
 					})
-					assert.Error(t, err, "existing credential: record not found")
+					assert.Error(t, err, "get credential: record not found")
 				})
 			})
 			t.Run("with an existing infra user", func(t *testing.T) {

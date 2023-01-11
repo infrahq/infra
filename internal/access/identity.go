@@ -1,11 +1,8 @@
 package access
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -53,15 +50,6 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 }
 
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
-	rCtx := GetRequestContext(c)
-	if isIdentitySelf(rCtx, data.GetIdentityOptions{ByID: id}) {
-		return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
-	}
-
-	if data.InfraConnectorIdentity(rCtx.DBTxn).ID == id {
-		return fmt.Errorf("%w: the connector user can not be deleted", internal.ErrBadRequest)
-	}
-
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
@@ -71,6 +59,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		ByProviderID: data.InfraProvider(db).ID,
 		ByID:         id,
 	}
+
 	return data.DeleteIdentities(db, opts)
 }
 

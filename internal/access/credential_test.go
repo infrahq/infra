@@ -17,95 +17,86 @@ import (
 func TestCreateCredential(t *testing.T) {
 	c, db, _ := setupAccessTestContext(t)
 
-	username := "bruce@example.com"
-	user := &models.Identity{Name: username}
+	user := &models.Identity{Name: "bruce@example.com"}
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
-	oneTimePassword, err := CreateCredential(c, *user)
+	password, err := CreateCredential(c, user)
 	assert.NilError(t, err)
-	assert.Assert(t, oneTimePassword != "")
+	assert.Assert(t, password != "")
 
-	_, err = data.GetCredentialByUserID(db, user.ID)
+	credential, err := data.GetCredentialByUserID(db, user.ID)
+	assert.NilError(t, err)
+	assert.Assert(t, credential.OneTimePassword)
+
+	_, err = data.GetProviderUser(db, data.InfraProvider(db).ID, user.ID)
 	assert.NilError(t, err)
 }
 
 func TestUpdateCredentials(t *testing.T) {
 	c, db, _ := setupAccessTestContext(t)
 
-	username := "bruce@example.com"
-	user := &models.Identity{Name: username}
+	user := &models.Identity{Name: "bruce@example.com"}
 
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
-	tmpPassword, err := CreateCredential(c, *user)
+	oldPassword, err := CreateCredential(c, user)
 	assert.NilError(t, err)
 
-	userCreds, err := data.GetCredentialByUserID(db, user.ID)
+	rCtx := GetRequestContext(c)
+	rCtx.Authenticated.User = user
+	c.Set(RequestContextKey, rCtx)
+
+	err = UpdateCredential(c, user, oldPassword, "supersecret")
 	assert.NilError(t, err)
 
-	t.Run("Update user credentials IS single use password", func(t *testing.T) {
-		err := UpdateCredential(c, user, "", "newPassword")
-		assert.NilError(t, err)
+	credential, err := data.GetCredentialByUserID(db, user.ID)
+	assert.NilError(t, err)
+	assert.Assert(t, !credential.OneTimePassword)
+}
 
-		creds, err := data.GetCredentialByUserID(db, user.ID)
+func TestResetCredentials(t *testing.T) {
+	c, db, _ := setupAccessTestContext(t)
+
+	user := &models.Identity{Name: "bruce@example.com"}
+	err := data.CreateIdentity(db, user)
+	assert.NilError(t, err)
+
+	oldPassword, err := CreateCredential(c, user)
+	assert.NilError(t, err)
+	assert.Assert(t, oldPassword != "")
+
+	credential, err := data.GetCredentialByUserID(db, user.ID)
+	assert.NilError(t, err)
+	assert.Assert(t, credential.OneTimePassword)
+
+	err = UpdateCredential(c, user, oldPassword, "supersecret")
+	assert.NilError(t, err)
+
+	credential, err = data.GetCredentialByUserID(db, user.ID)
+	assert.NilError(t, err)
+	assert.Assert(t, !credential.OneTimePassword)
+
+	t.Run("reset to random value", func(t *testing.T) {
+		newPassword, err := ResetCredential(c, user, "")
 		assert.NilError(t, err)
-		assert.Equal(t, creds.OneTimePassword, true)
+		assert.Assert(t, newPassword != "supersecret")
+		assert.Assert(t, newPassword != oldPassword)
+
+		credential, err = data.GetCredentialByUserID(db, user.ID)
+		assert.NilError(t, err)
+		assert.Assert(t, credential.OneTimePassword)
 	})
 
-	t.Run("Update own credentials is NOT single use password", func(t *testing.T) {
-		err := data.UpdateCredential(db, userCreds)
+	t.Run("reset to passed in value", func(t *testing.T) {
+		newPassword, err := ResetCredential(c, user, "mypassword")
 		assert.NilError(t, err)
+		assert.Equal(t, newPassword, "mypassword")
 
-		rCtx := GetRequestContext(c)
-		rCtx.Authenticated.User = user
-		c.Set(RequestContextKey, rCtx)
-
-		err = UpdateCredential(c, user, tmpPassword, "newPassword")
+		credential, err = data.GetCredentialByUserID(db, user.ID)
 		assert.NilError(t, err)
-
-		creds, err := data.GetCredentialByUserID(db, user.ID)
-		assert.NilError(t, err)
-		assert.Equal(t, creds.OneTimePassword, false)
-	})
-
-	t.Run("Update own credentials removes password reset scope, but keeps other scopes", func(t *testing.T) {
-		err := data.UpdateCredential(db, userCreds)
-		assert.NilError(t, err)
-
-		rCtx := GetRequestContext(c)
-		rCtx.Authenticated.User = user
-
-		key := &models.AccessKey{
-			IssuedFor:  user.ID,
-			ProviderID: data.InfraProvider(db).ID,
-			Scopes: []string{
-				models.ScopeAllowCreateAccessKey,
-				models.ScopePasswordReset,
-			},
-		}
-		_, err = CreateAccessKey(c, key)
-		assert.NilError(t, err)
-		rCtx.Authenticated.AccessKey = key
-		c.Set(RequestContextKey, rCtx)
-
-		err = UpdateCredential(c, user, "", "newPassword")
-		assert.ErrorContains(t, err, "oldPassword: is required")
-
-		err = UpdateCredential(c, user, "somePassword", "newPassword")
-		assert.ErrorContains(t, err, "oldPassword: invalid oldPassword")
-
-		err = UpdateCredential(c, user, tmpPassword, "newPassword")
-		assert.NilError(t, err)
-
-		creds, err := data.GetCredentialByUserID(db, user.ID)
-		assert.NilError(t, err)
-		assert.Equal(t, creds.OneTimePassword, false)
-
-		updatedKey, err := data.GetAccessKeyByKeyID(db, key.KeyID)
-		assert.NilError(t, err)
-		assert.DeepEqual(t, updatedKey.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})
+		assert.Assert(t, credential.OneTimePassword)
 	})
 }
 

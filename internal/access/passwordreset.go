@@ -7,10 +7,9 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.Identity, error) {
+func VerifiedPasswordReset(c *gin.Context, token, password string) (*models.Identity, error) {
 	// no auth required
-	rCtx := GetRequestContext(c)
-	tx := rCtx.DBTxn
+	tx := GetRequestContext(c).DBTxn
 
 	userID, err := data.ClaimPasswordResetToken(tx, token)
 	if err != nil {
@@ -29,8 +28,20 @@ func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.I
 		}
 	}
 
-	if err := updateCredential(c, user, newPassword, true); err != nil {
+	credential, err := data.GetCredentialByUserID(tx, user.ID)
+	if err != nil {
 		return nil, err
 	}
+
+	if err := checkPasswordRequirements(tx, password); err != nil {
+		return nil, err
+	}
+
+	credential.OneTimePassword = false
+
+	if err := updateCredential(tx, credential, password); err != nil {
+		return nil, err
+	}
+
 	return user, nil
 }
