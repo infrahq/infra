@@ -52,6 +52,14 @@ func diff(x, y []string) []string {
 	return difference
 }
 
+func deduplicate(groups []string) []string {
+	uniqueGroups := make(map[string]bool)
+	for _, g := range groups {
+		uniqueGroups[g] = true
+	}
+	return maps.Keys(uniqueGroups)
+}
+
 // AssignIdentityToGroups updates the identity's group membership relations based on the provider user's groups
 // and returns the identity's current groups after the update has persisted them
 func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []string) ([]models.Group, error) {
@@ -59,6 +67,8 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 	if err != nil {
 		return nil, err
 	}
+
+	newGroups = deduplicate(newGroups)
 
 	oldGroups := user.Groups
 	groupsToBeRemoved := diff(oldGroups, newGroups)

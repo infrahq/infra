@@ -889,6 +889,20 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:           "test where the user has duplicate groups",
+			StartingGroups: []string{"foo"},
+			ExistingGroups: []string{"foo"},
+			IncomingGroups: []string{"foo2", "foo2"},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "foo2",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
+		},
 	}
 
 	runDBTests(t, func(t *testing.T, db *DB) {
