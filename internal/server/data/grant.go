@@ -250,20 +250,25 @@ type DeleteGrantsOptions struct {
 	// BySubject instructs DeleteGrants to delete all grants that match this
 	// subject. When set other fields below this on this struct are ignored.
 	BySubject uid.PolymorphicID
+	// ByDestination instructs DeleteGrants to delete all grants that match
+	// this destination in their resource, including namespaces.
+	ByDestination string
 }
 
 func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 	query := querybuilder.New("UPDATE grants")
 	query.B("SET deleted_at = ?,", time.Now())
 	query.B("update_index = nextval('seq_update_index')")
-	query.B("WHERE organization_id = ? AND", tx.OrganizationID())
-	query.B("deleted_at is null AND")
+	query.B("WHERE organization_id = ?", tx.OrganizationID())
+	query.B("AND deleted_at is null")
 
 	switch {
 	case opts.ByID != 0:
-		query.B("id = ?", opts.ByID)
+		query.B("AND id = ?", opts.ByID)
 	case opts.BySubject != "":
-		query.B("subject = ?", opts.BySubject)
+		query.B("AND subject = ?", opts.BySubject)
+	case opts.ByDestination != "":
+		grantsByDestination(query, opts.ByDestination)
 	default:
 		return fmt.Errorf("DeleteGrants requires an ID to delete")
 	}

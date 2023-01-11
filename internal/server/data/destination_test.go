@@ -333,11 +333,43 @@ func TestDeleteDestination(t *testing.T) {
 		dest := &models.Destination{Name: "kube", UniqueID: "1111", Kind: "kubernetes"}
 		createDestinations(t, tx, dest)
 
-		err := DeleteDestination(tx, dest.ID)
+		pileOGrants := []*models.Grant{
+			{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "kube",
+			},
+			{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "kube.namespace",
+			},
+			{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "somethingelse",
+			},
+		}
+
+		for _, g := range pileOGrants {
+			err := CreateGrant(tx, g)
+			assert.NilError(t, err)
+		}
+
+		actual, err := ListGrants(tx, ListGrantsOptions{BySubject: "i:1234567"})
+		assert.NilError(t, err)
+		assert.Equal(t, len(actual), 3)
+
+		err = DeleteDestination(tx, dest.ID)
 		assert.NilError(t, err)
 
 		_, err = GetDestination(tx, GetDestinationOptions{ByID: dest.ID})
 		assert.ErrorIs(t, err, internal.ErrNotFound)
+
+		actual, err = ListGrants(tx, ListGrantsOptions{BySubject: "i:1234567"})
+		assert.NilError(t, err)
+		assert.Equal(t, len(actual), 1)
+		assert.Equal(t, actual[0].Resource, "somethingelse")
 	})
 }
 
