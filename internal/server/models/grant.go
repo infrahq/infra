@@ -31,6 +31,38 @@ type Grant struct {
 	UpdateIndex int64 `db:"-"`
 }
 
+type Subject struct {
+	ID   uid.ID
+	Kind SubjectKind
+}
+
+// TODO: rename to IsUser
+func (s Subject) IsIdentity() bool {
+	return s.Kind == SubjectUser
+}
+
+func (s Subject) IsGroup() bool {
+	return s.Kind == SubjectGroup
+}
+
+type SubjectKind int
+
+func (k SubjectKind) String() string {
+	switch k {
+	case SubjectUser:
+		return "user"
+	case SubjectGroup:
+		return "group"
+	default:
+		return ""
+	}
+}
+
+const (
+	SubjectUser  SubjectKind = 1
+	SubjectGroup SubjectKind = 2
+)
+
 func (r *Grant) ToAPI() *api.Grant {
 	grant := &api.Grant{
 		ID:        r.ID,
