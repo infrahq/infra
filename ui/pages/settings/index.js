@@ -718,7 +718,7 @@ function Authentication() {
     }
     if (!allowedDomains.includes(cleanedInput)) {
       const newAllowedDomains = [...allowedDomains, cleanedInput]
-      updateAllowedDomains(newAllowedDomains)
+      await updateAllowedDomains(newAllowedDomains)
     }
     setNewDomain('')
   }
@@ -770,7 +770,7 @@ function Authentication() {
           >
             {allowedDomains.map(d => (
               <span
-                className='mr-1 mt-1 inline-block rounded-md bg-gray-200 py-1 px-2 pl-2.5 pr-1 text-xs font-medium'
+                className='mr-1 my-1 inline-block rounded-md bg-gray-200 py-1 pl-2.5 pr-1 text-xs font-medium'
                 key={d}
               >
                 {d}
@@ -785,7 +785,7 @@ function Authentication() {
               </span>
             ))}
             <input
-              className='peer mt-1 text-sm grow bg-transparent focus:outline-none'
+              className='peer mt-1 py-1 text-sm grow bg-transparent focus:outline-none'
               value={newDomain}
               placeholder={'enter a domain...'}
               onChange={e => {
