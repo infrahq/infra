@@ -107,8 +107,6 @@ func (s *Server) GenerateRoutes() Routes {
 	add(a, authn, http.MethodPatch, "/api/scim/v2/Users/:id", patchProviderUserRoute)
 	add(a, authn, http.MethodDelete, "/api/scim/v2/Users/:id", deleteProviderUserRoute)
 
-	put(a, authn, "/api/settings", a.UpdateSettings)
-
 	add(a, authn, http.MethodGet, "/api/debug/pprof/*profile", pprofRoute)
 
 	// no auth required, org not required
