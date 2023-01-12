@@ -72,13 +72,13 @@ func TestAuthorize(t *testing.T) {
 	err := data.CreateIdentity(db, admin)
 	assert.NilError(t, err)
 
-	grant(t, db, admin, "i:steven", "read", ResourceInfraAPI)
-	can(t, db, "steven", "read")
-	cant(t, db, "steven", "write")
+	grant(t, db, admin, models.NewSubjectForUser(888), "read", ResourceInfraAPI)
+	can(t, db, 888, "read")
+	cant(t, db, 888, "write")
 
-	grant(t, db, admin, "i:a11ce", "write", ResourceInfraAPI)
-	cant(t, db, "a11ce", "read")
-	can(t, db, "a11ce", "write")
+	grant(t, db, admin, models.NewSubjectForUser(777), "write", ResourceInfraAPI)
+	cant(t, db, 777, "read")
+	can(t, db, 777, "write")
 }
 
 func TestRequireInfraRole_GrantsFromGroupMembership(t *testing.T) {
@@ -172,7 +172,7 @@ func TestRequireInfraRole(t *testing.T) {
 	})
 }
 
-func grant(t *testing.T, db data.WriteTxn, createdBy *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
+func grant(t *testing.T, db data.WriteTxn, createdBy *models.Identity, subject models.Subject, privilege, resource string) {
 	err := data.CreateGrant(db, &models.Grant{
 		Subject:   subject,
 		Privilege: privilege,
@@ -182,22 +182,18 @@ func grant(t *testing.T, db data.WriteTxn, createdBy *models.Identity, subject u
 	assert.NilError(t, err)
 }
 
-func can(t *testing.T, db *data.DB, subject string, privilege string) {
+func can(t *testing.T, db *data.DB, subject uid.ID, privilege string) {
 	t.Helper()
-	id, err := uid.Parse([]byte(subject))
-	assert.NilError(t, err)
 	rCtx := RequestContext{DBTxn: txnForTestCase(t, db)}
-	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: id}}
-	err = IsAuthorized(rCtx, privilege)
+	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: subject}}
+	err := IsAuthorized(rCtx, privilege)
 	assert.NilError(t, err)
 }
 
-func cant(t *testing.T, db *data.DB, subject string, privilege string) {
-	id, err := uid.Parse([]byte(subject))
-	assert.NilError(t, err)
+func cant(t *testing.T, db *data.DB, subject uid.ID, privilege string) {
 	rCtx := RequestContext{DBTxn: txnForTestCase(t, db)}
-	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: id}}
-	err = IsAuthorized(rCtx, privilege)
+	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: subject}}
+	err := IsAuthorized(rCtx, privilege)
 	assert.ErrorIs(t, err, ErrNotAuthorized)
 }
 

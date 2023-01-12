@@ -22,7 +22,7 @@ type Grant struct {
 	OrganizationMember
 
 	// Subject is the ID of the user or group that is granted access to a resource.
-	Subject uid.PolymorphicID
+	Subject Subject
 	// Privilege is the role or permission being granted.
 	Privilege string
 	// Resource identifies the resource the privilege applies to.
@@ -38,20 +38,20 @@ type Subject struct {
 
 // TODO: rename to IsUser
 func (s Subject) IsIdentity() bool {
-	return s.Kind == SubjectUser
+	return s.Kind == SubjectKindUser
 }
 
 func (s Subject) IsGroup() bool {
-	return s.Kind == SubjectGroup
+	return s.Kind == SubjectKindGroup
 }
 
 type SubjectKind int
 
 func (k SubjectKind) String() string {
 	switch k {
-	case SubjectUser:
+	case SubjectKindUser:
 		return "user"
-	case SubjectGroup:
+	case SubjectKindGroup:
 		return "group"
 	default:
 		return ""
@@ -59,8 +59,8 @@ func (k SubjectKind) String() string {
 }
 
 const (
-	SubjectUser  SubjectKind = 1
-	SubjectGroup SubjectKind = 2
+	SubjectKindUser  SubjectKind = 1
+	SubjectKindGroup SubjectKind = 2
 )
 
 func (r *Grant) ToAPI() *api.Grant {
@@ -73,30 +73,19 @@ func (r *Grant) ToAPI() *api.Grant {
 		Resource:  r.Resource,
 	}
 
-	switch {
-	case r.Subject.IsIdentity():
-		identity, err := r.Subject.ID()
-		if err != nil {
-			return nil
-		}
-
-		grant.User = identity
-	case r.Subject.IsGroup():
-		group, err := r.Subject.ID()
-		if err != nil {
-			return nil
-		}
-
-		grant.Group = group
+	switch r.Subject.Kind {
+	case SubjectKindUser:
+		grant.User = r.Subject.ID
+	case SubjectKindGroup:
+		grant.Group = r.Subject.ID
 	}
-
 	return grant
 }
 
-func NewSubjectForUser(id uid.ID) uid.PolymorphicID {
-	return uid.NewPolymorphicID("i", id)
+func NewSubjectForUser(id uid.ID) Subject {
+	return Subject{ID: id, Kind: SubjectKindUser}
 }
 
-func NewSubjectForGroup(id uid.ID) uid.PolymorphicID {
-	return uid.NewPolymorphicID("g", id)
+func NewSubjectForGroup(id uid.ID) Subject {
+	return Subject{ID: id, Kind: SubjectKindGroup}
 }

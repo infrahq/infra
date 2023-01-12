@@ -8,13 +8,12 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func createGrants(t *testing.T, tx data.WriteTxn, grants ...api.GrantRequest) {
 	t.Helper()
 	for i, g := range grants {
-		var subject uid.PolymorphicID
+		var subject models.Subject
 		switch {
 		case g.User != 0:
 			subject = models.NewSubjectForUser(g.User)
