@@ -742,7 +742,7 @@ export default function AccessControl() {
                         <div>
                           Are you sure you want to remove{' '}
                           <span className='break-all font-bold'>{name}</span>
-                          's {resource} {privilege} access ?
+                          &apos;s {resource} {privilege} access ?
                         </div>
                       }
                     />
