@@ -1,6 +1,9 @@
 package access
 
 import (
+	"io/fs"
+	"os"
+	"path"
 	"testing"
 	"unicode"
 
@@ -225,5 +228,38 @@ func TestCheckPasswordRequirements(t *testing.T) {
 		assert.DeepEqual(t, err, validate.Error{
 			"password": []string{"8 characters", "2 uppercase letters", "2 numbers", "2 symbols"},
 		})
+	})
+}
+
+func TestCheckBadPasswords(t *testing.T) {
+	t.Run("env var not set", func(t *testing.T) {
+		err := checkBadPasswords("badpassword")
+		assert.NilError(t, err)
+	})
+
+	badPasswordsFile := path.Join(t.TempDir(), "bad-passwords")
+	t.Setenv("INFRA_SERVER_BAD_PASSWORDS_FILE", badPasswordsFile)
+	t.Cleanup(func() {
+		os.Remove(badPasswordsFile)
+	})
+
+	t.Run("bad passwords file not found", func(t *testing.T) {
+		err := checkBadPasswords("badpassword")
+		assert.ErrorIs(t, err, fs.ErrNotExist)
+	})
+
+	badPasswords := "badpassword"
+
+	err := os.WriteFile(badPasswordsFile, []byte(badPasswords), 0o600)
+	assert.NilError(t, err)
+
+	t.Run("password in bad passwords file", func(t *testing.T) {
+		err := checkBadPasswords("badpassword")
+		assert.ErrorContains(t, err, "cannot use a common password")
+	})
+
+	t.Run("password not in bad passwords file", func(t *testing.T) {
+		err := checkBadPasswords("notbadpassword")
+		assert.NilError(t, err)
 	})
 }
