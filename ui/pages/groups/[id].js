@@ -306,6 +306,8 @@ export default function GroupDetails() {
 
                         // TODO: show optimistic result
                         mutateUsers()
+                        setSelectedDeleteIds([])
+                        setOpen(false)
                       }}
                       title='Remove user from this group?'
                       message={

@@ -732,9 +732,10 @@ export default function AccessControl() {
                         await fetch(`/api/grants/${id}`, {
                           method: 'DELETE',
                         })
-                        setOpen(false)
 
                         mutate()
+                        setSelectedDeleteIds([])
+                        setOpen(false)
                       }}
                       title='Remove access'
                       message={
