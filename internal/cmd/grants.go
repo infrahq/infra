@@ -377,7 +377,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	}
 
 	if userID == 0 && cmdOptions.UserName != "" {
-		user, err := createUser(ctx, client, cmdOptions.UserName)
+		user, err := client.CreateUser(ctx, &api.CreateUserRequest{Name: cmdOptions.UserName})
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
 				logging.Debugf("%s", err.Error())

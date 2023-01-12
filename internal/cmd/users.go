@@ -60,7 +60,7 @@ $ infra users add johndoe@example.com`,
 				return err
 			}
 
-			createResp, err := createUser(ctx, client, args[0])
+			createResp, err := client.CreateUser(ctx, &api.CreateUserRequest{Name: args[0]})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())
@@ -280,19 +280,21 @@ func updateUser(cli *CLI, name string) error {
 			return err
 		}
 
-	PROMPT:
-
-		req.Password, err = promptSetPassword(cli, req.OldPassword)
-		if err != nil {
-			return err
-		}
-
-		logging.Debugf("call server: update user %s", req.ID)
-		if _, err := client.UpdateUser(ctx, req); err != nil {
-			if passwordError(cli, err) {
-				goto PROMPT
+		for {
+			req.Password, err = promptSetPassword(cli, req.OldPassword)
+			if err != nil {
+				return err
 			}
-			return err
+
+			if _, err := client.UpdateUser(ctx, req); err != nil {
+				if passwordError(cli, err) {
+					continue
+				}
+
+				return err
+			}
+
+			break
 		}
 
 		cli.Output("  Updated password")
@@ -371,55 +373,25 @@ func getUserByNameOrID(client *api.Client, name string) (*api.User, error) {
 }
 
 func promptSetPassword(cli *CLI, oldPassword string) (string, error) {
-	var passwordConfirm struct {
-		Password string
-		Confirm  string
-	}
+	var password, confirm string
 
-PROMPT:
-	prompts := []*survey.Question{
-		{
-			Name:     "Password",
-			Prompt:   &survey.Password{Message: "New Password:"},
-			Validate: checkPasswordRequirements(oldPassword),
-		},
-		{
-			Name:     "Confirm",
-			Prompt:   &survey.Password{Message: "Confirm New Password:"},
-			Validate: survey.Required,
-		},
-	}
+	for {
+		if err := survey.AskOne(&survey.Password{Message: "New Password:"}, &password, cli.surveyIO, survey.WithValidator(survey.Required)); err != nil {
+			return "", err
+		}
 
-	if err := survey.Ask(prompts, &passwordConfirm, cli.surveyIO); err != nil {
-		return "", err
-	}
+		if err := survey.AskOne(&survey.Password{Message: "Confirm New Password:"}, &confirm, cli.surveyIO, survey.WithValidator(survey.Required)); err != nil {
+			return "", err
+		}
 
-	if passwordConfirm.Password != passwordConfirm.Confirm {
+		if password == confirm {
+			break
+		}
+
 		cli.Output("  Passwords do not match. Please try again.")
-		goto PROMPT
 	}
 
-	return passwordConfirm.Password, nil
-}
-
-func checkPasswordRequirements(oldPassword string) survey.Validator {
-	// To do: move the old password check to the api level #2642
-	return func(val interface{}) error {
-		newPassword, ok := val.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type for password: %T", val)
-		}
-
-		if len(newPassword) == 0 {
-			return fmt.Errorf("Value is required")
-		}
-
-		if newPassword == oldPassword {
-			return fmt.Errorf("input must be different than the current password")
-		}
-
-		return nil
-	}
+	return password, nil
 }
 
 // isUserSelf checks if the caller is updating their current local user
@@ -430,12 +402,6 @@ func isUserSelf(name string) (bool, error) {
 	}
 
 	return config.Name == name, nil
-}
-
-// createUser creates a user with the requested name
-func createUser(ctx context.Context, client *api.Client, name string) (*api.CreateUserResponse, error) {
-	logging.Debugf("call server: create user named %q", name)
-	return client.CreateUser(ctx, &api.CreateUserRequest{Name: name})
 }
 
 // check if the user has permissions to reset passwords for another user.
