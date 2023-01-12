@@ -961,7 +961,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	supportAdminGrant := models.Grant{
-		Subject:   supportAdmin.PolyID(),
+		Subject:   uid.NewIdentityPolymorphicID(supportAdmin.ID),
 		Privilege: models.InfraSupportAdminRole,
 		Resource:  "infra",
 	}

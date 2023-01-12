@@ -9,6 +9,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestCreateOrganization(t *testing.T) {
@@ -70,7 +71,7 @@ func TestCreateOrganization(t *testing.T) {
 		assert.DeepEqual(t, connector, expectedConnector, anyValidToken)
 
 		connectorGrant, err := GetGrant(tx, GetGrantOptions{
-			BySubject:   connector.PolyID(),
+			BySubject:   uid.NewIdentityPolymorphicID(connector.ID),
 			ByPrivilege: models.InfraConnectorRole,
 			ByResource:  "infra",
 		})
@@ -78,7 +79,7 @@ func TestCreateOrganization(t *testing.T) {
 		expectedConnectorGrant := &models.Grant{
 			Model:              connectorGrant.Model,
 			OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-			Subject:            connector.PolyID(),
+			Subject:            uid.NewIdentityPolymorphicID(connector.ID),
 			Privilege:          models.InfraConnectorRole,
 			Resource:           "infra",
 			CreatedBy:          models.CreatedBySystem,

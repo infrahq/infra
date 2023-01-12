@@ -504,7 +504,7 @@ func TestDeleteIdentities(t *testing.T) {
 				err = AddUsersToGroup(tx, group.ID, []uid.ID{bond.ID})
 				assert.NilError(t, err)
 
-				err = CreateGrant(tx, &models.Grant{Subject: bond.PolyID(), Privilege: "admin", Resource: "infra"})
+				err = CreateGrant(tx, &models.Grant{Subject: uid.NewIdentityPolymorphicID(bond.ID), Privilege: "admin", Resource: "infra"})
 				assert.NilError(t, err)
 
 				return DeleteIdentitiesOptions{
@@ -524,7 +524,7 @@ func TestDeleteIdentities(t *testing.T) {
 				groupIDs, err := ListGroupIDsForUser(tx, identity.ID)
 				assert.NilError(t, err)
 				assert.Equal(t, len(groupIDs), 0)
-				grants, err := ListGrants(tx, ListGrantsOptions{BySubject: identity.PolyID()})
+				grants, err := ListGrants(tx, ListGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(identity.ID)})
 				assert.NilError(t, err)
 				assert.Equal(t, len(grants), 0)
 
