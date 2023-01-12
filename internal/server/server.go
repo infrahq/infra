@@ -495,7 +495,12 @@ func (s *Server) syncIdentityInfo(ctx context.Context, tx *data.Transaction, ide
 		}
 
 		// update current identity provider groups and account status
+		t := time.Now()
 		_, err = data.SyncProviderUser(ctx, tx, providerUser, oidc)
+		outboundRequestDuration.With(prometheus.Labels{
+			"request_kind": provider.Kind.String(),
+			"action":       "sync",
+		}).Observe(time.Since(t).Seconds())
 		if err != nil {
 			if errors.Is(err, internal.ErrBadGateway) {
 				return err

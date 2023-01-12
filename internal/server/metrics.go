@@ -9,6 +9,13 @@ import (
 	"github.com/infrahq/infra/metrics"
 )
 
+var outboundRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	Namespace: "http",
+	Name:      "outbound_request_duration_seconds",
+	Help:      "A histogram of outbound call durations made from the server to an external source, in seconds.",
+	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
+}, []string{"request_kind", "action"})
+
 func setupMetrics(db *data.DB) *prometheus.Registry {
 	registry := metrics.NewRegistry(productVersion())
 	registry.MustRegister(collectors.NewDBStatsCollector(db.SQLdb(), "postgres"))
@@ -122,6 +129,8 @@ func setupMetrics(db *data.DB) *prometheus.Registry {
 			{Count: float64(count)},
 		}
 	}))
+
+	registry.MustRegister(outboundRequestDuration)
 
 	return registry
 }
