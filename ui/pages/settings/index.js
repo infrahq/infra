@@ -785,8 +785,9 @@ function Authentication() {
               </span>
             ))}
             <input
-              className='peer mt-1 grow bg-transparent focus:outline-none'
+              className='peer mt-1 text-sm grow bg-transparent focus:outline-none'
               value={newDomain}
+              placeholder={'enter a domain...'}
               onChange={e => {
                 setNewDomain(e.target.value)
               }}
