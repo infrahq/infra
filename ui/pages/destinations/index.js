@@ -178,7 +178,7 @@ export default function Destinations() {
           setOpenSelectedDeleteModal(false)
         }}
         title={'Remove SSH'}
-        message={<>are you sure you want to remove the selected SSH?</>}
+        message={<>Are you sure you want to remove the selected destination?</>}
       />
     </div>
   )
