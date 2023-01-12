@@ -832,7 +832,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 
 	// unrelated grant
 	err := data.CreateGrant(srv.db, &models.Grant{
-		Subject:   "i:abcd",
+		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "somethingelse",
 	})
@@ -841,7 +841,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 
 	// matching grant
 	err = data.CreateGrant(srv.db, &models.Grant{
-		Subject:   "i:abcd",
+		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "infra",
 	})
@@ -904,7 +904,7 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 
 	// unrelated grant
 	err := data.CreateGrant(srv.db, &models.Grant{
-		Subject:   "i:abcd",
+		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "somethingelse",
 	})
@@ -913,7 +913,7 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 
 	// matching grant
 	err = data.CreateGrant(srv.db, &models.Grant{
-		Subject:   "i:abcd",
+		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "deferred.ns1",
 	})

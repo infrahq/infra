@@ -272,40 +272,47 @@ VALUES (12345, '2022-07-05 00:41:49.143574', '2022-07-05 01:41:49.143574Z', 'the
 				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, db WriteTxn) {
+				type grant struct {
+					ID        uid.ID
+					Subject   string
+					Resource  string
+					Privilege string
+				}
+
 				stmt := `SELECT id, subject, resource, privilege FROM grants`
 				rows, err := db.Query(stmt)
 				assert.NilError(t, err)
 				defer rows.Close()
 
-				var actual []models.Grant
+				var actual []grant
 				for rows.Next() {
-					var g models.Grant
+					var g grant
 					err := rows.Scan(&g.ID, &g.Subject, &g.Resource, &g.Privilege)
 					assert.NilError(t, err)
 					actual = append(actual, g)
 				}
 
-				expected := []models.Grant{
+				expected := []grant{
 					{
-						Model:     models.Model{ID: 10100},
+						ID:        10100,
 						Subject:   "i:aaa",
 						Resource:  "infra",
 						Privilege: "admin",
 					},
 					{
-						Model:     models.Model{ID: 10102},
+						ID:        10102,
 						Subject:   "i:aaa",
 						Resource:  "other",
 						Privilege: "admin",
 					},
 					{
-						Model:     models.Model{ID: 10103},
+						ID:        10103,
 						Subject:   "i:aaa",
 						Resource:  "infra",
 						Privilege: "view",
 					},
 					{
-						Model:     models.Model{ID: 10104},
+						ID:        10104,
 						Subject:   "i:aab",
 						Resource:  "infra",
 						Privilege: "admin",

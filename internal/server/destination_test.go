@@ -197,17 +197,17 @@ func TestAPI_DeleteDestination(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				grants := []*models.Grant{
 					{
-						Subject:   "i:7654321",
+						Subject:   models.NewSubjectForUser(7654321),
 						Privilege: "view",
 						Resource:  "wow",
 					},
 					{
-						Subject:   "i:7654321",
+						Subject:   models.NewSubjectForUser(7654321),
 						Privilege: "view",
 						Resource:  "wow.awesome",
 					},
 					{
-						Subject:   "i:7654321",
+						Subject:   models.NewSubjectForUser(7654321),
 						Privilege: "view",
 						Resource:  "anotherthing",
 					},
@@ -219,7 +219,7 @@ func TestAPI_DeleteDestination(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, (*responseDebug)(resp))
 
-				grants, err := data.ListGrants(srv.db, data.ListGrantsOptions{BySubject: "i:7654321"})
+				grants, err := data.ListGrants(srv.db, data.ListGrantsOptions{BySubject: models.NewSubjectForUser(7654321)})
 				assert.NilError(t, err)
 				assert.Equal(t, len(grants), 1)
 			},
