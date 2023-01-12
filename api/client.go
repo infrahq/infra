@@ -258,8 +258,8 @@ func (c Client) CreateUser(ctx context.Context, req *CreateUserRequest) (*Create
 	return post[CreateUserResponse](ctx, c, "/api/users", req)
 }
 
-func (c Client) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*User, error) {
-	return put[User](ctx, c, fmt.Sprintf("/api/users/%s", req.ID.String()), req)
+func (c Client) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*UpdateUserResponse, error) {
+	return put[UpdateUserResponse](ctx, c, fmt.Sprintf("/api/users/%s", req.ID.String()), req)
 }
 
 func (c Client) DeleteUser(ctx context.Context, id uid.ID) error {

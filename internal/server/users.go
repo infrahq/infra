@@ -138,14 +138,17 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	return resp, nil
 }
 
-func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {
+func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.UpdateUserResponse, error) {
 	rCtx := access.GetRequestContext(c)
+
 	if rCtx.Authenticated.User.ID == r.ID {
 		if err := access.UpdateCredential(c, rCtx.Authenticated.User, r.OldPassword, r.Password); err != nil {
 			return nil, err
 		}
 
-		return rCtx.Authenticated.User.ToAPI(), nil
+		return &api.UpdateUserResponse{
+			User: *rCtx.Authenticated.User.ToAPI(),
+		}, nil
 	}
 
 	user, err := access.GetIdentity(c, data.GetIdentityOptions{ByID: r.ID, LoadProviders: true})
@@ -153,12 +156,15 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 		return nil, err
 	}
 
-	_, err = access.ResetCredential(c, user, r.Password)
+	password, err := access.ResetCredential(c, user, r.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	return user.ToAPI(), nil
+	return &api.UpdateUserResponse{
+		User:            *user.ToAPI(),
+		OneTimePassword: password,
+	}, nil
 }
 
 func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
