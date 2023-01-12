@@ -95,18 +95,20 @@ export default function GroupDetails() {
   const router = useRouter()
   const id = router.query.id
   const page = Math.max(parseInt(router.query.p) || 1, 1)
-  const limit = 999
+  const limit = 10
   const { user, isAdmin } = useUser()
   const { data: group, mutate } = useSWR(`/api/groups/${id}`)
   const {
     data: { items: users, totalCount, totalPages } = {},
     mutate: mutateUsers,
   } = useSWR(`/api/users?group=${group?.id}&limit=${limit}&p=${page}`)
-  const { data: { items: allUsers } = {} } = useSWR(`/api/users?limit=999`)
+  const { data: { items: allUsers } = {} } = useSWR(`/api/users?limit=1000`)
   const { data: { items: infraAdmins } = {} } = useSWR(
-    '/api/grants?resource=infra&privilege=admin&limit=999'
+    '/api/grants?resource=infra&privilege=admin&limit=1000'
   )
   const [addUser, setAddUser] = useState('')
+  const [selectedDeleteIds, setSelectedDeleteIds] = useState([])
+  const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
 
   const adminGroups = infraAdmins?.map(admin => admin.group)
 
@@ -122,6 +124,27 @@ export default function GroupDetails() {
   // Don't allow deleting the last group
   const hideRemoveGroupBtn =
     !isAdmin || (infraAdmins?.length === 1 && adminGroups.includes(group?.id))
+
+  const handleSelectedDeleteIds = deletedIds => {
+    setSelectedDeleteIds(deletedIds)
+  }
+
+  const handleComboBoxSubmit = async () => {
+    const user = allUsers?.find(au => au.name === addUser)
+
+    if (!user) {
+      return false
+    }
+
+    await fetch(`/api/groups/${group?.id}/users`, {
+      method: 'PATCH',
+      body: JSON.stringify({ usersToAdd: [user.id] }),
+    })
+
+    // TODO: show optimistic results
+    mutateUsers()
+    setAddUser('')
+  }
 
   return (
     <div className='mb-10'>
@@ -192,7 +215,13 @@ export default function GroupDetails() {
       <div className='my-2.5 flex'>
         <div className='flex w-full flex-col rounded-lg border border-gray-200/75 px-4 pt-3 pb-4'>
           <h3 className='mb-2 text-sm font-medium'>Add user to group</h3>
-          <div className='flex w-full space-x-2 '>
+          <form
+            className='flex w-full space-x-2 '
+            onSubmit={e => {
+              e.preventDefault()
+              handleComboBoxSubmit()
+            }}
+          >
             <ComboBox
               options={allUsers
                 ?.filter(au => !users?.find(u => au.name === u.name))
@@ -202,32 +231,17 @@ export default function GroupDetails() {
             />
             <button
               disabled={!addUser}
-              onClick={async () => {
-                const user = allUsers?.find(au => au.name === addUser)
-
-                if (!user) {
-                  return false
-                }
-
-                await fetch(`/api/groups/${group?.id}/users`, {
-                  method: 'PATCH',
-                  body: JSON.stringify({ usersToAdd: [user.id] }),
-                })
-
-                // TODO: show optimistic results
-                mutateUsers()
-                setAddUser('')
-              }}
+              type='submit'
               className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
             >
               <PlusIcon className='mr-1 h-3 w-3' />
               Add
             </button>
-          </div>
+          </form>
         </div>
       </div>
       <Table
-        pageIndex={page - 1}
+        pageIndex={parseInt(page) - 1}
         pageSize={limit}
         pageCount={totalPages}
         count={totalCount}
@@ -238,6 +252,12 @@ export default function GroupDetails() {
             pathname: router.pathname,
             query: { ...router.query, p: pageIndex + 1 },
           })
+        }}
+        allowDelete={!hideRemoveGroupBtn && users?.length > 1}
+        selectedRowIds={selectedDeleteIds}
+        setSelectedRowIds={handleSelectedDeleteIds}
+        onDelete={() => {
+          setOpenSelectedDeleteModal(true)
         }}
         columns={[
           {
@@ -303,6 +323,28 @@ export default function GroupDetails() {
             id: 'delete',
           },
         ]}
+      />
+      {/* bulk delete modal */}
+      <DeleteModal
+        open={openSelectedDeleteModal}
+        setOpen={setOpenSelectedDeleteModal}
+        onCancel={() => {
+          setSelectedDeleteIds([])
+        }}
+        onSubmit={async () => {
+          await fetch(`/api/groups/${group?.id}/users`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              usersToRemove: selectedDeleteIds,
+            }),
+          })
+
+          mutateUsers()
+          setSelectedDeleteIds([])
+          setOpenSelectedDeleteModal(false)
+        }}
+        title='Remove users'
+        message='Are you sure you want to remove the selected users from the group?'
       />
     </div>
   )

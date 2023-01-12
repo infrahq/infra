@@ -5,11 +5,12 @@ import { TrashIcon } from '@heroicons/react/24/outline'
 
 export default function DeleteModal({
   open,
-  setOpen,
+  setOpen = () => {},
   onSubmit,
   title,
   message,
   primaryButtonText = 'Remove',
+  onCancel = () => {},
 }) {
   const cancelButtonRef = useRef(null)
   const deleteButtonRef = useRef(null)
@@ -20,7 +21,10 @@ export default function DeleteModal({
         as='div'
         className='relative z-50'
         initialFocus={deleteButtonRef}
-        onClose={setOpen}
+        onClose={() => {
+          onCancel()
+          setOpen(false)
+        }}
       >
         <Transition.Child
           as={Fragment}
@@ -76,7 +80,10 @@ export default function DeleteModal({
                   <button
                     type='button'
                     className='mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-100 sm:col-start-1 sm:mt-0 sm:text-sm'
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      onCancel()
+                      setOpen(false)
+                    }}
                     ref={cancelButtonRef}
                   >
                     Cancel

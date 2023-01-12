@@ -358,7 +358,7 @@ export default function Users() {
 
                       mutate()
                     }}
-                    title='Remove User'
+                    title='Remove user'
                     message={
                       <div>
                         Are you sure you want to remove{' '}

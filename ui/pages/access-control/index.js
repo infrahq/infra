@@ -527,6 +527,10 @@ export default function AccessControl() {
     )
   }, [allGrants])
 
+  const handleSelectedDeleteIds = deletedIds => {
+    setSelectedDeleteIds(deletedIds)
+  }
+
   const columns = []
   if (isAdmin) {
     columns.push({
@@ -622,9 +626,8 @@ export default function AccessControl() {
         data={grants}
         allowDelete={isAdmin}
         selectedRowIds={selectedDeleteIds}
-        setSelectedRowIds={setSelectedDeleteIds}
-        onDelete={selectedIds => {
-          setSelectedDeleteIds(selectedIds)
+        setSelectedRowIds={handleSelectedDeleteIds}
+        onDelete={() => {
           setOpenSelectedDeleteModal(true)
         }}
         columns={[
@@ -700,30 +703,62 @@ export default function AccessControl() {
           {
             id: 'delete',
             cell: function Cell(info) {
+              const [open, setOpen] = useState(false)
+              const { id, identityId, resource, privilege } = info.row.original
+
+              const name =
+                users?.find(u => u.id === identityId)?.name ||
+                groups?.find(g => g.id === identityId)?.name
+
               return (
                 isAdmin && (
-                  <div className='group invisible rounded-md bg-white group-hover:visible'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setSelectedDeleteIds([info.row.original.id])
-                        setOpenSelectedDeleteModal(true)
+                  <>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setOpen(true)
+                        }}
+                        className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <TrashIcon className='mr-2 h-3.5 w-3.5' />
+                        <span className='hidden sm:block'>Remove</span>
+                      </button>
+                    </div>
+                    <DeleteModal
+                      open={open}
+                      setOpen={setOpen}
+                      onSubmit={async () => {
+                        await fetch(`/api/grants/${id}`, {
+                          method: 'DELETE',
+                        })
+                        setOpen(false)
+
+                        mutate()
                       }}
-                      className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                      <span className='hidden sm:block'>Remove</span>
-                    </button>
-                  </div>
+                      title='Remove access'
+                      message={
+                        <div>
+                          Are you sure you want to remove{' '}
+                          <span className='break-all font-bold'>{name}</span>
+                          's {resource} {privilege} access ?
+                        </div>
+                      }
+                    />
+                  </>
                 )
               )
             },
           },
         ]}
       />
+      {/* bulk delete modal */}
       <DeleteModal
         open={openSelectedDeleteModal}
         setOpen={setOpenSelectedDeleteModal}
+        onCancel={() => {
+          setSelectedDeleteIds([])
+        }}
         onSubmit={async () => {
           const grantsToRemove = []
 
@@ -748,7 +783,7 @@ export default function AccessControl() {
           setSelectedDeleteIds([])
           setOpenSelectedDeleteModal(false)
         }}
-        title='Removing access'
+        title='Remove access'
         message='Are you sure you want to remove the selected access?'
       />
     </div>

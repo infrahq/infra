@@ -51,6 +51,10 @@ export default function Table({
   const [checkedAll, setCheckedAll] = useState(false)
   const [indeterminate, setIndeterminate] = useState(false)
 
+  const handleSelectedRowIds = ids => {
+    setSelectedRowIds(ids)
+  }
+
   useLayoutEffect(() => {
     const isIndeterminate =
       selectedRowIds.length > 0 && selectedRowIds.length < data.length
@@ -65,11 +69,16 @@ export default function Table({
   useLayoutEffect(() => {
     setCheckedAll(false)
     setIndeterminate(false)
-    setSelectedRowIds([])
+    handleSelectedRowIds([])
   }, [pageIndex])
 
-  function toggleAll() {
-    setSelectedRowIds(checkedAll || indeterminate ? [] : data?.map(d => d.id))
+  const toggleAll = () => {
+    if (checkedAll || indeterminate) {
+      handleSelectedRowIds([])
+    } else {
+      handleSelectedRowIds(data?.map(d => d.id))
+    }
+
     setCheckedAll(!checkedAll && !indeterminate)
     setIndeterminate(false)
   }
@@ -81,7 +90,7 @@ export default function Table({
           <button
             type='button'
             onClick={() => {
-              onDelete(selectedRowIds)
+              onDelete()
             }}
             className='rounded-md bg-zinc-50 px-4 py-2 text-2xs font-medium  text-red-500 hover:bg-red-100'
           >
