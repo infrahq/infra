@@ -9,7 +9,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/infrahq/secrets"
 	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/infrahq/infra/internal/certs"
@@ -37,10 +36,7 @@ func (m MapCache) Delete(_ context.Context, name string) error {
 	return nil
 }
 
-func tlsConfigFromOptions(
-	storage map[string]secrets.SecretStorage,
-	opts TLSOptions,
-) (*tls.Config, error) {
+func tlsConfigFromOptions(opts TLSOptions) (*tls.Config, error) {
 	// TODO: how can we test this?
 	if opts.ACME {
 		manager := &autocert.Manager{
@@ -85,12 +81,7 @@ func tlsConfigFromOptions(
 	}
 
 	if opts.Certificate != "" && opts.PrivateKey != "" {
-		key, err := secrets.GetSecret(opts.PrivateKey, storage)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load TLS private key: %w", err)
-		}
-
-		cert, err := tls.X509KeyPair([]byte(opts.Certificate), []byte(key))
+		cert, err := tls.X509KeyPair([]byte(opts.Certificate), []byte(opts.PrivateKey))
 		if err != nil {
 			return nil, fmt.Errorf("failed to load TLS key pair: %w", err)
 		}
@@ -103,12 +94,7 @@ func tlsConfigFromOptions(
 		return nil, fmt.Errorf("either a TLS certificate and key or a TLS CA and key is required")
 	}
 
-	key, err := secrets.GetSecret(opts.CAPrivateKey, storage)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load TLS CA private key: %w", err)
-	}
-
-	ca := keyPair{cert: []byte(opts.CA), key: []byte(key)}
+	ca := keyPair{cert: []byte(opts.CA), key: []byte(opts.CAPrivateKey)}
 	certCache := make(MapCache)
 
 	cfg.GetCertificate = getCertificate(certCache, ca)
