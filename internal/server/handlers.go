@@ -225,7 +225,7 @@ func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, e
 		return nil, err
 	}
 
-	deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
+	deleteCookie(c.Request, c.Writer, cookieAuthorizationName, c.Request.Host)
 	return nil, nil
 }
 

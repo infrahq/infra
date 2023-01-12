@@ -47,13 +47,19 @@ func setCookie(req *http.Request, resp http.ResponseWriter, config cookieConfig)
 	})
 }
 
-func deleteCookie(resp http.ResponseWriter, name, domain string) {
+func deleteCookie(req *http.Request, resp http.ResponseWriter, name, domain string) {
+	secure := true
+	if req.TLS == nil {
+		// if the request came over HTTP, then the cookie will need to be sent unsecured
+		secure = false
+	}
+
 	http.SetCookie(resp, &http.Cookie{
 		Name:     name,
 		MaxAge:   cookieMaxAgeDeleteImmediately,
 		Path:     cookiePath,
 		Domain:   domain,
-		Secure:   true, // only over https
+		Secure:   secure,
 		HttpOnly: true, // not accessible by javascript
 	})
 }
@@ -79,7 +85,7 @@ func exchangeSignupCookieForSession(
 		Expires: exp,
 	}
 	setCookie(req, resp, conf)
-	deleteCookie(resp, cookieSignupName, opts.BaseDomain)
+	deleteCookie(req, resp, cookieSignupName, opts.BaseDomain)
 
 	return signupCookie
 }

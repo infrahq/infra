@@ -131,7 +131,7 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 		tx = tx.WithOrgID(authned.Organization.ID)
 		// sync the identity info here to keep the UI session in sync with IDP session validity
 		if err := srv.syncIdentityInfo(context.Background(), tx, authned.User, authned.AccessKey.ProviderID); err != nil {
-			deleteCookie(c.Writer, cookieAuthorizationName, c.Request.Host)
+			deleteCookie(c.Request, c.Writer, cookieAuthorizationName, c.Request.Host)
 			if errors.Is(err, ErrSyncFailed) {
 				logging.L.Debug().Err(err)
 			} else {
