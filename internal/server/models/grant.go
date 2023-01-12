@@ -92,3 +92,11 @@ func (r *Grant) ToAPI() *api.Grant {
 
 	return grant
 }
+
+func NewSubjectForUser(id uid.ID) uid.PolymorphicID {
+	return uid.NewPolymorphicID("i", id)
+}
+
+func NewSubjectForGroup(id uid.ID) uid.PolymorphicID {
+	return uid.NewPolymorphicID("g", id)
+}

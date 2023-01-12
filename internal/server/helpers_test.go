@@ -97,7 +97,7 @@ func createAdmin(t *testing.T, db data.WriteTxn) *models.Identity {
 	assert.NilError(t, err)
 
 	err = data.CreateGrant(db, &models.Grant{
-		Subject:   uid.NewIdentityPolymorphicID(user.ID),
+		Subject:   models.NewSubjectForUser(user.ID),
 		Resource:  "infra",
 		Privilege: models.InfraAdminRole,
 	})

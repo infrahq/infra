@@ -731,7 +731,7 @@ func deleteReferencesToIdentities(tx WriteTxn, ids []uid.ID) error {
 				return fmt.Errorf("delete group membership for identity: %w", err)
 			}
 		}
-		err = DeleteGrants(tx, DeleteGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(id)})
+		err = DeleteGrants(tx, DeleteGrantsOptions{BySubject: models.NewSubjectForUser(id)})
 		if err != nil {
 			return fmt.Errorf("delete identity creds: %w", err)
 		}

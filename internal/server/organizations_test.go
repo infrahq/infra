@@ -460,7 +460,7 @@ func TestAPI_UpdateOrganization(t *testing.T) {
 
 	adminGrant := &models.Grant{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-		Subject:            uid.NewIdentityPolymorphicID(admin.ID),
+		Subject:            models.NewSubjectForUser(admin.ID),
 		Privilege:          "admin",
 		Resource:           "infra",
 	}

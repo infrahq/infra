@@ -43,7 +43,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *data.Transaction, *mod
 	})
 
 	adminGrant := &models.Grant{
-		Subject:   uid.NewIdentityPolymorphicID(admin.ID),
+		Subject:   models.NewSubjectForUser(admin.ID),
 		Privilege: models.InfraAdminRole,
 		Resource:  ResourceInfraAPI,
 	}
@@ -111,7 +111,7 @@ func TestRequireInfraRole_GrantsFromGroupMembership(t *testing.T) {
 	assert.Assert(t, authDB == nil)
 
 	admin := &models.Identity{Model: models.Model{ID: uid.ID(512)}}
-	grant(t, tx, admin, uid.NewGroupPolymorphicID(tomsGroup.ID), models.InfraAdminRole, "infra")
+	grant(t, tx, admin, models.NewSubjectForGroup(tomsGroup.ID), models.InfraAdminRole, "infra")
 
 	authDB, err = RequireInfraRole(c, models.InfraAdminRole)
 	assert.NilError(t, err)
@@ -127,7 +127,7 @@ func TestRequireInfraRole(t *testing.T) {
 		err := data.CreateIdentity(db, testIdentity)
 		assert.NilError(t, err)
 
-		err = data.CreateGrant(db, &models.Grant{Subject: uid.NewIdentityPolymorphicID(testIdentity.ID), Privilege: infraRole, Resource: ResourceInfraAPI})
+		err = data.CreateGrant(db, &models.Grant{Subject: models.NewSubjectForUser(testIdentity.ID), Privilege: infraRole, Resource: ResourceInfraAPI})
 		assert.NilError(t, err)
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())

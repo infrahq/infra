@@ -36,14 +36,6 @@ func (p PolymorphicID) IsGroup() bool {
 	return strings.HasPrefix(string(p), "g:")
 }
 
-func NewIdentityPolymorphicID(id ID) PolymorphicID {
-	return newPolymorphicID("i", id)
-}
-
-func NewGroupPolymorphicID(id ID) PolymorphicID {
-	return newPolymorphicID("g", id)
-}
-
-func newPolymorphicID(prefix string, id ID) PolymorphicID {
+func NewPolymorphicID(prefix string, id ID) PolymorphicID {
 	return PolymorphicID(fmt.Sprintf("%s:%s", prefix, id))
 }

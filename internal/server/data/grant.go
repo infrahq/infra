@@ -167,7 +167,7 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 				return nil, err
 			}
 			for _, id := range groupIDs {
-				subjects = append(subjects, uid.NewGroupPolymorphicID(id).String())
+				subjects = append(subjects, models.NewSubjectForGroup(id).String())
 			}
 			query.B(`AND subject IN`)
 			queryInClause(query, subjects)

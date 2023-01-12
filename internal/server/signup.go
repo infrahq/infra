@@ -20,7 +20,6 @@ import (
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
-	"github.com/infrahq/infra/uid"
 )
 
 func (a *API) SignupRoute() route[api.SignupRequest, *api.SignupResponse] {
@@ -310,7 +309,7 @@ func signupUser(c *gin.Context, keyExpiresAt time.Time, user *models.ProviderUse
 	}
 
 	err = data.CreateGrant(tx, &models.Grant{
-		Subject:   uid.NewIdentityPolymorphicID(identity.ID),
+		Subject:   models.NewSubjectForUser(identity.ID),
 		Privilege: models.InfraAdminRole,
 		Resource:  access.ResourceInfraAPI,
 		CreatedBy: identity.ID,

@@ -70,7 +70,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	assert.NilError(t, err)
 
 	grantInfra := &models.Grant{
-		Subject:   uid.NewIdentityPolymorphicID(identity.ID),
+		Subject:   models.NewSubjectForUser(identity.ID),
 		Resource:  "infra",
 		Privilege: "admin",
 	}
@@ -78,7 +78,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	assert.NilError(t, err)
 
 	grantDestination := &models.Grant{
-		Subject:   uid.NewIdentityPolymorphicID(identity.ID),
+		Subject:   models.NewSubjectForUser(identity.ID),
 		Resource:  "example",
 		Privilege: "cluster-admin",
 	}
@@ -107,7 +107,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	_, err = data.GetCredentialByUserID(db, identity.ID)
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
-	grants, err := data.ListGrants(db, data.ListGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(identity.ID)})
+	grants, err := data.ListGrants(db, data.ListGrantsOptions{BySubject: models.NewSubjectForUser(identity.ID)})
 	assert.NilError(t, err)
 	assert.Equal(t, len(grants), 0)
 

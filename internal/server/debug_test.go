@@ -13,7 +13,6 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestAPI_PProfHandler(t *testing.T) {
@@ -66,7 +65,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 			setupRequest: func(t *testing.T, req *http.Request) {
 				key, user := createAccessKey(t, s.DB(), "user2@example.com")
 				err := data.CreateGrant(s.DB(), &models.Grant{
-					Subject:   uid.NewIdentityPolymorphicID(user.ID),
+					Subject:   models.NewSubjectForUser(user.ID),
 					Privilege: models.InfraSupportAdminRole,
 					Resource:  access.ResourceInfraAPI,
 					CreatedBy: user.ID,

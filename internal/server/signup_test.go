@@ -17,7 +17,6 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestAPI_Signup(t *testing.T) {
@@ -606,7 +605,7 @@ func validateSuccessfulSignup(t *testing.T, db *data.Transaction, testSignup val
 	// check the user is an admin
 	db = db.WithOrgID(respBody.Organization.ID)
 	_, err = data.GetGrant(db, data.GetGrantOptions{
-		BySubject:   uid.NewIdentityPolymorphicID(userID),
+		BySubject:   models.NewSubjectForUser(userID),
 		ByResource:  access.ResourceInfraAPI,
 		ByPrivilege: api.InfraAdminRole,
 	})

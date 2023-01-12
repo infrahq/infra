@@ -525,19 +525,19 @@ func TestListGrants(t *testing.T) {
 		assert.NilError(t, AddUsersToGroup(tx, uid.ID(113), []uid.ID{uid.ID(777)}))
 
 		gGrant1 := &models.Grant{
-			Subject:   uid.NewGroupPolymorphicID(111),
+			Subject:   models.NewSubjectForGroup(111),
 			Privilege: "view",
 			Resource:  "anyother",
 			CreatedBy: uid.ID(777),
 		}
 		gGrant2 := &models.Grant{
-			Subject:   uid.NewGroupPolymorphicID(112),
+			Subject:   models.NewSubjectForGroup(112),
 			Privilege: "admin",
 			Resource:  "shared",
 			CreatedBy: uid.ID(777),
 		}
 		gGrant3 := &models.Grant{
-			Subject:   uid.NewGroupPolymorphicID(113),
+			Subject:   models.NewSubjectForGroup(113),
 			Privilege: "admin",
 			Resource:  "special",
 			CreatedBy: uid.ID(777),
@@ -559,7 +559,7 @@ func TestListGrants(t *testing.T) {
 		connectorUser := InfraConnectorIdentity(db)
 
 		connector, err := GetGrant(tx, GetGrantOptions{
-			BySubject:   uid.NewIdentityPolymorphicID(connectorUser.ID),
+			BySubject:   models.NewSubjectForUser(connectorUser.ID),
 			ByPrivilege: models.InfraConnectorRole,
 			ByResource:  "infra",
 		})
