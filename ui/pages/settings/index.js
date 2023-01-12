@@ -765,12 +765,12 @@ function Authentication() {
             </div>
           </header>
           <form
-            className='group form-input flex w-full rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
+            className='group form-input flex flex-wrap w-full rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
             onSubmit={addDomain}
           >
             {allowedDomains.map(d => (
               <span
-                className='mr-1 inline-block rounded-md bg-gray-200 py-1 px-2 pl-2.5 pr-1 text-xs font-medium'
+                className='mr-1 mt-1 inline-block rounded-md bg-gray-200 py-1 px-2 pl-2.5 pr-1 text-xs font-medium'
                 key={d}
               >
                 {d}
@@ -785,7 +785,7 @@ function Authentication() {
               </span>
             ))}
             <input
-              className='peer grow bg-transparent focus:outline-none'
+              className='peer mt-1 grow bg-transparent focus:outline-none'
               value={newDomain}
               onChange={e => {
                 setNewDomain(e.target.value)
