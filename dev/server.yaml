@@ -3,7 +3,7 @@ ui:
 
 tls:
   ca: internal/server/testdata/pki/ca.crt
-  caPrivateKey: file:internal/server/testdata/pki/ca.key
+  caPrivateKey: internal/server/testdata/pki/ca.key
 
 dbHost: localhost
 dbName: postgres
