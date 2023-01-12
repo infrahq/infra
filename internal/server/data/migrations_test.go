@@ -21,6 +21,7 @@ import (
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/migrator"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/data/schema"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/database"
@@ -1001,6 +1002,50 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 			label: testCaseLine("2023-01-05T17:33"),
 			expected: func(t *testing.T, tx WriteTxn) {
 				// schema changes are tested with schema comparison
+			},
+		},
+		{
+			label: testCaseLine("2023-01-12T17:00"),
+			setup: func(t *testing.T, tx WriteTxn) {
+				query := querybuilder.New(`INSERT INTO grants`)
+				query.B(`(id, subject, resource, organization_id)`)
+				query.B(`VALUES`)
+				query.B(`(10001, 'i:TJMax', 'res1', 900),`)
+				query.B(`(10002, 'g:BeLL', 'res2', 901),`)
+				query.B(`(10003, 'i:DeLL', 'res3', 902)`)
+
+				_, err := tx.Exec(query.String(), query.Args...)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE FROM grants`)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				type grant struct {
+					ID             uid.ID
+					SubjectID      uid.ID
+					SubjectKind    models.SubjectKind
+					Resource       string
+					OrganizationID uid.ID
+				}
+
+				rows, err := tx.Query(`
+					SELECT id, subject_id, subject_kind, resource, organization_id
+					FROM grants`)
+				assert.NilError(t, err)
+
+				actual, err := scanRows(rows, func(g *grant) []any {
+					return []any{&g.ID, &g.SubjectID, &g.SubjectKind, &g.Resource, &g.OrganizationID}
+				})
+				assert.NilError(t, err)
+
+				expected := []grant{
+					{10001, 585487933, models.SubjectKindUser, "res1", 900},
+					{10002, 6875248, models.SubjectKindGroup, "res2", 901},
+					{10003, 7265472, models.SubjectKindUser, "res3", 902},
+				}
+				assert.DeepEqual(t, actual, expected)
 			},
 		},
 	}

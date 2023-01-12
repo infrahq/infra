@@ -85,6 +85,7 @@ func migrations() []*migrator.Migration {
 		addDestinationCredentials(),
 		setGoogleSocialLoginDefaultID(),
 		addUserPublicKeyUserIDIndex(),
+		addGrantsSubjectID(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1169,6 +1170,73 @@ func addUserPublicKeyUserIDIndex() *migrator.Migration {
 					ON user_public_keys USING btree (user_id) WHERE (deleted_at IS NULL)`
 
 			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func addGrantsSubjectID() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2023-01-12T17:00",
+		Migrate: func(tx migrator.DB) error {
+			if !migrator.HasColumn(tx, "grants", "subject") {
+				return nil
+			}
+
+			// Step 1 - Add the new columns
+			_, err := tx.Exec(`
+				ALTER TABLE grants ADD COLUMN IF NOT EXISTS subject_id bigint;
+				ALTER TABLE grants ADD COLUMN IF NOT EXISTS subject_kind smallint;
+			`)
+			if err != nil {
+				return err
+			}
+
+			// Step 2- Migrate the data
+			type grantSubject struct {
+				ID              uid.ID
+				OriginalSubject string
+			}
+
+			rows, err := tx.Query(`SELECT id, subject FROM grants`)
+			if err != nil {
+				return err
+			}
+			grants, err := scanRows(rows, func(g *grantSubject) []any {
+				return []any{&g.ID, &g.OriginalSubject}
+			})
+			if err != nil {
+				return err
+			}
+
+			for _, grant := range grants {
+				var kind int
+				var subjectID uid.ID
+				if strings.HasPrefix(grant.OriginalSubject, "i:") {
+					kind = 1
+				} else {
+					kind = 2
+				}
+				subjectID, err = uid.Parse([]byte(grant.OriginalSubject[2:]))
+				if err != nil {
+					return err
+				}
+
+				_, err = tx.Exec(`UPDATE grants SET subject_id=?, subject_kind=? WHERE id = ?`,
+					subjectID, kind, grant.ID)
+				if err != nil {
+					return err
+				}
+			}
+
+			// Step 3 - Remove the old column, add a new index, and NOT NULL
+			_, err = tx.Exec(`
+				ALTER TABLE grants DROP COLUMN IF EXISTS subject;
+				ALTER TABLE grants ALTER COLUMN subject_id SET NOT NULL;
+				ALTER TABLE grants ALTER COLUMN subject_kind SET NOT NULL;
+				CREATE UNIQUE INDEX idx_grants_subject_privilege_resource ON grants
+				    USING btree (organization_id, subject_id, privilege, resource) WHERE (deleted_at IS NULL);
+			`)
 			return err
 		},
 	}
