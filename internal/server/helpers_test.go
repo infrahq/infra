@@ -59,7 +59,7 @@ func createOtherOrg(t *testing.T, db *data.DB) organizationData {
 func adminAccessKey(s *Server) string {
 	for _, id := range s.options.Users {
 		if id.Name == "admin@example.com" {
-			return id.AccessKey
+			return string(id.AccessKey)
 		}
 	}
 

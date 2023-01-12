@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"os"
 	"strings"
 	"time"
 
@@ -26,8 +27,8 @@ type BootstrapConfig struct {
 
 type User struct {
 	Name      string
-	AccessKey string
-	Password  string
+	AccessKey Secret
+	Password  Secret
 	InfraRole string
 }
 
@@ -40,6 +41,37 @@ func (u User) ValidationRules() []validate.ValidationRule {
 func (c BootstrapConfig) ValidationRules() []validate.ValidationRule {
 	// no-op implement to satisfy the interface
 	return nil
+}
+
+// Secret provides backwards compatibility for the old secret loading microformat
+// with file:, env:, and plaintext: prefix. Custom secret providers are not
+// supported.
+type Secret string
+
+func (s *Secret) Set(raw string) error {
+	switch {
+	case strings.HasPrefix(raw, "file:"):
+		content, err := os.ReadFile(strings.TrimPrefix(raw, "file:"))
+		if err != nil {
+			return err
+		}
+		*s = Secret(content)
+	case strings.HasPrefix(raw, "env:"):
+		*s = Secret(os.Getenv(strings.TrimPrefix(raw, "env:")))
+	case strings.HasPrefix(raw, "plaintext:"):
+		*s = Secret(strings.TrimPrefix(raw, "plaintext:"))
+	default:
+		*s = Secret(raw)
+	}
+	return nil
+}
+
+func (s Secret) String() string {
+	return "<redacted>"
+}
+
+func (s Secret) GoString() string {
+	return "<redacted>"
 }
 
 func (s Server) loadConfig(config BootstrapConfig) error {
@@ -138,7 +170,7 @@ func (s Server) loadUser(db data.WriteTxn, input User) error {
 	return nil
 }
 
-func (s Server) loadCredential(db data.WriteTxn, identity *models.Identity, password string) error {
+func (s Server) loadCredential(db data.WriteTxn, identity *models.Identity, password Secret) error {
 	if password == "" {
 		return nil
 	}
@@ -175,12 +207,12 @@ func (s Server) loadCredential(db data.WriteTxn, identity *models.Identity, pass
 	return data.UpdateCredential(db, credential)
 }
 
-func (s Server) loadAccessKey(db data.WriteTxn, identity *models.Identity, key string) error {
+func (s Server) loadAccessKey(db data.WriteTxn, identity *models.Identity, key Secret) error {
 	if key == "" {
 		return nil
 	}
 
-	keyID, secret, ok := strings.Cut(key, ".")
+	keyID, secret, ok := strings.Cut(string(key), ".")
 	if !ok {
 		return fmt.Errorf("invalid access key format")
 	}

@@ -86,7 +86,6 @@ func DecodeConfig(target interface{}) mapstructure.DecoderConfig {
 			mapstructure.StringToTimeDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
 			hookFlagValueSlice,
-			hookPrepareForDecode,
 			hookSetFromString,
 		),
 	}
