@@ -129,23 +129,6 @@ export default function GroupDetails() {
     setSelectedDeleteIds(deletedIds)
   }
 
-  const handleComboBoxSubmit = async () => {
-    const user = allUsers?.find(au => au.name === addUser)
-
-    if (!user) {
-      return false
-    }
-
-    await fetch(`/api/groups/${group?.id}/users`, {
-      method: 'PATCH',
-      body: JSON.stringify({ usersToAdd: [user.id] }),
-    })
-
-    // TODO: show optimistic results
-    mutateUsers()
-    setAddUser('')
-  }
-
   return (
     <div className='mb-10'>
       <Head>
@@ -217,9 +200,23 @@ export default function GroupDetails() {
           <h3 className='mb-2 text-sm font-medium'>Add user to group</h3>
           <form
             className='flex w-full space-x-2 '
-            onSubmit={e => {
+            onSubmit={async e => {
               e.preventDefault()
-              handleComboBoxSubmit()
+
+              const user = allUsers?.find(au => au.name === addUser)
+
+              if (!user) {
+                return false
+              }
+
+              await fetch(`/api/groups/${group?.id}/users`, {
+                method: 'PATCH',
+                body: JSON.stringify({ usersToAdd: [user.id] }),
+              })
+
+              // TODO: show optimistic results
+              mutateUsers()
+              setAddUser('')
             }}
           >
             <ComboBox
