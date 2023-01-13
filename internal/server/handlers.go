@@ -145,7 +145,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			}
 		}
 
-		providerClient, err := a.server.providerClient(c, provider, r.OIDC.RedirectURL)
+		providerClient, err := a.server.providerClient(rCtx.Request.Context(), provider, r.OIDC.RedirectURL)
 		if err != nil {
 			return nil, fmt.Errorf("login provider client: %w", err)
 		}
