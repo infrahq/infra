@@ -264,6 +264,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 
 	proxy := httputil.NewSingleHostReverseProxy(kubeAPIAddr)
 	proxy.Transport = proxyTransport
+	proxy.ErrorLog = log.New(logging.L, "", 0)
 
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,

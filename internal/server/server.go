@@ -302,6 +302,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 		req.URL.Scheme = remote.Scheme
 		req.URL.Host = remote.Host
 	}
+	proxy.ErrorLog = log.New(logging.L, "", 0)
 
 	router.Use(func(c *gin.Context) {
 		// Don't proxy /api/* paths
