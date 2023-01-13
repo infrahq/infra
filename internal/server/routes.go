@@ -13,11 +13,11 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
+	binding "github.com/infrahq/infra/internal/gin-binding"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
@@ -402,13 +402,13 @@ func readRequest(c *gin.Context, req interface{}) error {
 		for _, v := range c.Params {
 			params[v.Key] = []string{v.Value}
 		}
-		if err := binding.Uri.BindUri(params, req); err != nil {
+		if err := binding.BindURI(params, req); err != nil {
 			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 		}
 	}
 
 	if len(c.Request.URL.Query()) > 0 {
-		if err := binding.Query.Bind(c.Request, req); err != nil {
+		if err := binding.BindQuery(c.Request, req); err != nil {
 			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 		}
 	}
@@ -427,10 +427,6 @@ func readRequest(c *gin.Context, req interface{}) error {
 
 	trimWhitespace(req)
 	return nil
-}
-
-func init() {
-	gin.DisableBindValidation()
 }
 
 func healthHandler(c *gin.Context) {
