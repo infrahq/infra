@@ -262,18 +262,15 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		MinVersion: tls.VersionTLS12,
 	}
 
-	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
-
 	proxy := httputil.NewSingleHostReverseProxy(kubeAPIAddr)
 	proxy.Transport = proxyTransport
-	proxy.ErrorLog = httpErrorLog
 
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,
 		Addr:              options.Addr.Metrics,
 		Handler:           metrics.NewHandler(promRegistry),
-		ErrorLog:          httpErrorLog,
+		ErrorLog:          log.New(logging.L, "", 0),
 	}
 
 	group.Go(func() error {
@@ -294,7 +291,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		ReadTimeout:       60 * time.Second,
 		Addr:              options.Addr.HTTP,
 		Handler:           healthOnlyRouter,
-		ErrorLog:          httpErrorLog,
+		ErrorLog:          log.New(logging.L, "", 0),
 	}
 
 	group.Go(func() error {
@@ -316,7 +313,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		Addr:              options.Addr.HTTPS,
 		TLSConfig:         tlsConfig,
 		Handler:           router,
-		ErrorLog:          httpErrorLog,
+		ErrorLog:          log.New(logging.L, "", 0),
 	}
 
 	logging.Infof("starting infra connector (%s) - http:%s https:%s metrics:%s", internal.FullVersion(), plaintextServer.Addr, tlsServer.Addr, metricsServer.Addr)
