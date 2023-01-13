@@ -105,12 +105,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		Name: user.Name,
 	}
 
-	// Always create a temporary password for infra users.
-	tmpPassword, err := access.CreateCredential(c, user)
-	if err != nil {
-		return nil, fmt.Errorf("create credential: %w", err)
-	}
-
 	if email.IsConfigured() {
 		rCtx := access.GetRequestContext(c)
 		org := rCtx.Authenticated.Organization
@@ -128,12 +122,20 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 			FromUserName: fromName,
 			Link:         fmt.Sprintf("https://%s/accept-invite?token=%s", org.Domain, token),
 		})
+
 		if err != nil {
 			return nil, fmt.Errorf("sending invite email: %w", err)
 		}
-	} else {
-		resp.OneTimePassword = tmpPassword
+
+		return resp, nil
 	}
+
+	tmpPassword, err := access.CreateCredential(c, user)
+	if err != nil {
+		return nil, fmt.Errorf("create credential: %w", err)
+	}
+
+	resp.OneTimePassword = tmpPassword
 
 	return resp, nil
 }

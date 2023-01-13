@@ -1,8 +1,12 @@
 package access
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -28,13 +32,21 @@ func VerifiedPasswordReset(c *gin.Context, token, password string) (*models.Iden
 		}
 	}
 
-	credential, err := data.GetCredentialByUserID(tx, user.ID)
-	if err != nil {
+	if err := checkPasswordRequirements(tx, password); err != nil {
 		return nil, err
 	}
 
-	if err := checkPasswordRequirements(tx, password); err != nil {
-		return nil, err
+	credential, err := data.GetCredentialByUserID(tx, user.ID)
+	switch {
+	case errors.Is(err, internal.ErrNotFound):
+		if err := createCredential(tx, user, &models.Credential{}, password); err != nil {
+			return nil, err
+		}
+
+		return user, nil
+
+	case err != nil:
+		return nil, fmt.Errorf("get credential: %w", err)
 	}
 
 	credential.OneTimePassword = false

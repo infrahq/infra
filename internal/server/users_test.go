@@ -18,9 +18,11 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -773,6 +775,69 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 				assert.NilError(t, err)
 			})
 		})
+	})
+}
+
+func TestAPI_CreateUser_EmailInvite(t *testing.T) {
+	patchEmailTestMode(t, "fakekey")
+
+	assert.Assert(t, email.IsConfigured())
+
+	s := setupServer(t, withAdminUser)
+	routes := s.GenerateRoutes()
+
+	var token string
+	runStep(t, "request user invite", func(t *testing.T) {
+		body := jsonBody(t, &api.CreateUserRequest{Name: "deckard@example.com"})
+		r := httptest.NewRequest(http.MethodPost, "/api/users", body)
+		r.Header.Add("Infra-Version", apiVersionLatest)
+		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey(s)))
+
+		w := httptest.NewRecorder()
+		routes.ServeHTTP(w, r)
+		assert.Equal(t, w.Code, http.StatusCreated, w.Body.String())
+		assert.Equal(t, len(email.TestData), 1)
+
+		data, ok := email.TestData[0].(email.UserInviteData)
+		assert.Assert(t, ok)
+
+		assert.Equal(t, data.FromUserName, "Admin")
+
+		u, err := url.Parse(data.Link)
+		assert.NilError(t, err)
+		assert.Equal(t, u.Path, "/accept-invite")
+
+		token = u.Query().Get("token")
+		assert.Assert(t, token != "")
+	})
+
+	user, err := data.GetIdentity(s.DB(), data.GetIdentityOptions{ByName: "deckard@example.com"})
+	assert.NilError(t, err)
+
+	_, err = data.GetCredentialByUserID(s.DB(), user.ID)
+	assert.ErrorIs(t, err, internal.ErrNotFound)
+
+	_, err = data.GetProviderUser(s.DB(), data.InfraProvider(s.DB()).ID, user.ID)
+	assert.ErrorIs(t, err, internal.ErrNotFound)
+
+	// an invite is claimed by submitting a password reset request with the invite token
+	runStep(t, "claim invite token", func(t *testing.T) {
+		body := jsonBody(t, &api.VerifiedResetPasswordRequest{Token: token, Password: "mysecret"})
+		r := httptest.NewRequest(http.MethodPost, "/api/password-reset", body)
+		r.Header.Add("Infra-Version", apiVersionLatest)
+
+		w := httptest.NewRecorder()
+		routes.ServeHTTP(w, r)
+		assert.Equal(t, w.Code, http.StatusCreated, w.Body.String())
+
+		credential, err := data.GetCredentialByUserID(s.DB(), user.ID)
+		assert.NilError(t, err)
+
+		err = bcrypt.CompareHashAndPassword(credential.PasswordHash, []byte("mysecret"))
+		assert.NilError(t, err)
+
+		_, err = data.GetProviderUser(s.DB(), data.InfraProvider(s.DB()).ID, user.ID)
+		assert.NilError(t, err)
 	})
 }
 

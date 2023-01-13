@@ -16,17 +16,20 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func patchEmailTestMode(t *testing.T) {
+func patchEmailTestMode(t *testing.T, testKey string) {
 	t.Helper()
+	originalSendgridAPIKey := email.SendgridAPIKey
+	email.SendgridAPIKey = testKey
 	email.TestMode = true
 	t.Cleanup(func() {
 		email.TestMode = false
 		email.TestData = make([]any, 0)
+		email.SendgridAPIKey = originalSendgridAPIKey
 	})
 }
 
 func TestPasswordResetFlow(t *testing.T) {
-	patchEmailTestMode(t)
+	patchEmailTestMode(t, "fakekey")
 
 	s := setupServer(t)
 	routes := s.GenerateRoutes()
