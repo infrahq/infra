@@ -302,7 +302,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 		req.URL.Scheme = remote.Scheme
 		req.URL.Host = remote.Host
 	}
-	proxy.ErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
+	proxy.ErrorLog = log.New(logging.L, "", 0)
 
 	router.Use(func(c *gin.Context) {
 		// Don't proxy /api/* paths
@@ -319,7 +319,7 @@ func (s *Server) listen() error {
 	ginutil.SetMode()
 	router := s.GenerateRoutes()
 
-	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
+	httpErrorLog := log.New(logging.L, "", 0)
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,

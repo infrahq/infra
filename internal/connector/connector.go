@@ -262,7 +262,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		MinVersion: tls.VersionTLS12,
 	}
 
-	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
+	httpErrorLog := log.New(logging.L, "", 0)
 
 	proxy := httputil.NewSingleHostReverseProxy(kubeAPIAddr)
 	proxy.Transport = proxyTransport
