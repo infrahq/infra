@@ -101,7 +101,7 @@ export default function Table({
           >
             <div className='flex flex-row items-center'>
               <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
-              Remoeve selected
+              Remove selected
             </div>
           </button>
         </div>
