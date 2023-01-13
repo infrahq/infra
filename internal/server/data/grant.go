@@ -100,6 +100,9 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 	case opts.ByID != 0:
 		query.B("AND id = ?", opts.ByID)
 	case opts.BySubject.ID != 0:
+		if opts.BySubject.Kind == 0 {
+			return nil, fmt.Errorf("subject kind is required for GetGrant BySubject")
+		}
 		query.B("AND subject_id = ? AND subject_kind = ?",
 			opts.BySubject.ID, opts.BySubject.Kind)
 		query.B("AND privilege = ?", opts.ByPrivilege)
@@ -147,6 +150,10 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	query.B("AND organization_id = ?", tx.OrganizationID())
 
 	if opts.BySubject.ID != 0 {
+		if opts.BySubject.Kind == 0 {
+			return nil, fmt.Errorf("subject kind is required for ListGrant BySubject")
+		}
+
 		if !opts.IncludeInheritedFromGroups {
 			query.B("AND subject_id = ? AND subject_kind = ?",
 				opts.BySubject.ID, opts.BySubject.Kind)
@@ -259,6 +266,9 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 	case opts.ByID != 0:
 		query.B("AND id = ?", opts.ByID)
 	case opts.BySubject.ID != 0:
+		if opts.BySubject.Kind == 0 {
+			return fmt.Errorf("subject kind is required for DeleteGrant BySubject")
+		}
 		query.B("AND subject_id = ? AND subject_kind = ?",
 			opts.BySubject.ID, opts.BySubject.Kind)
 	case opts.ByDestination != "":
