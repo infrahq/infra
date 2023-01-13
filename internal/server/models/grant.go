@@ -36,15 +36,6 @@ type Subject struct {
 	Kind SubjectKind
 }
 
-// TODO: rename to IsUser
-func (s Subject) IsIdentity() bool {
-	return s.Kind == SubjectKindUser
-}
-
-func (s Subject) IsGroup() bool {
-	return s.Kind == SubjectKindGroup
-}
-
 type SubjectKind int
 
 func (k SubjectKind) String() string {

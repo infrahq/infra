@@ -153,7 +153,7 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 		} else {
 			subjects := []uid.ID{opts.BySubject.ID}
 
-			if !opts.BySubject.IsIdentity() {
+			if opts.BySubject.Kind != models.SubjectKindUser {
 				return nil, fmt.Errorf("IncludeInheritedFromGroups requires a userId subject")
 			}
 			// TODO: replace this with a sub-select or join.

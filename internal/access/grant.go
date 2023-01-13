@@ -42,9 +42,9 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		switch {
 		case rCtx.Authenticated.User == nil:
 			return ListGrantsResponse{}, err
-		case subject.IsIdentity() && rCtx.Authenticated.User.ID == subject.ID:
+		case subject.Kind == models.SubjectKindUser && rCtx.Authenticated.User.ID == subject.ID:
 			// authorized because the request is for their own grants
-		case subject.IsGroup() && userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, subject.ID):
+		case subject.Kind == models.SubjectKindGroup && userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, subject.ID):
 			// authorized because the request is for grants of a group they belong to
 		default:
 			return ListGrantsResponse{}, err
