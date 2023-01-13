@@ -319,12 +319,13 @@ func (s *Server) listen() error {
 	ginutil.SetMode()
 	router := s.GenerateRoutes()
 
+	httpErrorLog := log.New(logging.L, "", 0)
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,
 		Addr:              s.options.Addr.Metrics,
 		Handler:           metrics.NewHandler(s.metricsRegistry),
-		ErrorLog:          log.New(logging.L, "", 0),
+		ErrorLog:          httpErrorLog,
 	}
 
 	var err error
@@ -338,7 +339,7 @@ func (s *Server) listen() error {
 		ReadTimeout:       60 * time.Second,
 		Addr:              s.options.Addr.HTTP,
 		Handler:           router,
-		ErrorLog:          log.New(logging.L, "", 0),
+		ErrorLog:          httpErrorLog,
 	}
 	s.Addrs.HTTP, err = s.setupServer(plaintextServer)
 	if err != nil {
@@ -356,7 +357,7 @@ func (s *Server) listen() error {
 		Addr:              s.options.Addr.HTTPS,
 		TLSConfig:         tlsConfig,
 		Handler:           router,
-		ErrorLog:          log.New(logging.L, "", 0),
+		ErrorLog:          httpErrorLog,
 	}
 	s.Addrs.HTTPS, err = s.setupServer(tlsServer)
 	if err != nil {
