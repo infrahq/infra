@@ -51,15 +51,11 @@ export default function Table({
   const [checkedAll, setCheckedAll] = useState(false)
   const [indeterminate, setIndeterminate] = useState(false)
 
-  function handleSelectedRowIds(ids) {
-    setSelectedRowIds(ids)
-  }
-
   function toggleAll() {
     if (checkedAll || indeterminate) {
-      handleSelectedRowIds([])
+      setSelectedRowIds([])
     } else {
-      handleSelectedRowIds(
+      setSelectedRowIds(
         data
           ?.filter(
             d =>
@@ -81,14 +77,17 @@ export default function Table({
     if (allowDelete && data?.length > 0) {
       setCheckedAll(selectedRowIds.length === data?.length)
       setIndeterminate(isIndeterminate)
-      checkbox.current.indeterminate = isIndeterminate
+
+      if (checkbox && checkbox.current) {
+        checkbox.current.indeterminate = isIndeterminate
+      }
     }
   }, [selectedRowIds])
 
   useLayoutEffect(() => {
     setCheckedAll(false)
     setIndeterminate(false)
-    handleSelectedRowIds([])
+    setSelectedRowIds([])
   }, [pageIndex])
 
   return (
@@ -97,9 +96,7 @@ export default function Table({
         <div className='absolute left-12 flex h-6 items-center py-4 sm:left-16'>
           <button
             type='button'
-            onClick={() => {
-              onDelete()
-            }}
+            onClick={() => onDelete()}
             className='rounded-md bg-zinc-50 px-4 py-2 text-2xs font-medium  text-red-500 hover:bg-red-100'
           >
             <div className='flex flex-row items-center'>
@@ -118,7 +115,7 @@ export default function Table({
                   <input
                     type='checkbox'
                     className='absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
-                    ref={checkbox}
+                    ref={el => (checkbox.current = el)}
                     checked={checkedAll}
                     onChange={toggleAll}
                   />

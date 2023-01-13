@@ -527,10 +527,6 @@ export default function AccessControl() {
     )
   }, [allGrants])
 
-  function handleSelectedDeleteIds(deletedIds) {
-    setSelectedDeleteIds(deletedIds)
-  }
-
   const columns = []
 
   if (isAdmin) {
@@ -627,7 +623,7 @@ export default function AccessControl() {
         data={grants}
         allowDelete={isAdmin}
         selectedRowIds={selectedDeleteIds}
-        setSelectedRowIds={handleSelectedDeleteIds}
+        setSelectedRowIds={setSelectedDeleteIds}
         onDelete={() => {
           setOpenSelectedDeleteModal(true)
         }}

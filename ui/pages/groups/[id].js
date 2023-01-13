@@ -107,7 +107,6 @@ export default function GroupDetails() {
     '/api/grants?resource=infra&privilege=admin&limit=1000'
   )
   const [addUser, setAddUser] = useState('')
-  const [usersData, setUsersData] = useState([])
   const [selectedDeleteIds, setSelectedDeleteIds] = useState([])
   const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
 
@@ -125,28 +124,6 @@ export default function GroupDetails() {
   // Don't allow deleting the last group
   const showRemoveGroupBtn =
     isAdmin && !(infraAdmins?.length === 1 && adminGroups.includes(group?.id))
-
-  function handleSelectedDeleteIds(deletedIds) {
-    setSelectedDeleteIds(deletedIds)
-  }
-
-  useEffect(() => {
-    setUsersData(
-      users
-        ?.map(u => {
-          if (!showRemoveGroupBtn) {
-            return { ...u, showDeleteCheckbox: u.id !== user.id }
-          }
-
-          return u
-        })
-        ?.sort((a, b) => {
-          if (a?.id === user.id) return -1
-          if (b?.id === user.id) return 1
-          return 0
-        })
-    )
-  }, [users])
 
   return (
     <div className='mb-10'>
@@ -261,7 +238,19 @@ export default function GroupDetails() {
         pageSize={limit}
         pageCount={totalPages}
         count={totalCount}
-        data={usersData}
+        data={users
+          ?.map(u => {
+            if (!showRemoveGroupBtn) {
+              return { ...u, showDeleteCheckbox: u.id !== user.id }
+            }
+
+            return u
+          })
+          ?.sort((a, b) => {
+            if (a?.id === user.id) return -1
+            if (b?.id === user.id) return 1
+            return 0
+          })}
         empty='No users'
         onPageChange={({ pageIndex }) => {
           router.push({
@@ -269,9 +258,9 @@ export default function GroupDetails() {
             query: { ...router.query, p: pageIndex + 1 },
           })
         }}
-        allowDelete={usersData?.length > 0}
+        allowDelete={users?.length > 0}
         selectedRowIds={selectedDeleteIds}
-        setSelectedRowIds={handleSelectedDeleteIds}
+        setSelectedRowIds={setSelectedDeleteIds}
         onDelete={() => {
           setOpenSelectedDeleteModal(true)
         }}
