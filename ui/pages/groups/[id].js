@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Head from 'next/head'
@@ -107,6 +107,7 @@ export default function GroupDetails() {
     '/api/grants?resource=infra&privilege=admin&limit=1000'
   )
   const [addUser, setAddUser] = useState('')
+  const [usersData, setUsersData] = useState([])
   const [selectedDeleteIds, setSelectedDeleteIds] = useState([])
   const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
 
@@ -122,12 +123,30 @@ export default function GroupDetails() {
   ]
 
   // Don't allow deleting the last group
-  const hideRemoveGroupBtn =
-    !isAdmin || (infraAdmins?.length === 1 && adminGroups.includes(group?.id))
+  const showRemoveGroupBtn =
+    isAdmin && !(infraAdmins?.length === 1 && adminGroups.includes(group?.id))
 
-  const handleSelectedDeleteIds = deletedIds => {
+  function handleSelectedDeleteIds(deletedIds) {
     setSelectedDeleteIds(deletedIds)
   }
+
+  useEffect(() => {
+    setUsersData(
+      users
+        ?.map(u => {
+          if (!showRemoveGroupBtn) {
+            return { ...u, showDeleteCheckbox: u.id !== user.id }
+          }
+
+          return u
+        })
+        ?.sort((a, b) => {
+          if (a?.id === user.id) return -1
+          if (b?.id === user.id) return 1
+          return 0
+        })
+    )
+  }, [users])
 
   return (
     <div className='mb-10'>
@@ -149,7 +168,7 @@ export default function GroupDetails() {
             {group?.name}
           </h1>
 
-          {!hideRemoveGroupBtn && (
+          {showRemoveGroupBtn && (
             <div className='my-3 flex space-x-2 md:my-0'>
               <RemoveButton
                 onRemove={async () => {
@@ -242,7 +261,7 @@ export default function GroupDetails() {
         pageSize={limit}
         pageCount={totalPages}
         count={totalCount}
-        data={users}
+        data={usersData}
         empty='No users'
         onPageChange={({ pageIndex }) => {
           router.push({
@@ -250,7 +269,7 @@ export default function GroupDetails() {
             query: { ...router.query, p: pageIndex + 1 },
           })
         }}
-        allowDelete={!hideRemoveGroupBtn && users?.length > 1}
+        allowDelete={usersData?.length > 0}
         selectedRowIds={selectedDeleteIds}
         setSelectedRowIds={handleSelectedDeleteIds}
         onDelete={() => {
@@ -271,10 +290,10 @@ export default function GroupDetails() {
               const { id, name } = info.row.original
               const [open, setOpen] = useState(false)
 
-              const hideRemoveUserBtn = hideRemoveGroupBtn && user.id === id
+              const showRemoveUserBtn = showRemoveGroupBtn || user.id !== id
 
               return (
-                !hideRemoveUserBtn && (
+                showRemoveUserBtn && (
                   <div className='text-right'>
                     <div className='group invisible rounded-md bg-white group-hover:visible'>
                       <button

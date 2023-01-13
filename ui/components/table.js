@@ -51,8 +51,27 @@ export default function Table({
   const [checkedAll, setCheckedAll] = useState(false)
   const [indeterminate, setIndeterminate] = useState(false)
 
-  const handleSelectedRowIds = ids => {
+  function handleSelectedRowIds(ids) {
     setSelectedRowIds(ids)
+  }
+
+  function toggleAll() {
+    if (checkedAll || indeterminate) {
+      handleSelectedRowIds([])
+    } else {
+      handleSelectedRowIds(
+        data
+          ?.filter(
+            d =>
+              d.showDeleteCheckbox === true ||
+              d.showDeleteCheckbox === undefined
+          )
+          ?.map(d => d.id)
+      )
+    }
+
+    setCheckedAll(!checkedAll && !indeterminate)
+    setIndeterminate(false)
   }
 
   useLayoutEffect(() => {
@@ -71,17 +90,6 @@ export default function Table({
     setIndeterminate(false)
     handleSelectedRowIds([])
   }, [pageIndex])
-
-  const toggleAll = () => {
-    if (checkedAll || indeterminate) {
-      handleSelectedRowIds([])
-    } else {
-      handleSelectedRowIds(data?.map(d => d.id))
-    }
-
-    setCheckedAll(!checkedAll && !indeterminate)
-    setIndeterminate(false)
-  }
 
   return (
     <div className='relative overflow-x-auto rounded-lg border border-gray-200/75'>
@@ -105,7 +113,7 @@ export default function Table({
         <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
-              {allowDelete && data?.length > 0 && (
+              {allowDelete && data?.length > 1 && (
                 <th scope='col' className='relative w-12 px-6 sm:w-16 sm:px-8'>
                   <input
                     type='checkbox'
@@ -134,55 +142,77 @@ export default function Table({
         </thead>
         <tbody className='divide-y divide-gray-100'>
           {data &&
-            table.getRowModel().rows.map(row => (
-              <tr
-                className={`group truncate ${
-                  href && href(row) ? 'cursor-pointer hover:bg-gray-50/50' : ''
-                }`}
-                key={row.id}
-              >
-                {allowDelete && data?.length > 0 && (
-                  <th scope='col'>
-                    <input
-                      type='checkbox'
-                      className='left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
-                      value={row.id}
-                      checked={selectedRowIds.includes(row.original.id)}
-                      onChange={e =>
-                        setSelectedRowIds(
-                          e.target.checked
-                            ? [...selectedRowIds, row.original.id]
-                            : selectedRowIds.filter(p => p !== row.original.id)
-                        )
-                      }
-                    />
-                  </th>
-                )}
-                {row.getVisibleCells().map(cell => (
-                  <td
-                    className={`border-gray-100 text-sm  ${
-                      href && href(row) ? '' : 'px-5 py-2'
-                    }`}
-                    key={cell.id}
-                  >
-                    {href && href(row) ? (
-                      <Link
-                        href={href(row)}
-                        tabIndex='-1'
-                        className='block px-5 py-2'
-                      >
-                        {flexRender(
+            table.getRowModel().rows.map(row => {
+              if (
+                allowDelete &&
+                row.original.showDeleteCheckbox === undefined
+              ) {
+                row.original.showDeleteCheckbox = true
+              }
+              const showDeleteCheckbox =
+                allowDelete &&
+                data?.length > 0 &&
+                row.original.showDeleteCheckbox
+
+              return (
+                <tr
+                  className={`group truncate ${
+                    href && href(row)
+                      ? 'cursor-pointer hover:bg-gray-50/50'
+                      : ''
+                  }`}
+                  key={row.id}
+                >
+                  {allowDelete && data?.length > 1 && (
+                    <th scope='col'>
+                      <input
+                        type='checkbox'
+                        className={`${
+                          showDeleteCheckbox ? 'visble' : 'invisible'
+                        } left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6`}
+                        value={row.id}
+                        checked={selectedRowIds.includes(row.original.id)}
+                        onChange={e =>
+                          setSelectedRowIds(
+                            e.target.checked
+                              ? [...selectedRowIds, row.original.id]
+                              : selectedRowIds.filter(
+                                  p => p !== row.original.id
+                                )
+                          )
+                        }
+                      />
+                    </th>
+                  )}
+                  {row.getVisibleCells().map(cell => (
+                    <td
+                      className={`border-gray-100 text-sm  ${
+                        href && href(row) ? '' : 'px-5 py-2'
+                      }`}
+                      key={cell.id}
+                    >
+                      {href && href(row) ? (
+                        <Link
+                          href={href(row)}
+                          tabIndex='-1'
+                          className='block px-5 py-2'
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </Link>
+                      ) : (
+                        flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
-                        )}
-                      </Link>
-                    ) : (
-                      flexRender(cell.column.columnDef.cell, cell.getContext())
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))}
+                        )
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
         </tbody>
       </table>
 

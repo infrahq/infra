@@ -527,11 +527,12 @@ export default function AccessControl() {
     )
   }, [allGrants])
 
-  const handleSelectedDeleteIds = deletedIds => {
+  function handleSelectedDeleteIds(deletedIds) {
     setSelectedDeleteIds(deletedIds)
   }
 
   const columns = []
+
   if (isAdmin) {
     columns.push({
       header: <span>User / group </span>,
@@ -716,9 +717,7 @@ export default function AccessControl() {
                     <div className='group invisible rounded-md bg-white group-hover:visible'>
                       <button
                         type='button'
-                        onClick={() => {
-                          setOpen(true)
-                        }}
+                        onClick={() => setOpen(true)}
                         className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
                       >
                         <TrashIcon className='mr-2 h-3.5 w-3.5' />
@@ -757,9 +756,7 @@ export default function AccessControl() {
       <DeleteModal
         open={openSelectedDeleteModal}
         setOpen={setOpenSelectedDeleteModal}
-        onCancel={() => {
-          setSelectedDeleteIds([])
-        }}
+        onCancel={() => setSelectedDeleteIds([])}
         onSubmit={async () => {
           const grantsToRemove = []
 
