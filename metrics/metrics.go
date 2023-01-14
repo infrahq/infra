@@ -85,17 +85,21 @@ func blockingRequestLabel(req *http.Request) string {
 	}
 }
 
-// NewHandler creates a new gin.Engine, and adds a 'GET /metrics' handler to it.
+// NewHandler creates a new http.Handler that handles 'GET /metrics'.
 // The handler serves prometheus metrics from the promRegistry.
-func NewHandler(promRegistry *prometheus.Registry) *gin.Engine {
-	engine := gin.New()
-	engine.GET("/metrics", func(c *gin.Context) {
+func NewHandler(promRegistry *prometheus.Registry) *http.ServeMux {
+	router := http.NewServeMux()
+	router.HandleFunc("/metrics", func(resp http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodGet {
+			resp.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
 		handler := promhttp.InstrumentMetricHandler(
 			promRegistry,
 			promhttp.HandlerFor(promRegistry, promhttp.HandlerOpts{}))
-		handler.ServeHTTP(c.Writer, c.Request)
+		handler.ServeHTTP(resp, req)
 	})
-	return engine
+	return router
 }
 
 // Metric is a container for a count metric and its related labels
