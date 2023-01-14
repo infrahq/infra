@@ -298,7 +298,7 @@ func (c Client) DeleteGroup(ctx context.Context, id uid.ID) error {
 }
 
 func (c Client) UpdateUsersInGroup(ctx context.Context, req *UpdateUsersInGroupRequest) error {
-	_, err := patch[EmptyResponse](ctx, c, fmt.Sprintf("/api/groups/%s/users", req.GroupID), req)
+	_, err := patch[EmptyResponse](ctx, c, fmt.Sprintf("/api/groups/%s/users", req.ID), req)
 	return err
 }
 

@@ -38,14 +38,14 @@ func (r CreateGroupRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type UpdateUsersInGroupRequest struct {
-	GroupID         uid.ID   `uri:"id" json:"-"`
+	Resource
 	UserIDsToAdd    []uid.ID `json:"usersToAdd" note:"List of user IDs to add to the group" example:"[6dYiUyYgKa,6hPY5vqB2R]"`
 	UserIDsToRemove []uid.ID `json:"usersToRemove" note:"List of  user IDs to remove from the group" example:"[3w5qrK7ets,4Ajzyzckdn]"`
 }
 
 func (r UpdateUsersInGroupRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.Required("id", r.GroupID),
+		validate.Required("id", r.ID),
 	}
 }
 

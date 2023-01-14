@@ -238,7 +238,7 @@ $ infra groups adduser johndoe@example.com Engineering
 			}
 
 			req := &api.UpdateUsersInGroupRequest{
-				GroupID:      group.ID,
+				Resource:     api.Resource{ID: group.ID},
 				UserIDsToAdd: []uid.ID{user.ID},
 			}
 			err = client.UpdateUsersInGroup(ctx, req)

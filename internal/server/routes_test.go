@@ -77,28 +77,6 @@ func TestReadRequest_UUIDs(t *testing.T) {
 	assert.Equal(t, "e4d97df2", r.ID.String())
 }
 
-func TestReadRequest_Snowflake(t *testing.T) {
-	c, _ := gin.CreateTestContext(nil)
-
-	id := uid.New()
-	id2 := uid.New()
-
-	uri, err := url.Parse(fmt.Sprintf("/foo/%s?form_id=%s", id.String(), id2.String()))
-	assert.NilError(t, err)
-
-	c.Request = &http.Request{URL: uri, Method: "GET"}
-	c.Params = append(c.Params, gin.Param{Key: "id", Value: id.String()})
-	r := &struct {
-		ID     uid.ID `uri:"id"`
-		FormID uid.ID `form:"form_id"`
-	}{}
-	err = readRequest(c, r)
-	assert.NilError(t, err)
-
-	assert.Equal(t, id, r.ID)
-	assert.Equal(t, id2, r.FormID)
-}
-
 func TestReadRequest_EmptyRequest(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 

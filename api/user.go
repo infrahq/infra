@@ -1,12 +1,17 @@
 package api
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
 type GetUserRequest struct {
 	ID IDOrSelf `uri:"id"`
+}
+
+func (r *GetUserRequest) SetFromParams(p gin.Params) error {
+	return r.ID.SetFromParams(p)
 }
 
 func (r GetUserRequest) ValidationRules() []validate.ValidationRule {
@@ -60,7 +65,7 @@ type CreateUserResponse struct {
 }
 
 type UpdateUserRequest struct {
-	ID          uid.ID `uri:"id" json:"-"`
+	Resource
 	OldPassword string `json:"oldPassword" note:"Old password for the user. Only required when the access key making this request is not owned by an Infra admin" example:"oldpassword"`
 	Password    string `json:"password" note:"New one-time password for the user" example:"newpassword"`
 }

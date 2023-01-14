@@ -665,7 +665,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 			t.Run("I can set passwords for IDP users ", func(t *testing.T) {
 				// (which creates the infra user)
 				_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
-					ID:       user.ID,
+					Resource: api.Resource{ID: user.ID},
 					Password: "1234567890987654321a!",
 				})
 				assert.NilError(t, err)
@@ -690,7 +690,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 					}
 
 					_, err = a.UpdateUser(ctx, &api.UpdateUserRequest{
-						ID:          user.ID,
+						Resource:    api.Resource{ID: user.ID},
 						OldPassword: "whatever",
 						Password:    "1234567890987654321a!",
 					})
@@ -715,7 +715,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 
 				t.Run("I can change my password", func(t *testing.T) {
 					_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
-						ID:          user.ID,
+						Resource:    api.Resource{ID: user.ID},
 						OldPassword: "random password",
 						Password:    "1234567890987654321a!",
 					})
@@ -739,7 +739,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 
 			t.Run("I can change a password for a user", func(t *testing.T) {
 				_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
-					ID:       tmpUserID,
+					Resource: api.Resource{ID: tmpUserID},
 					Password: "123454676twefdhsds",
 				})
 				assert.NilError(t, err)
@@ -766,7 +766,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 			ctx := loginAs(db, user)
 			t.Run("I can change my password", func(t *testing.T) {
 				_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
-					ID:          user.ID,
+					Resource:    api.Resource{ID: user.ID},
 					OldPassword: "random password",
 					Password:    "123454676twefdhsds",
 				})

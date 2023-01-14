@@ -53,13 +53,13 @@ func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type PatchProviderRequest struct {
-	ID           uid.ID `uri:"id" json:"-"`
+	Resource
 	Name         string `json:"name" example:"okta"`
 	ClientSecret string `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
 }
 
 type UpdateProviderRequest struct {
-	ID           uid.ID                  `uri:"id" json:"-"`
+	Resource
 	Name         string                  `json:"name" example:"okta"`
 	URL          string                  `json:"url" example:"infrahq.okta.com"`
 	ClientID     string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`

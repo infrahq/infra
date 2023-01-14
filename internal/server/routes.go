@@ -394,10 +394,19 @@ func del[Req any, Res any](a *API, r *routeGroup, path string, handler HandlerFu
 	add(a, r, http.MethodDelete, path, route[Req, Res]{handler: handler})
 }
 
+type fromParams interface {
+	SetFromParams(params gin.Params) error
+}
+
 func readRequest(c *gin.Context, req interface{}) error {
-	if err := c.ShouldBindUri(req); err != nil {
-		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	if p, ok := req.(fromParams); ok {
+		if err := p.SetFromParams(c.Params); err != nil {
+			return err
+		}
 	}
+	//if err := c.ShouldBindUri(req); err != nil {
+	//	return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	//}
 
 	if err := c.ShouldBindQuery(req); err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)

@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/infrahq/infra/internal/validate"
-	"github.com/infrahq/infra/uid"
 )
 
 type SCIMUserName struct {
@@ -90,7 +89,7 @@ func (r SCIMUserCreateRequest) ValidationRules() []validate.ValidationRule {
 
 // Replacing with PUT: https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.1
 type SCIMUserUpdateRequest struct {
-	ID       uid.ID          `uri:"id" json:"-"`
+	Resource
 	Schemas  []string        `json:"schemas"`
 	UserName string          `json:"userName"`
 	Name     SCIMUserName    `json:"name"`
@@ -118,7 +117,7 @@ type SCIMPatchOperation struct {
 
 // Modifying with PATCH: https://datatracker.ietf.org/doc/html/rfc7644#section-3.5.2
 type SCIMUserPatchRequest struct {
-	ID         uid.ID               `uri:"id" json:"-"`
+	Resource
 	Schemas    []string             `json:"schemas"`
 	Operations []SCIMPatchOperation `json:"Operations"` // json intentionally capitalized
 }

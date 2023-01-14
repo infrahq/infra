@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
@@ -16,6 +17,10 @@ type Organization struct {
 
 type GetOrganizationRequest struct {
 	ID IDOrSelf `uri:"id"`
+}
+
+func (r *GetOrganizationRequest) SetFromParams(p gin.Params) error {
+	return r.ID.SetFromParams(p)
 }
 
 type ListOrganizationsRequest struct {
@@ -43,7 +48,7 @@ func (r CreateOrganizationRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type UpdateOrganizationRequest struct {
-	ID             uid.ID   `uri:"id" json:"-"`
+	Resource
 	AllowedDomains []string `json:"allowedDomains"`
 }
 

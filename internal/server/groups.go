@@ -55,5 +55,5 @@ func (a *API) DeleteGroup(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 }
 
 func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupRequest) (*api.EmptyResponse, error) {
-	return nil, access.UpdateUsersInGroup(c, r.GroupID, r.UserIDsToAdd, r.UserIDsToRemove)
+	return nil, access.UpdateUsersInGroup(c, r.ID, r.UserIDsToAdd, r.UserIDsToRemove)
 }

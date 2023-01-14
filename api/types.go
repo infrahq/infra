@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
@@ -16,8 +16,15 @@ import (
 
 type Query url.Values
 
+// TODO: rename to Identifier
 type Resource struct {
-	ID uid.ID `uri:"id"`
+	ID uid.ID `uri:"id" json:"-"`
+}
+
+func (r *Resource) SetFromParams(p gin.Params) error {
+	var err error
+	r.ID, err = uid.Parse([]byte(p.ByName("id")))
+	return err
 }
 
 func (r Resource) ValidationRules() []validate.ValidationRule {
@@ -33,13 +40,14 @@ type IDOrSelf struct {
 	IsSelf bool
 }
 
-func (i *IDOrSelf) UnmarshalText(b []byte) error {
-	if bytes.Equal(b, []byte("self")) {
-		i.IsSelf = true
+func (r *IDOrSelf) SetFromParams(p gin.Params) error {
+	id := p.ByName("id")
+	if id == "self" {
+		r.IsSelf = true
 		return nil
 	}
 	var err error
-	i.ID, err = uid.Parse(b)
+	r.ID, err = uid.Parse([]byte(id))
 	return err
 }
 
