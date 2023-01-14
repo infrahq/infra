@@ -1,17 +1,16 @@
-import { useRouter } from 'next/router'
-import useSWR from 'swr'
+import useSWR, { useSWRConfig } from 'swr'
 
 const INFRA_ADMIN_ROLE = 'admin'
 
-export function useUser({ redirectTo, redirectIfFound } = {}) {
-  const { data: user, error, mutate } = useSWR('/api/users/self')
+export function useUser() {
+  const { cache } = useSWRConfig()
+  const { data: user, error } = useSWR('/api/users/self')
   const { data: org } = useSWR(() => (user ? '/api/organizations/self' : null))
   const { data: { items: grants } = {}, grantsError } = useSWR(() =>
     user
       ? `/api/grants?user=${user?.id}&showInherited=1&resource=infra&limit=1000`
       : null
   )
-  const router = useRouter()
 
   const loading =
     // User loading
@@ -21,15 +20,6 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
 
   if (loading) {
     return { loading }
-  }
-
-  // Redirect only if we aren't loading or fetching new data
-  if (
-    !loading &&
-    ((redirectTo && !redirectIfFound && !user) || (redirectIfFound && user))
-  ) {
-    router.replace(redirectTo)
-    return { loading: true }
   }
 
   return {
@@ -47,13 +37,9 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
 
       const data = await jsonBody(res)
 
-      // Don't reset state if a password change is required
-      if (data.passwordUpdateRequired) {
-        return data
+      for (const key of cache.keys()) {
+        cache.delete(key)
       }
-
-      // Clear user cache
-      mutate(undefined, true)
 
       return data
     },
@@ -61,8 +47,9 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
     // logout logs the user out and redirects them to the login page
     logout: async () => {
       await fetch('/api/logout', { method: 'POST' })
-      mutate(undefined, true)
-      router.replace('/login')
+      for (const key of cache.keys()) {
+        cache.delete(key)
+      }
     },
   }
 }

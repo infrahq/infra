@@ -5,12 +5,14 @@ export default function Login({ children }) {
   const router = useRouter()
   const { next } = router.query
 
-  const { loading } = useUser({
-    redirectTo: next ? decodeURIComponent(next) : '/',
-    redirectIfFound: true,
-  })
+  const { loading, user } = useUser()
 
   if (loading) {
+    return null
+  }
+
+  if (user) {
+    router.replace(next ? decodeURIComponent(next) : '/')
     return null
   }
 

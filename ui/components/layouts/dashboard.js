@@ -78,15 +78,19 @@ function SidebarNav({ children, open, setOpen }) {
 export default function Dashboard({ children }) {
   const router = useRouter()
 
-  const { user, loading, isAdmin, org, logout } = useUser({
-    redirectTo:
-      router.asPath === '/'
-        ? '/login'
-        : `/login?next=${encodeURIComponent(router.asPath)}`,
-  })
+  const { user, loading, isAdmin, org, logout } = useUser()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   if (loading) {
+    return null
+  }
+
+  if (!user) {
+    router.replace(
+      router.asPath === '/'
+        ? '/login'
+        : `/login?next=${encodeURIComponent(router.asPath)}`
+    )
     return null
   }
 
@@ -181,7 +185,10 @@ export default function Dashboard({ children }) {
           </div>
           <button
             type='button'
-            onClick={() => logout()}
+            onClick={async () => {
+              await logout()
+              router.replace('/login')
+            }}
             className='flex w-full cursor-pointer items-center text-[12px] font-medium text-gray-500/75 hover:text-gray-500'
           >
             <ArrowLeftOnRectangleIcon
