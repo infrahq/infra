@@ -4,8 +4,8 @@ import useSWR from 'swr'
 const INFRA_ADMIN_ROLE = 'admin'
 
 export function useUser({ redirectTo, redirectIfFound } = {}) {
-  const { data: user, error, isValidating, mutate } = useSWR('/api/users/self')
-  const { data: org } = useSWR('/api/organizations/self')
+  const { data: user, error, mutate } = useSWR('/api/users/self')
+  const { data: org } = useSWR(() => (user ? '/api/organizations/self' : null))
   const { data: { items: grants } = {}, grantsError } = useSWR(() =>
     user
       ? `/api/grants?user=${user?.id}&showInherited=1&resource=infra&limit=1000`
@@ -26,7 +26,6 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
   // Redirect only if we aren't loading or fetching new data
   if (
     !loading &&
-    !isValidating &&
     ((redirectTo && !redirectIfFound && !user) || (redirectIfFound && user))
   ) {
     router.replace(redirectTo)
@@ -54,19 +53,16 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
       }
 
       // Clear user cache
-      mutate(undefined, false)
+      mutate(undefined, true)
 
       return data
     },
 
     // logout logs the user out and redirects them to the login page
     logout: async () => {
-      await fetch('/api/logout', {
-        method: 'POST',
-      })
-
-      // Do a "hard" redirect in order to clear the swr cache of all data
-      window.location = '/login'
+      await fetch('/api/logout', { method: 'POST' })
+      mutate(undefined, true)
+      router.replace('/login')
     },
   }
 }

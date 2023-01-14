@@ -46,9 +46,8 @@ export default function Login() {
         return false
       }
 
-      router.replace(next ? decodeURIComponent(next) : '/')
-
       saveToVisitedOrgs(window.location.host, data?.organizationName)
+      router.replace(next ? decodeURIComponent(next) : '/')
     } catch (e) {
       console.error(e)
       if (e.fieldErrors) {

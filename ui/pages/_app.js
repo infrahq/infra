@@ -16,6 +16,7 @@ const swrConfig = {
   fetcher,
   revalidateOnFocus: false,
   revalidateOnReconnect: false,
+  shouldRetryOnError: false,
 }
 
 export default function App({ Component, pageProps }) {

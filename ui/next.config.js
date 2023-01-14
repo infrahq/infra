@@ -22,21 +22,6 @@ module.exports = phase => ({
 
     return null
   },
-  async redirects() {
-    return [
-      {
-        source: '/',
-        has: [
-          {
-            type: 'cookie',
-            key: 'auth',
-          },
-        ],
-        destination: '/destinations',
-        permanent: false,
-      },
-    ]
-  },
   async headers() {
     return [
       {
