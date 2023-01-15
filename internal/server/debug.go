@@ -40,12 +40,12 @@ func pprofHandler(c *gin.Context, _ *pprofRequest) (*api.EmptyResponse, error) {
 
 	switch c.Param("profile") {
 	case "/trace":
-		pprof.Trace(c.Writer, c.Request)
+		pprof.Trace(rCtx.Response.HTTPWriter, c.Request)
 	case "/profile":
-		pprof.Profile(c.Writer, c.Request)
+		pprof.Profile(rCtx.Response.HTTPWriter, c.Request)
 	default:
 		// All other types of profiles are served from Index
-		http.StripPrefix("/api", http.HandlerFunc(pprof.Index)).ServeHTTP(c.Writer, c.Request)
+		http.StripPrefix("/api", http.HandlerFunc(pprof.Index)).ServeHTTP(rCtx.Response.HTTPWriter, c.Request)
 	}
 	return nil, nil
 }

@@ -256,7 +256,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			DBTxn:         tx,
 			Authenticated: authned,
 			DataDB:        a.server.db,
-			Response:      &access.ResponseMetadata{},
+			Response:      &access.Response{HTTPWriter: c.Writer},
 		}
 		c.Set(access.RequestContextKey, rCtx)
 
@@ -280,7 +280,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 
 		// TODO: extract all response header/status/body writing to another function
 		if respHeaders, ok := any(resp).(hasResponseHeaders); ok {
-			respHeaders.SetHeaders(c.Writer.Header())
+			respHeaders.SetHeaders(rCtx.Response.HTTPWriter.Header())
 		}
 		if r, ok := any(resp).(isRedirect); ok {
 			c.Redirect(http.StatusPermanentRedirect, r.RedirectURL())
