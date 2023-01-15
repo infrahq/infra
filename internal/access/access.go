@@ -13,6 +13,7 @@ import (
 
 const ResourceInfraAPI = "infra"
 
+// TODO: remove
 // RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
 func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*data.Transaction, error) {
 	rCtx := GetRequestContext(c)

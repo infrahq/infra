@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+// TODO: move test coverage to API handler
 func TestAccessKeys_SelfManagement(t *testing.T) {
 	db := setupDB(t)
 
@@ -22,13 +22,11 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 	err = data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
-	c, _ := gin.CreateTestContext(nil)
 	tx := txnForTestCase(t, db).WithOrgID(org.ID)
 	rCtx := RequestContext{
 		DBTxn:         tx,
 		Authenticated: Authenticated{User: user, Organization: org},
 	}
-	c.Set(RequestContextKey, rCtx)
 
 	t.Run("can manage my own keys", func(t *testing.T) {
 		key := &models.AccessKey{
@@ -37,7 +35,7 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 			IssuedFor:          user.ID,
 			ExpiresAt:          time.Now().Add(1 * time.Minute),
 		}
-		_, err = CreateAccessKey(c, key)
+		_, err = CreateAccessKey(rCtx, key)
 		assert.NilError(t, err)
 
 		r := rCtx // shallow copy
@@ -47,7 +45,7 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 	})
 
 	t.Run("can list my own keys", func(t *testing.T) {
-		_, err := ListAccessKeys(c, user.ID, "", true, &data.Pagination{})
+		_, err := ListAccessKeys(rCtx, user.ID, "", true, &data.Pagination{})
 		assert.NilError(t, err)
 	})
 
@@ -58,10 +56,10 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 			IssuedFor:          user.ID,
 			ExpiresAt:          time.Now().Add(1 * time.Minute),
 		}
-		_, err = CreateAccessKey(c, key)
+		_, err = CreateAccessKey(rCtx, key)
 		assert.NilError(t, err)
 
-		keys, err := ListAccessKeys(c, user.ID, key.Name, false, nil)
+		keys, err := ListAccessKeys(rCtx, user.ID, key.Name, false, nil)
 		assert.NilError(t, err)
 		assert.Assert(t, len(keys) >= 1)
 	})
@@ -76,7 +74,6 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 
 	orgMember := models.OrganizationMember{OrganizationID: org.ID}
 
-	c, _ := gin.CreateTestContext(nil)
 	tx := txnForTestCase(t, db).WithOrgID(org.ID)
 
 	t.Run("admin role", func(t *testing.T) {
@@ -95,7 +92,6 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 			DBTxn:         tx,
 			Authenticated: Authenticated{User: user, Organization: org, AccessKey: key},
 		}
-		c.Set(RequestContextKey, rCtx)
 
 		t.Run("can create access key for self", func(t *testing.T) {
 			key := &models.AccessKey{
@@ -104,7 +100,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 				IssuedFor:          user.ID,
 				ExpiresAt:          time.Now().Add(1 * time.Minute),
 			}
-			_, err := CreateAccessKey(c, key)
+			_, err := CreateAccessKey(rCtx, key)
 			assert.ErrorContains(t, err, "cannot use an access key to create other access keys")
 		})
 
@@ -119,7 +115,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 				IssuedFor:          user.ID,
 				ExpiresAt:          time.Now().Add(1 * time.Minute),
 			}
-			_, err := CreateAccessKey(c, key)
+			_, err := CreateAccessKey(rCtx, key)
 			assert.ErrorContains(t, err, "cannot use an access key to create other access keys")
 		})
 
@@ -132,7 +128,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 				ExpiresAt:          time.Now().Add(1 * time.Minute),
 			}
 
-			_, err := CreateAccessKey(c, key)
+			_, err := CreateAccessKey(rCtx, key)
 			assert.NilError(t, err)
 		})
 	})
@@ -150,7 +146,6 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 			DBTxn:         tx,
 			Authenticated: Authenticated{User: user, Organization: org, AccessKey: key},
 		}
-		c.Set(RequestContextKey, rCtx)
 
 		t.Run("cannot create access key", func(t *testing.T) {
 			key := &models.AccessKey{
@@ -160,7 +155,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 				ExpiresAt:          time.Now().Add(1 * time.Minute),
 			}
 
-			_, err := CreateAccessKey(c, key)
+			_, err := CreateAccessKey(rCtx, key)
 			assert.ErrorContains(t, err, "cannot use an access key to create other access keys")
 		})
 	})

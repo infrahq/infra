@@ -3,22 +3,18 @@ package access
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired bool, p *data.Pagination) ([]models.AccessKey, error) {
-	rCtx := GetRequestContext(c)
+func ListAccessKeys(rCtx RequestContext, identityID uid.ID, name string, showExpired bool, p *data.Pagination) ([]models.AccessKey, error) {
 	if identityID == rCtx.Authenticated.User.ID {
 		// can list own keys
 	} else {
 		roles := []string{models.InfraAdminRole, models.InfraViewRole}
-		_, err := RequireInfraRole(c, roles...)
-		if err != nil {
+		if err := IsAuthorized(rCtx, roles...); err != nil {
 			return nil, HandleAuthErr(err, "access keys", "list", roles...)
 		}
 	}
@@ -32,9 +28,7 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 	return data.ListAccessKeys(rCtx.DBTxn, opts)
 }
 
-func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (string, error) {
-	rCtx := GetRequestContext(c)
-
+func CreateAccessKey(rCtx RequestContext, accessKey *models.AccessKey) (string, error) {
 	if rCtx.Authenticated.AccessKey != nil && !rCtx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
 		if connector := data.InfraConnectorIdentity(rCtx.DBTxn); connector.ID != accessKey.IssuedFor {
 			// non-login access keys can not currently create non-connector access keys.

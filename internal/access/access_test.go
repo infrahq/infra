@@ -26,21 +26,20 @@ func setupDB(t *testing.T) *data.DB {
 	return db
 }
 
-func setupAccessTestContext(t *testing.T) (*gin.Context, *data.Transaction, *models.Provider) {
+func setupAccessTestContext(t *testing.T) RequestContext {
 	// setup db and context
 	db := setupDB(t)
 
-	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	tx := txnForTestCase(t, db)
 
 	admin := &models.Identity{Name: "admin@example.com"}
 	err := data.CreateIdentity(tx, admin)
 	assert.NilError(t, err)
 
-	c.Set(RequestContextKey, RequestContext{
+	rCtx := RequestContext{
 		DBTxn:         tx,
 		Authenticated: Authenticated{User: admin},
-	})
+	}
 
 	adminGrant := &models.Grant{
 		Subject:   models.NewSubjectForUser(admin.ID),
@@ -50,9 +49,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *data.Transaction, *mod
 	err = data.CreateGrant(tx, adminGrant)
 	assert.NilError(t, err)
 
-	provider := data.InfraProvider(tx)
-
-	return c, tx, provider
+	return rCtx
 }
 
 func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {

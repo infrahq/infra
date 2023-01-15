@@ -13,8 +13,9 @@ import (
 )
 
 func TestListIdentities(t *testing.T) {
-	// create the identity
-	c, db, infraProvider := setupAccessTestContext(t)
+	rCtx := setupAccessTestContext(t)
+	db := rCtx.DBTxn
+	infraProvider := data.InfraProvider(db)
 
 	activeIdentity := &models.Identity{Name: "active-list-hide-id"}
 
@@ -30,7 +31,7 @@ func TestListIdentities(t *testing.T) {
 	assert.NilError(t, err)
 
 	// test fetch all identities
-	ids, err := ListIdentities(c, data.ListIdentityOptions{})
+	ids, err := ListIdentities(rCtx, data.ListIdentityOptions{})
 	assert.NilError(t, err)
 
 	assert.Equal(t, len(ids), 4) // the two identities created, the admin one used to call these access functions, and the internal connector identity
@@ -45,8 +46,9 @@ func TestListIdentities(t *testing.T) {
 }
 
 func TestDeleteIdentityCleansUpResources(t *testing.T) {
-	// create the identity
-	c, db, infraProvider := setupAccessTestContext(t)
+	rCtx := setupAccessTestContext(t)
+	db := rCtx.DBTxn
+	infraProvider := data.InfraProvider(db)
 
 	identity := &models.Identity{Name: "to-be-deleted"}
 
@@ -92,7 +94,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	assert.NilError(t, err)
 
 	// delete the identity, and make sure all their resources are gone
-	err = DeleteIdentity(c, identity.ID)
+	err = DeleteIdentity(rCtx, identity.ID)
 	assert.NilError(t, err)
 
 	_, err = data.GetIdentity(db, data.GetIdentityOptions{ByID: identity.ID})
