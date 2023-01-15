@@ -4,18 +4,16 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]models.Organization, error) {
-	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
+func ListOrganizations(rCtx RequestContext, name string, pg *data.Pagination) ([]models.Organization, error) {
+	err := IsAuthorized(rCtx, models.InfraSupportAdminRole)
 	if err == nil {
-		return data.ListOrganizations(db, data.ListOrganizationsOptions{
+		return data.ListOrganizations(rCtx.DBTxn, data.ListOrganizationsOptions{
 			ByName:     name,
 			Pagination: pg,
 		})
@@ -28,8 +26,7 @@ func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]mode
 	return nil, err
 }
 
-func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
-	rCtx := GetRequestContext(c)
+func GetOrganization(rCtx RequestContext, id uid.ID) (*models.Organization, error) {
 	if user := rCtx.Authenticated.User; user != nil && user.OrganizationID == id {
 		// request is authorized because the user is a member of the org
 	} else {
@@ -43,27 +40,26 @@ func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
 	return data.GetOrganization(rCtx.DBTxn, data.GetOrganizationOptions{ByID: id})
 }
 
-func CreateOrganization(c *gin.Context, org *models.Organization) error {
-	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
+func CreateOrganization(rCtx RequestContext, org *models.Organization) error {
+	err := IsAuthorized(rCtx, models.InfraSupportAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "organizations", "create", models.InfraSupportAdminRole)
 	}
 
-	return data.CreateOrganization(db, org)
+	return data.CreateOrganization(rCtx.DBTxn, org)
 }
 
-func DeleteOrganization(c *gin.Context, id uid.ID) error {
-	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
+func DeleteOrganization(rCtx RequestContext, id uid.ID) error {
+	err := IsAuthorized(rCtx, models.InfraSupportAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "organizations", "delete", models.InfraSupportAdminRole)
 	}
 
-	return data.DeleteOrganization(db, id)
+	return data.DeleteOrganization(rCtx.DBTxn, id)
 }
 
 // DomainAvailable is needed to check if an org domain is available before completing social sign-up
-func DomainAvailable(c *gin.Context, domain string) error {
-	rCtx := GetRequestContext(c)
+func DomainAvailable(rCtx RequestContext, domain string) error {
 	_, err := data.GetOrganization(rCtx.DBTxn, data.GetOrganizationOptions{ByDomain: domain})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -74,15 +70,14 @@ func DomainAvailable(c *gin.Context, domain string) error {
 	return data.UniqueConstraintError{Table: "organization", Column: "domain", Value: domain}
 }
 
-func UpdateOrganization(c *gin.Context, org *models.Organization) error {
-	rCtx := GetRequestContext(c)
+func UpdateOrganization(rCtx RequestContext, org *models.Organization) error {
 	if user := rCtx.Authenticated.User; user != nil && user.OrganizationID == org.ID {
 		// admins may update their own org
-		db, err := RequireInfraRole(c, models.InfraAdminRole)
+		err := IsAuthorized(rCtx, models.InfraAdminRole)
 		if err != nil {
 			return HandleAuthErr(err, "organization", "update", models.InfraAdminRole)
 		}
-		return data.UpdateOrganization(db, org)
+		return data.UpdateOrganization(rCtx.DBTxn, org)
 	}
 	return fmt.Errorf("%w: %s", ErrNotAuthorized, "you may only update your own organization")
 }

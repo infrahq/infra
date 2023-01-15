@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/infra/internal/server/data"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/server/data"
 )
 
 func (a *API) GetSettings(c *gin.Context, r *api.EmptyRequest) (*api.Settings, error) {
