@@ -83,12 +83,26 @@ var wellKnownJWKsRoute = route[api.EmptyRequest, WellKnownJWKResponse]{
 
 func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResponse, error) {
 	rCtx := getRequestContext(c)
-	keys, err := access.GetPublicJWK(rCtx)
+	keys, err := getPublicJWK(rCtx)
 	if err != nil {
 		return WellKnownJWKResponse{}, err
 	}
 
 	return WellKnownJWKResponse{Keys: keys}, nil
+}
+
+func getPublicJWK(rCtx access.RequestContext) ([]jose.JSONWebKey, error) {
+	settings, err := data.GetSettings(rCtx.DBTxn)
+	if err != nil {
+		return nil, fmt.Errorf("could not get JWKs: %w", err)
+	}
+
+	var pubKey jose.JSONWebKey
+	if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
+		return nil, fmt.Errorf("could not get JWKs: %w", err)
+	}
+
+	return []jose.JSONWebKey{pubKey}, nil
 }
 
 type WellKnownJWKResponse struct {
