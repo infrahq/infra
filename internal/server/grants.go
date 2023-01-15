@@ -47,7 +47,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		opts.Pagination = &p
 	}
 
-	grants, err := access.ListGrants(c, opts, r.LastUpdateIndex)
+	grants, err := access.ListGrants(rCtx, opts, r.LastUpdateIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,8 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
-	grant, err := access.GetGrant(c, r.ID)
+	rCtx := getRequestContext(c)
+	grant, err := access.GetGrant(rCtx, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,12 +75,13 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 }
 
 func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
+	rCtx := getRequestContext(c)
 	grant, err := getGrantFromGrantRequest(c, *r)
 	if err != nil {
 		return nil, err
 	}
 
-	err = access.CreateGrant(c, grant)
+	err = access.CreateGrant(rCtx, grant)
 	var ucerr data.UniqueConstraintError
 
 	if errors.As(err, &ucerr) {
@@ -88,7 +90,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrant
 			BySubject:    grant.Subject,
 			ByPrivileges: []string{grant.Privilege},
 		}
-		grants, err := access.ListGrants(c, opts, 0)
+		grants, err := access.ListGrants(rCtx, opts, 0)
 
 		if err != nil {
 			return nil, err
@@ -110,7 +112,8 @@ func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrant
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	grant, err := access.GetGrant(c, r.ID)
+	rCtx := getRequestContext(c)
+	grant, err := access.GetGrant(rCtx, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +123,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 			ByResource:   access.ResourceInfraAPI,
 			ByPrivileges: []string{models.InfraAdminRole},
 		}
-		infraAdminGrants, err := access.ListGrants(c, opts, 0)
+		infraAdminGrants, err := access.ListGrants(rCtx, opts, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -130,10 +133,11 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 		}
 	}
 
-	return nil, access.DeleteGrant(c, r.ID)
+	return nil, access.DeleteGrant(rCtx, r.ID)
 }
 
 func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
+	rCtx := getRequestContext(c)
 	iden := access.GetRequestContext(c).Authenticated.User
 	var addGrants []*models.Grant
 	for _, g := range r.GrantsToAdd {
@@ -154,7 +158,7 @@ func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.Emp
 		rmGrants = append(rmGrants, grant)
 	}
 
-	return nil, access.UpdateGrants(c, addGrants, rmGrants)
+	return nil, access.UpdateGrants(rCtx, addGrants, rmGrants)
 }
 
 func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant, error) {
