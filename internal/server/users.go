@@ -60,7 +60,7 @@ var getUserRoute = route[api.GetUserRequest, *api.User]{
 }
 
 func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
-	rCtx := access.GetRequestContext(c)
+	rCtx := getRequestContext(c)
 	if r.ID.IsSelf {
 		iden := rCtx.Authenticated.User
 		if iden == nil {
@@ -109,7 +109,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	}
 
 	if email.IsConfigured() {
-		rCtx := access.GetRequestContext(c)
 		org := rCtx.Authenticated.Organization
 		currentUser := rCtx.Authenticated.User
 

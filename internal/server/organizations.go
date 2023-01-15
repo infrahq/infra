@@ -28,7 +28,7 @@ func (a *API) ListOrganizations(c *gin.Context, r *api.ListOrganizationsRequest)
 func (a *API) GetOrganization(c *gin.Context, r *api.GetOrganizationRequest) (*api.Organization, error) {
 	rCtx := getRequestContext(c)
 	if r.ID.IsSelf {
-		iden := access.GetRequestContext(c).Authenticated.Organization
+		iden := rCtx.Authenticated.Organization
 		if iden == nil {
 			return nil, fmt.Errorf("no authenticated user")
 		}

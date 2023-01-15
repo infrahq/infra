@@ -7,7 +7,6 @@ import (
 	"gopkg.in/segmentio/analytics-go.v3"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/uid"
@@ -101,7 +100,7 @@ func (t *Telemetry) EnqueueHeartbeat() {
 func (t *Telemetry) RouteEvent(c *gin.Context, event string, properties ...map[string]interface{}) {
 	var uid, oid string
 	if c != nil {
-		a := access.GetRequestContext(c).Authenticated
+		a := getRequestContext(c).Authenticated
 		if user := a.User; user != nil {
 			uid = user.ID.String()
 		}

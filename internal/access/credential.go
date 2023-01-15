@@ -7,7 +7,6 @@ import (
 	"os"
 	"unicode"
 
-	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/infrahq/infra/internal"
@@ -158,16 +157,6 @@ func updateCredential(tx *data.Transaction, credential *models.Credential, passw
 	}
 
 	return nil
-}
-
-// TODO: remove
-func GetRequestContext(c *gin.Context) RequestContext {
-	if raw, ok := c.Get(RequestContextKey); ok {
-		if rCtx, ok := raw.(RequestContext); ok {
-			return rCtx
-		}
-	}
-	return RequestContext{}
 }
 
 // list of special charaters from OWASP:

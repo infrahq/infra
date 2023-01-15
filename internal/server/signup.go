@@ -199,7 +199,7 @@ func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomai
 		return nil, fmt.Errorf("sign-up requires social login details or user details")
 	}
 
-	rCtx := access.GetRequestContext(c)
+	rCtx := getRequestContext(c)
 	db := rCtx.DBTxn
 
 	details.Org.Domain = sanitizedDomain(details.SubDomain, baseDomain)
