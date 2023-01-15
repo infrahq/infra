@@ -138,7 +138,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 
 func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
 	rCtx := getRequestContext(c)
-	iden := access.GetRequestContext(c).Authenticated.User
+	iden := rCtx.Authenticated.User
 	var addGrants []*models.Grant
 	for _, g := range r.GrantsToAdd {
 		grant, err := getGrantFromGrantRequest(rCtx, g)

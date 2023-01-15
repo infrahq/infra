@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/data"
@@ -62,7 +60,7 @@ func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
 	return tx.WithOrgID(db.DefaultOrg.ID)
 }
 
-func TestAuthorize(t *testing.T) {
+func TestIsAuthorized(t *testing.T) {
 	db := setupDB(t)
 
 	admin := &models.Identity{Name: "admin@infrahq.com"}
@@ -78,7 +76,7 @@ func TestAuthorize(t *testing.T) {
 	can(t, db, 777, "write")
 }
 
-func TestRequireInfraRole_GrantsFromGroupMembership(t *testing.T) {
+func TestIsAuthorized_GrantsFromGroupMembership(t *testing.T) {
 	db := setupDB(t)
 
 	tom := &models.Identity{Name: "tom@infrahq.com"}
@@ -97,28 +95,26 @@ func TestRequireInfraRole_GrantsFromGroupMembership(t *testing.T) {
 	_, err = data.AssignIdentityToGroups(db, user, []string{tomsGroup.Name})
 	assert.NilError(t, err)
 
-	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	tx := txnForTestCase(t, db)
-	c.Set(RequestContextKey, RequestContext{
+	rCtx := RequestContext{
 		DBTxn:         tx,
 		Authenticated: Authenticated{User: tom},
-	})
-	authDB, err := RequireInfraRole(c, models.InfraAdminRole)
+	}
+	err = IsAuthorized(rCtx, models.InfraAdminRole)
 	assert.ErrorIs(t, err, ErrNotAuthorized)
-	assert.Assert(t, authDB == nil)
 
 	admin := &models.Identity{Model: models.Model{ID: uid.ID(512)}}
 	grant(t, tx, admin, models.NewSubjectForGroup(tomsGroup.ID), models.InfraAdminRole, "infra")
 
-	authDB, err = RequireInfraRole(c, models.InfraAdminRole)
+	err = IsAuthorized(rCtx, models.InfraAdminRole)
 	assert.NilError(t, err)
-	assert.Assert(t, authDB != nil)
 }
 
-func TestRequireInfraRole(t *testing.T) {
+// TODO: mergge this with TestIsAuthorized
+func TestIsAuthorized_MoreCases(t *testing.T) {
 	db := setupDB(t)
 
-	setup := func(t *testing.T, infraRole string) *gin.Context {
+	setup := func(t *testing.T, infraRole string) RequestContext {
 		testIdentity := &models.Identity{Name: fmt.Sprintf("infra-%s-%s", infraRole, time.Now())}
 
 		err := data.CreateIdentity(db, testIdentity)
@@ -127,45 +123,39 @@ func TestRequireInfraRole(t *testing.T) {
 		err = data.CreateGrant(db, &models.Grant{Subject: models.NewSubjectForUser(testIdentity.ID), Privilege: infraRole, Resource: ResourceInfraAPI})
 		assert.NilError(t, err)
 
-		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		tx := txnForTestCase(t, db)
-		c.Set(RequestContextKey, RequestContext{
+		return RequestContext{
 			DBTxn:         tx,
 			Authenticated: Authenticated{User: testIdentity},
-		})
-		return c
+		}
 	}
 
 	t.Run("has specific required role", func(t *testing.T) {
 		c := setup(t, models.InfraAdminRole)
 
-		authDB, err := RequireInfraRole(c, models.InfraAdminRole)
+		err := IsAuthorized(c, models.InfraAdminRole)
 		assert.NilError(t, err)
-		assert.Assert(t, authDB != nil)
 	})
 
 	t.Run("does not have specific required role", func(t *testing.T) {
 		c := setup(t, models.InfraViewRole)
 
-		authDB, err := RequireInfraRole(c, models.InfraAdminRole)
+		err := IsAuthorized(c, models.InfraAdminRole)
 		assert.ErrorIs(t, err, ErrNotAuthorized)
-		assert.Assert(t, authDB == nil)
 	})
 
 	t.Run("has required role in list", func(t *testing.T) {
 		c := setup(t, models.InfraViewRole)
 
-		authDB, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole)
+		err := IsAuthorized(c, models.InfraAdminRole, models.InfraViewRole)
 		assert.NilError(t, err)
-		assert.Assert(t, authDB != nil)
 	})
 
 	t.Run("does not have required role in list", func(t *testing.T) {
 		c := setup(t, models.InfraViewRole)
 
-		authDB, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+		err := IsAuthorized(c, models.InfraAdminRole, models.InfraConnectorRole)
 		assert.ErrorIs(t, err, ErrNotAuthorized)
-		assert.Assert(t, authDB == nil)
 	})
 }
 
