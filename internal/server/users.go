@@ -60,14 +60,15 @@ var getUserRoute = route[api.GetUserRequest, *api.User]{
 }
 
 func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
+	rCtx := access.GetRequestContext(c)
 	if r.ID.IsSelf {
-		iden := access.GetRequestContext(c).Authenticated.User
+		iden := rCtx.Authenticated.User
 		if iden == nil {
 			return nil, fmt.Errorf("no authenticated user")
 		}
 		r.ID.ID = iden.ID
 	}
-	identity, err := access.GetIdentity(c, data.GetIdentityOptions{
+	identity, err := access.GetIdentity(rCtx, data.GetIdentityOptions{
 		ByID:           r.ID.ID,
 		LoadProviders:  true,
 		LoadPublicKeys: true,
@@ -92,7 +93,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 
 	switch len(identities) {
 	case 0:
-		if err := access.CreateIdentity(c, user); err != nil {
+		if err := access.CreateIdentity(rCtx, user); err != nil {
 			return nil, fmt.Errorf("create identity: %w", err)
 		}
 	case 1:
@@ -155,7 +156,7 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.UpdateU
 		}, nil
 	}
 
-	user, err := access.GetIdentity(c, data.GetIdentityOptions{ByID: r.ID, LoadProviders: true})
+	user, err := access.GetIdentity(rCtx, data.GetIdentityOptions{ByID: r.ID, LoadProviders: true})
 	if err != nil {
 		return nil, err
 	}

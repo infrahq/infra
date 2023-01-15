@@ -1,8 +1,6 @@
 package access
 
 import (
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -26,8 +24,7 @@ func isIdentitySelf(rCtx RequestContext, opts data.GetIdentityOptions) bool {
 	return false
 }
 
-func GetIdentity(c *gin.Context, opts data.GetIdentityOptions) (*models.Identity, error) {
-	rCtx := GetRequestContext(c)
+func GetIdentity(rCtx RequestContext, opts data.GetIdentityOptions) (*models.Identity, error) {
 	// anyone can get their own user data
 	if !isIdentitySelf(rCtx, opts) {
 		roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
@@ -40,13 +37,13 @@ func GetIdentity(c *gin.Context, opts data.GetIdentityOptions) (*models.Identity
 	return data.GetIdentity(rCtx.DBTxn, opts)
 }
 
-func CreateIdentity(c *gin.Context, identity *models.Identity) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+func CreateIdentity(rCtx RequestContext, identity *models.Identity) error {
+	err := IsAuthorized(rCtx, models.InfraAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "user", "create", models.InfraAdminRole)
 	}
 
-	return data.CreateIdentity(db, identity)
+	return data.CreateIdentity(rCtx.DBTxn, identity)
 }
 
 func DeleteIdentity(rCtx RequestContext, id uid.ID) error {

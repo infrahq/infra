@@ -10,8 +10,9 @@ import (
 )
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
+	rCtx := getRequestContext(c)
 	p := PaginationFromRequest(r.PaginationRequest)
-	groups, err := access.ListGroups(c, r.Name, r.UserID, &p)
+	groups, err := access.ListGroups(rCtx, r.Name, r.UserID, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +25,8 @@ func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListRes
 }
 
 func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
-	group, err := access.GetGroup(c, data.GetGroupOptions{ByID: r.ID})
+	rCtx := getRequestContext(c)
+	group, err := access.GetGroup(rCtx, data.GetGroupOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
 	}
@@ -33,16 +35,15 @@ func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
 }
 
 func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group, error) {
-	group := &models.Group{
-		Name: r.Name,
-	}
+	rCtx := getRequestContext(c)
+	group := &models.Group{Name: r.Name}
 
 	authIdent := getRequestContext(c).Authenticated.User
 	if authIdent != nil {
 		group.CreatedBy = authIdent.ID
 	}
 
-	err := access.CreateGroup(c, group)
+	err := access.CreateGroup(rCtx, group)
 	if err != nil {
 		return nil, err
 	}
@@ -51,9 +52,11 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 }
 
 func (a *API) DeleteGroup(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteGroup(c, r.ID)
+	rCtx := getRequestContext(c)
+	return nil, access.DeleteGroup(rCtx, r.ID)
 }
 
 func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupRequest) (*api.EmptyResponse, error) {
-	return nil, access.UpdateUsersInGroup(c, r.GroupID, r.UserIDsToAdd, r.UserIDsToRemove)
+	rCtx := getRequestContext(c)
+	return nil, access.UpdateUsersInGroup(rCtx, r.GroupID, r.UserIDsToAdd, r.UserIDsToRemove)
 }

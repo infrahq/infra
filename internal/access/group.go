@@ -5,17 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func ListGroups(c *gin.Context, name string, userID uid.ID, p *data.Pagination) ([]models.Group, error) {
-	rCtx := GetRequestContext(c)
-
+func ListGroups(rCtx RequestContext, name string, userID uid.ID, p *data.Pagination) ([]models.Group, error) {
 	opts := data.ListGroupsOptions{
 		ByName:        name,
 		ByGroupMember: userID,
@@ -23,7 +19,7 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, p *data.Pagination) 
 	}
 
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
-	_, err := RequireInfraRole(c, roles...)
+	err := IsAuthorized(rCtx, roles...)
 	if err == nil {
 		return data.ListGroups(rCtx.DBTxn, opts)
 	}
@@ -43,19 +39,18 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, p *data.Pagination) 
 	return nil, err
 }
 
-func CreateGroup(c *gin.Context, group *models.Group) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+func CreateGroup(rCtx RequestContext, group *models.Group) error {
+	err := IsAuthorized(rCtx, models.InfraAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "group", "create", models.InfraAdminRole)
 	}
 
-	return data.CreateGroup(db, group)
+	return data.CreateGroup(rCtx.DBTxn, group)
 }
 
-func GetGroup(c *gin.Context, opts data.GetGroupOptions) (*models.Group, error) {
-	rCtx := GetRequestContext(c)
+func GetGroup(rCtx RequestContext, opts data.GetGroupOptions) (*models.Group, error) {
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
-	_, err := RequireInfraRole(c, roles...)
+	err := IsAuthorized(rCtx, roles...)
 	err = HandleAuthErr(err, "group", "get", roles...)
 	if errors.Is(err, ErrNotAuthorized) {
 		// get the group, but only to check if the user is in it
@@ -73,12 +68,12 @@ func GetGroup(c *gin.Context, opts data.GetGroupOptions) (*models.Group, error) 
 	return data.GetGroup(rCtx.DBTxn, opts)
 }
 
-func DeleteGroup(c *gin.Context, id uid.ID) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+func DeleteGroup(rCtx RequestContext, id uid.ID) error {
+	err := IsAuthorized(rCtx, models.InfraAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "group", "delete", models.InfraAdminRole)
 	}
-	return data.DeleteGroup(db, id)
+	return data.DeleteGroup(rCtx.DBTxn, id)
 }
 
 func checkIdentitiesInList(db data.ReadTxn, ids []uid.ID) ([]uid.ID, error) {
@@ -112,35 +107,35 @@ func checkIdentitiesInList(db data.ReadTxn, ids []uid.ID) ([]uid.ID, error) {
 	return nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, "Couldn't find UIDs: "+strings.Join(uidStrList, ","))
 }
 
-func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uidsToRemove []uid.ID) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+func UpdateUsersInGroup(rCtx RequestContext, groupID uid.ID, uidsToAdd []uid.ID, uidsToRemove []uid.ID) error {
+	err := IsAuthorized(rCtx, models.InfraAdminRole)
 	if err != nil {
 		return err
 	}
 
-	_, err = data.GetGroup(db, data.GetGroupOptions{ByID: groupID})
+	_, err = data.GetGroup(rCtx.DBTxn, data.GetGroupOptions{ByID: groupID})
 	if err != nil {
 		return err
 	}
 
-	addIDList, err := checkIdentitiesInList(db, uidsToAdd)
+	addIDList, err := checkIdentitiesInList(rCtx.DBTxn, uidsToAdd)
 	if err != nil {
 		return err
 	}
 
-	rmIDList, err := checkIdentitiesInList(db, uidsToRemove)
+	rmIDList, err := checkIdentitiesInList(rCtx.DBTxn, uidsToRemove)
 	if err != nil {
 		return err
 	}
 
 	if len(addIDList) > 0 {
-		if err := data.AddUsersToGroup(db, groupID, addIDList); err != nil {
+		if err := data.AddUsersToGroup(rCtx.DBTxn, groupID, addIDList); err != nil {
 			return err
 		}
 	}
 
 	if len(rmIDList) > 0 {
-		if err := data.RemoveUsersFromGroup(db, groupID, rmIDList); err != nil {
+		if err := data.RemoveUsersFromGroup(rCtx.DBTxn, groupID, rmIDList); err != nil {
 			return err
 		}
 	}
