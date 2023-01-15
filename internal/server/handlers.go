@@ -218,7 +218,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	// Update the request context so that logging middleware can include the userID
 	rCtx.Authenticated.User = result.User
-	c.Set(access.RequestContextKey, rCtx)
+	rCtx.Response.LoginUserID = result.User.ID
 
 	return &api.LoginResponse{
 		UserID:                 key.IssuedFor,

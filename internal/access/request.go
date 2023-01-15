@@ -7,6 +7,7 @@ import (
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 const RequestContextKey = "requestContext"
@@ -45,6 +46,14 @@ type Response struct {
 	// It is only safe to call Write and WriteHeader if the API handler returns
 	// an empty response and no error.
 	HTTPWriter http.ResponseWriter
+
+	// LoginUserID stores the user ID for login, and signup type endpoints so that
+	// the ID can be included in the API request log entry.
+	LoginUserID uid.ID
+
+	// SignupOrgID stores the organization ID for a new signup so that the ID
+	// can be included in the API request log entry.
+	SignupOrgID uid.ID
 
 	// logFields is a slice of function that can add fields to the API
 	// request log entry.

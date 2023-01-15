@@ -227,7 +227,7 @@ func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomai
 	db = db.WithOrgID(details.Org.ID)
 	rCtx.DBTxn = db
 	rCtx.Authenticated.Organization = details.Org
-	c.Set(access.RequestContextKey, rCtx)
+	rCtx.Response.SignupOrgID = details.Org.ID
 
 	var identity *models.Identity
 	bearer := ""
@@ -242,7 +242,7 @@ func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomai
 		}
 
 		var err error
-		identity, bearer, err = signupUser(c, keyExpiresAt, user)
+		identity, bearer, err = signupUser(rCtx, keyExpiresAt, user)
 		if err != nil {
 			return nil, err
 		}
@@ -274,7 +274,7 @@ func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomai
 		}
 
 		var err error
-		identity, bearer, err = signupUser(c, keyExpiresAt, user)
+		identity, bearer, err = signupUser(rCtx, keyExpiresAt, user)
 		if err != nil {
 			return nil, err
 		}
@@ -291,8 +291,7 @@ func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomai
 }
 
 // signupUser creates the user identity and grants for a new org
-func signupUser(c *gin.Context, keyExpiresAt time.Time, user *models.ProviderUser) (*models.Identity, string, error) {
-	rCtx := getRequestContext(c)
+func signupUser(rCtx access.RequestContext, keyExpiresAt time.Time, user *models.ProviderUser) (*models.Identity, string, error) {
 	tx := rCtx.DBTxn
 
 	identity := &models.Identity{
@@ -334,8 +333,7 @@ func signupUser(c *gin.Context, keyExpiresAt time.Time, user *models.ProviderUse
 	}
 
 	// Update the request context so that logging middleware can include the userID
-	rCtx.Authenticated.User = identity
-	c.Set(access.RequestContextKey, rCtx)
+	rCtx.Response.LoginUserID = identity.ID
 
 	return identity, bearer, nil
 }

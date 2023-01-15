@@ -25,16 +25,23 @@ func TestLoggingMiddleware(t *testing.T) {
 		router := gin.New()
 		router.Use(loggingMiddleware(true))
 
-		router.GET("/good/:id", func(c *gin.Context) {})
-		router.POST("/good/:id", func(c *gin.Context) {})
-		router.GET("/gooder/", func(c *gin.Context) {})
+		setRequestContext := func(c *gin.Context) {
+			c.Set(access.RequestContextKey, access.RequestContext{
+				Response: &access.Response{},
+			})
+		}
+
+		router.GET("/good/:id", setRequestContext)
+		router.POST("/good/:id", setRequestContext)
+		router.GET("/gooder/", setRequestContext)
 		router.GET("/bad/:id", func(c *gin.Context) {
+			setRequestContext(c)
 			c.Status(http.StatusBadRequest)
 		})
 		router.GET("/broken", func(c *gin.Context) {
+			setRequestContext(c)
 			c.Status(http.StatusInternalServerError)
 		})
-
 		router.GET("/authned", func(c *gin.Context) {
 			// simulate authenticateRequest
 			c.Set(access.RequestContextKey, access.RequestContext{
