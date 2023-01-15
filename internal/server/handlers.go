@@ -203,10 +203,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	cookie := cookieConfig{
 		Name:    cookieAuthorizationName,
 		Value:   result.Bearer,
-		Domain:  c.Request.Host,
+		Domain:  rCtx.Request.Host,
 		Expires: result.AccessKey.ExpiresAt,
 	}
-	setCookie(c.Request, c.Writer, cookie)
+	setCookie(rCtx.Request, c.Writer, cookie)
 
 	key := result.AccessKey
 	a.t.User(key.IssuedFor.String(), result.User.Name)

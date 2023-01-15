@@ -278,7 +278,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 
 		if !route.omitFromTelemetry {
-			a.t.RouteEvent(c, routeID.path, Properties{"method": strings.ToLower(routeID.method)})
+			a.t.RouteEvent(rCtx, routeID.path, Properties{"method": strings.ToLower(routeID.method)})
 		}
 
 		// TODO: extract all response header/status/body writing to another function
