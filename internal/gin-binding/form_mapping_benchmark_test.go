@@ -29,7 +29,7 @@ type structFull struct {
 	Nationality *string `form:"nationality"`
 }
 
-func BenchmarkMapFormFull(b *testing.B) {
+func BenchmarkDecode(b *testing.B) {
 	var s structFull
 	for i := 0; i < b.N; i++ {
 		err := decode(&s, form, "form")
@@ -46,22 +46,4 @@ func BenchmarkMapFormFull(b *testing.B) {
 	assert.Equal(t, "12345678", s.ID.Number)
 	assert.Equal(t, time.Date(2018, 1, 20, 0, 0, 0, 0, time.UTC), s.ID.DateOfIssue)
 	assert.Assert(t, s.Nationality == nil)
-}
-
-type structName struct {
-	Name string `form:"name"`
-}
-
-func BenchmarkMapFormName(b *testing.B) {
-	var s structName
-	for i := 0; i < b.N; i++ {
-		err := decode(&s, form, "form")
-		if err != nil {
-			b.Fatalf("Error on a form mapping")
-		}
-	}
-	b.StopTimer()
-
-	t := b
-	assert.Equal(t, "mike", s.Name)
 }

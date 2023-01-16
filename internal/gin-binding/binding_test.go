@@ -22,10 +22,6 @@ type FooBarStruct struct {
 	Bar string `json:"bar" form:"bar"`
 }
 
-type FooStructForMapType struct {
-	MapFoo map[string]any `form:"map_foo"`
-}
-
 type FooStructForBoolType struct {
 	BoolFoo bool `form:"bool_foo"`
 }
