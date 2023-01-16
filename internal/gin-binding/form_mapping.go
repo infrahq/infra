@@ -22,22 +22,18 @@ func BindQuery(req *http.Request, obj any) error {
 	return decode(obj, values, "form")
 }
 
-var emptyField = reflect.StructField{}
-
 func decode(target any, source map[string][]string, tag string) error {
-	_, err := mapping(reflect.ValueOf(target), emptyField, source, tag)
-	return err
+	return decodeStruct(reflect.ValueOf(target), source, tag)
 }
 
 type formSource map[string][]string
 
-func mapping(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
+func decodeStruct(value reflect.Value, source formSource, tag string) error {
 	if value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
 
 	tValue := value.Type()
-	var isSet bool
 	for i := 0; i < value.NumField(); i++ {
 		sf := tValue.Field(i)
 		if sf.PkgPath != "" && !sf.Anonymous { // unexported
@@ -45,32 +41,30 @@ func mapping(value reflect.Value, field reflect.StructField, source formSource, 
 		}
 
 		if _, ok := value.Field(i).Addr().Interface().(encoding.TextUnmarshaler); ok {
-			_, err := tryToSetValue(value.Field(i), sf, source, tag)
+			err := tryToSetValue(value.Field(i), sf, source, tag)
 			if err != nil {
-				return true, err
+				return err
 			}
 			continue
 		}
 
 		var err error
-		var ok bool
 		if sf.Type.Kind() == reflect.Struct {
-			ok, err = mapping(value.Field(i), sf, source, tag)
+			err = decodeStruct(value.Field(i), source, tag)
 		} else {
-			ok, err = tryToSetValue(value.Field(i), sf, source, tag)
+			err = tryToSetValue(value.Field(i), sf, source, tag)
 		}
 		if err != nil {
-			return false, err
+			return err
 		}
-		isSet = isSet || ok
 	}
-	return isSet, nil
+	return nil
 }
 
-func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
+func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) error {
 	tagValue, _, _ := strings.Cut(field.Tag.Get(tag), ",")
 	if tagValue == "-" {
-		return false, nil
+		return nil
 	}
 
 	// TODO: remove
@@ -78,24 +72,24 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 		tagValue = field.Name
 	}
 	if tagValue == "" { // when field is "emptyField" variable
-		return false, nil
+		return nil
 	}
 
 	vs, ok := source[tagValue]
 	if !ok || len(vs) == 0 {
-		return false, nil
+		return nil
 	}
 	val := vs[0]
 
 	// TODO: remove?
 	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
-		return true, u.UnmarshalText([]byte(val))
+		return u.UnmarshalText([]byte(val))
 	}
 
 	// nolint:exhaustive
 	switch value.Kind() {
 	case reflect.Slice:
-		return true, setSlice(vs, value)
+		return setSlice(vs, value)
 	case reflect.Pointer:
 		// TODO: can we reduce this at all?
 		var isNew bool
@@ -106,14 +100,14 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 		}
 		err := setValue(val, vPtr.Elem())
 		if err != nil {
-			return false, err
+			return err
 		}
 		if isNew {
 			value.Set(vPtr)
 		}
-		return true, nil
+		return nil
 	default:
-		return true, setValue(val, value)
+		return setValue(val, value)
 	}
 }
 
