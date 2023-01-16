@@ -242,7 +242,7 @@ export default function GroupDetails() {
         data={users
           ?.map(u => {
             if (!showRemoveGroupBtn) {
-              return { ...u, showDeleteCheckbox: u.id !== user.id }
+              return { ...u, disabledDeleteCheckbox: u.id === user.id }
             }
 
             return u

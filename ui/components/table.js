@@ -56,13 +56,7 @@ export default function Table({
       setSelectedRowIds([])
     } else {
       setSelectedRowIds(
-        data
-          ?.filter(
-            d =>
-              d.showDeleteCheckbox === true ||
-              d.showDeleteCheckbox === undefined
-          )
-          ?.map(d => d.id)
+        data?.filter(d => !d.disabledDeleteCheckbox)?.map(d => d.id)
       )
     }
 
@@ -108,48 +102,51 @@ export default function Table({
       )}
       <table className='w-full text-sm text-gray-600'>
         <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
-          {table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id}>
-              {allowDelete && data?.length > 1 && (
-                <th scope='col' className='relative w-12 px-6 sm:w-16 sm:px-8'>
-                  <input
-                    type='checkbox'
-                    className='absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
-                    ref={el => (checkbox.current = el)}
-                    checked={checkedAll}
-                    onChange={toggleAll}
-                  />
-                </th>
-              )}
-              {headerGroup.headers.map(header => (
-                <th
-                  className='w-auto py-2 px-5 text-left font-medium first:max-w-[40%]'
-                  key={header.id}
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </th>
-              ))}
-            </tr>
-          ))}
+          {table.getHeaderGroups().map(headerGroup => {
+            const disabledBulkDeleteCheckbox =
+              data?.length === 1 && data[0].disabledDeleteCheckbox
+
+            return (
+              <tr key={headerGroup.id}>
+                {allowDelete &&
+                  (data?.length > 0 || !disabledBulkDeleteCheckbox) && (
+                    <th
+                      scope='col'
+                      className='relative w-12 px-6 sm:w-16 sm:px-8'
+                    >
+                      <input
+                        type='checkbox'
+                        className='absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
+                        ref={el => (checkbox.current = el)}
+                        checked={checkedAll}
+                        onChange={toggleAll}
+                      />
+                    </th>
+                  )}
+                {headerGroup.headers.map(header => (
+                  <th
+                    className='w-auto py-2 px-5 text-left font-medium first:max-w-[40%]'
+                    key={header.id}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
+              </tr>
+            )
+          })}
         </thead>
         <tbody className='divide-y divide-gray-100'>
           {data &&
             table.getRowModel().rows.map(row => {
-              if (
-                allowDelete &&
-                row.original.showDeleteCheckbox === undefined
-              ) {
-                row.original.showDeleteCheckbox = true
-              }
-              const showDeleteCheckbox =
+              const disabledDeleteCheckbox =
                 allowDelete &&
                 data?.length > 0 &&
-                row.original.showDeleteCheckbox
+                row.original.disabledDeleteCheckbox
 
               return (
                 <tr
@@ -160,27 +157,26 @@ export default function Table({
                   }`}
                   key={row.id}
                 >
-                  {allowDelete && data?.length > 1 && (
-                    <th scope='col'>
-                      <input
-                        type='checkbox'
-                        className={`${
-                          showDeleteCheckbox ? 'visble' : 'invisible'
-                        } left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6`}
-                        value={row.id}
-                        checked={selectedRowIds.includes(row.original.id)}
-                        onChange={e =>
-                          setSelectedRowIds(
-                            e.target.checked
-                              ? [...selectedRowIds, row.original.id]
-                              : selectedRowIds.filter(
-                                  p => p !== row.original.id
-                                )
-                          )
-                        }
-                      />
-                    </th>
-                  )}
+                  {allowDelete &&
+                    (data?.length > 0 || !disabledDeleteCheckbox) && (
+                      <th scope='col'>
+                        <input
+                          type='checkbox'
+                          className='visible left-4 top-1/2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
+                          value={row.id}
+                          checked={selectedRowIds.includes(row.original.id)}
+                          onChange={e =>
+                            setSelectedRowIds(
+                              e.target.checked
+                                ? [...selectedRowIds, row.original.id]
+                                : selectedRowIds.filter(
+                                    p => p !== row.original.id
+                                  )
+                            )
+                          }
+                        />
+                      </th>
+                    )}
                   {row.getVisibleCells().map(cell => (
                     <td
                       className={`border-gray-100 text-sm  ${

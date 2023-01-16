@@ -461,14 +461,14 @@ function Password() {
         </div>
         <div>
           <label
-            htmlFor='password'
+            htmlFor='newPassword'
             className='text-2xs font-medium text-gray-700'
           >
             New Password
           </label>
           <input
             required
-            name={'password'}
+            name='newPassword'
             type='password'
             autoComplete='off'
             value={password}
@@ -486,12 +486,15 @@ function Password() {
           )}
         </div>
         <div>
-          <label htmlFor={name} className='text-2xs font-medium text-gray-700'>
+          <label
+            htmlFor='confirmPassword'
+            className='text-2xs font-medium text-gray-700'
+          >
             Confirm New Password
           </label>
           <input
             required
-            name={'password'}
+            name='confirmPassword'
             type='password'
             autoComplete='off'
             value={confirmPassword}
