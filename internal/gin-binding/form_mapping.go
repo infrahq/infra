@@ -7,7 +7,6 @@ package binding
 import (
 	"encoding"
 	"errors"
-	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -110,11 +109,6 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 	switch value.Kind() {
 	case reflect.Slice:
 		return true, setSlice(vs, value)
-	case reflect.Array:
-		if len(vs) != value.Len() {
-			return false, fmt.Errorf("%q is not valid value for %s", vs, value.Type().String())
-		}
-		return true, setArray(vs, value)
 	case reflect.Pointer:
 		// TODO: can we reduce this at all?
 		var isNew bool
@@ -232,19 +226,12 @@ func setFloatField(val string, bitSize int, field reflect.Value) error {
 	return err
 }
 
-func setArray(source []string, value reflect.Value) error {
-	for i, s := range source {
-		if err := setValue(s, value.Index(i)); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func setSlice(source []string, value reflect.Value) error {
 	slice := reflect.MakeSlice(value.Type(), len(source), len(source))
-	if err := setArray(source, slice); err != nil {
-		return err
+	for i, s := range source {
+		if err := setValue(s, slice.Index(i)); err != nil {
+			return err
+		}
 	}
 	value.Set(slice)
 	return nil

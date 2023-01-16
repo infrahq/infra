@@ -150,29 +150,6 @@ func TestMappingSlice(t *testing.T) {
 	assert.ErrorContains(t, err, "invalid syntax")
 }
 
-func TestMappingArray(t *testing.T) {
-	var s struct {
-		Array [2]int `form:"array"`
-	}
-
-	// wrong default
-	err := decode(&s, formSource{"array": []string{"9"}}, "form")
-	assert.ErrorContains(t, err, "is not valid value for [2]int")
-
-	// ok
-	err = decode(&s, formSource{"array": {"3", "4"}}, "form")
-	assert.NilError(t, err, "what")
-	assert.Equal(t, [2]int{3, 4}, s.Array)
-
-	// error - not enough vals
-	err = decode(&s, formSource{"array": {"3"}}, "form")
-	assert.ErrorContains(t, err, "is not valid value for [2]int")
-
-	// error - wrong value
-	err = decode(&s, formSource{"array": {"wrong"}}, "form")
-	assert.ErrorContains(t, err, "is not valid value for [2]int")
-}
-
 func TestMappingIgnoredCircularRef(t *testing.T) {
 	type S struct {
 		S *S `form:"-"`
