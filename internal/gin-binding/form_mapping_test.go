@@ -103,13 +103,13 @@ func TestMappingPrivateField(t *testing.T) {
 	assert.Equal(t, 0, s.f)
 }
 
-func TestMappingUnknownFieldType(t *testing.T) {
+func TestDecodeUnsupportedType(t *testing.T) {
 	var s struct {
 		U uintptr
 	}
 
 	err := decode(&s, formSource{"U": {"unknown"}}, "form")
-	assert.ErrorIs(t, err, errUnknownType)
+	assert.ErrorContains(t, err, "type uintptr is not supported")
 }
 
 func TestBindURI(t *testing.T) {

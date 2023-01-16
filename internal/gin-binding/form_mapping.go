@@ -6,7 +6,7 @@ package binding
 
 import (
 	"encoding"
-	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -22,8 +22,6 @@ func BindQuery(req *http.Request, obj any) error {
 	values := req.URL.Query()
 	return decode(obj, values, "form")
 }
-
-var errUnknownType = errors.New("unknown type")
 
 var emptyField = reflect.StructField{}
 
@@ -166,7 +164,7 @@ func setValue(val string, value reflect.Value) error {
 	case reflect.String:
 		value.SetString(val)
 	default:
-		return errUnknownType
+		return fmt.Errorf("type %v is not supported by decode", value.Type())
 	}
 	return nil
 }
