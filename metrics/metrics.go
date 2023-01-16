@@ -38,23 +38,23 @@ func NewRegistry(version string) *prometheus.Registry {
 	return registry
 }
 
+var RequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	Namespace: "http",
+	Name:      "request_duration_seconds",
+	Help:      "A histogram of duration, in seconds, handling HTTP requests.",
+	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
+}, []string{"host", "method", "path", "status", "blocking"})
+
 // Middleware registers the http_request_duration_seconds histogram metric with registry
 // and returns a middleware that emits a request_duration_seconds metric on every request.
 func Middleware(registry prometheus.Registerer) gin.HandlerFunc {
-	requestDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "http",
-		Name:      "request_duration_seconds",
-		Help:      "A histogram of duration, in seconds, handling HTTP requests.",
-		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
-	}, []string{"host", "method", "path", "status", "blocking"})
-
 	requestCount := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "http",
 		Name:      "requests_active",
 		Help:      "A gauge of the number of requests currently being handled.",
 	}, []string{"blocking"})
 
-	registry.MustRegister(requestDuration, requestCount)
+	registry.MustRegister(RequestDuration, requestCount)
 
 	return func(c *gin.Context) {
 		blocking := blockingRequestLabel(c.Request)
@@ -66,7 +66,7 @@ func Middleware(registry prometheus.Registerer) gin.HandlerFunc {
 		t := time.Now()
 		c.Next()
 
-		requestDuration.With(prometheus.Labels{
+		RequestDuration.With(prometheus.Labels{
 			"host":     c.Request.Host,
 			"method":   c.Request.Method,
 			"path":     c.FullPath(),

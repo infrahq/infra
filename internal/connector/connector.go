@@ -15,7 +15,6 @@ import (
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
-	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/errgroup"
@@ -24,7 +23,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/types"
-	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
@@ -177,7 +175,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		Help:      "A histogram of duration, in seconds, performing HTTP requests.",
 		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
 	}, []string{"host", "method", "path", "status"})
-	promRegistry.MustRegister(responseDuration)
+	promRegistry.MustRegister(responseDuration, metrics.RequestDuration)
 
 	client := options.APIClient()
 	client.OnUnauthorized = func() {
@@ -239,11 +237,8 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		}
 	})
 
-	ginutil.SetMode()
-	router := gin.New()
-	router.GET("/healthz", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
+	router := http.NewServeMux()
+	router.HandleFunc("/healthz", healthHandler)
 
 	kubeAPIAddr, err := urlx.Parse(k8s.Config.Host)
 	if err != nil {
@@ -284,10 +279,8 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		return err
 	})
 
-	healthOnlyRouter := gin.New()
-	healthOnlyRouter.GET("/healthz", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
+	healthOnlyRouter := http.NewServeMux()
+	healthOnlyRouter.HandleFunc("/healthz", healthHandler)
 
 	plaintextServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
@@ -306,10 +299,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 	})
 
 	authn := newAuthenticator(options)
-	router.Use(
-		metrics.Middleware(promRegistry),
-		proxyMiddleware(proxy, authn, k8s.Config.BearerToken),
-	)
+	router.HandleFunc("/", proxyMiddleware(proxy, authn, k8s.Config.BearerToken))
 	tlsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,
@@ -350,6 +340,14 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		return nil
 	}
 	return err
+}
+
+func healthHandler(resp http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	resp.WriteHeader(http.StatusOK)
 }
 
 func httpTransportFromOptions(opts ServerOptions) *http.Transport {
