@@ -33,76 +33,62 @@ func decodeStruct(value reflect.Value, source formSource, tag string) error {
 		value = value.Elem()
 	}
 
-	tValue := value.Type()
 	for i := 0; i < value.NumField(); i++ {
-		sf := tValue.Field(i)
-		if sf.PkgPath != "" && !sf.Anonymous { // unexported
+		field := value.Type().Field(i)
+		fieldValue := value.Field(i)
+		if field.PkgPath != "" && !field.Anonymous { // unexported
 			continue
 		}
 
-		if _, ok := value.Field(i).Addr().Interface().(encoding.TextUnmarshaler); ok {
-			err := tryToSetValue(value.Field(i), sf, source, tag)
-			if err != nil {
+		name, _, _ := strings.Cut(field.Tag.Get(tag), ",")
+		if name == "-" {
+			continue
+		}
+
+		// TODO: remove, we need all fields tagged for docs
+		if name == "" { // default value is FieldName
+			name = field.Name
+		}
+
+		vs, _ := source[name]
+		var val string
+		if len(vs) > 0 {
+			val = vs[0]
+		}
+
+		if u, ok := fieldValue.Addr().Interface().(encoding.TextUnmarshaler); ok && val != "" {
+			if err := u.UnmarshalText([]byte(val)); err != nil {
 				return err
 			}
 			continue
 		}
 
-		var err error
-		if sf.Type.Kind() == reflect.Struct {
-			err = decodeStruct(value.Field(i), source, tag)
-		} else {
-			err = tryToSetValue(value.Field(i), sf, source, tag)
-		}
-		if err != nil {
-			return err
+		// nolint:exhaustive
+		switch fieldValue.Kind() {
+		case reflect.Slice:
+			if err := setSlice(vs, fieldValue); err != nil {
+				return err
+			}
+		case reflect.Pointer:
+			vPtr := fieldValue
+			if fieldValue.IsNil() {
+				vPtr = reflect.New(fieldValue.Type().Elem())
+			}
+			if err := setValue(val, vPtr.Elem()); err != nil {
+				return err
+			}
+			fieldValue.Set(vPtr)
+		case reflect.Struct:
+			if err := decodeStruct(fieldValue, source, tag); err != nil {
+				return err
+			}
+		default:
+			if err := setValue(val, fieldValue); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
-}
-
-func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) error {
-	tagValue, _, _ := strings.Cut(field.Tag.Get(tag), ",")
-	if tagValue == "-" {
-		return nil
-	}
-
-	// TODO: remove
-	if tagValue == "" { // default value is FieldName
-		tagValue = field.Name
-	}
-	if tagValue == "" { // when field is "emptyField" variable
-		return nil
-	}
-
-	vs, ok := source[tagValue]
-	if !ok || len(vs) == 0 {
-		return nil
-	}
-	val := vs[0]
-
-	// TODO: remove?
-	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
-		return u.UnmarshalText([]byte(val))
-	}
-
-	// nolint:exhaustive
-	switch value.Kind() {
-	case reflect.Slice:
-		return setSlice(vs, value)
-	case reflect.Pointer:
-		vPtr := value
-		if value.IsNil() {
-			vPtr = reflect.New(value.Type().Elem())
-		}
-		if err := setValue(val, vPtr.Elem()); err != nil {
-			return err
-		}
-		value.Set(vPtr)
-		return nil
-	default:
-		return setValue(val, value)
-	}
 }
 
 func setValue(val string, value reflect.Value) error {
