@@ -1351,6 +1351,99 @@
           }
         }
       },
+      "UpdateUserResponse": {
+        "properties": {
+          "created": {
+            "description": "Date the user was created",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "description": "User ID",
+            "example": "4ACFkc434M",
+            "format": "uid",
+            "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "description": "Date the user was last seen",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of the user",
+            "example": "bob@example.com",
+            "type": "string"
+          },
+          "oneTimePassword": {
+            "type": "string"
+          },
+          "providerNames": {
+            "description": "List of providers this user belongs to",
+            "example": "['okta']",
+            "items": {
+              "description": "List of providers this user belongs to",
+              "example": "['okta']",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "publicKeys": {
+            "description": "List of the users public keys",
+            "items": {
+              "description": "List of the users public keys",
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "expires": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "fingerprint": {
+                  "description": "SHA256 fingerprint of the key",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "keyType": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "publicKey": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "sshLoginName": {
+            "description": "Username for SSH destinations",
+            "example": "bob",
+            "type": "string"
+          },
+          "updated": {
+            "description": "Date the user was updated",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          }
+        }
+      },
       "User": {
         "properties": {
           "created": {
@@ -7325,9 +7418,6 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "password"
-                ],
                 "type": "object"
               }
             }
@@ -7388,7 +7478,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "$ref": "#/components/schemas/UpdateUserResponse"
                 }
               }
             },

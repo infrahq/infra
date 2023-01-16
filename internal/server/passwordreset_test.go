@@ -1,9 +1,7 @@
 package server
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -18,95 +16,101 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+func patchEmailTestMode(t *testing.T) {
+	t.Helper()
+	email.TestMode = true
+	t.Cleanup(func() {
+		email.TestMode = false
+		email.TestData = make([]any, 0)
+	})
+}
+
 func TestPasswordResetFlow(t *testing.T) {
+	patchEmailTestMode(t)
+
 	s := setupServer(t)
 	routes := s.GenerateRoutes()
 
-	email.TestMode = true
-
-	user := &models.Identity{
-		Name: "skeletor@example.com",
-	}
-
+	user := &models.Identity{Name: "skeletor@example.com"}
 	err := data.CreateIdentity(s.DB(), user)
 	assert.NilError(t, err)
 
-	err = data.CreateCredential(s.DB(), &models.Credential{
-		IdentityID:   user.ID,
-		PasswordHash: []byte("foo"),
-	})
+	credential := &models.Credential{IdentityID: user.ID, PasswordHash: []byte("password")}
+	err = data.CreateCredential(s.DB(), credential)
 	assert.NilError(t, err)
 
-	// request password reset
-	body, err := json.Marshal(&api.PasswordResetRequest{
-		Email: "skeletor@example.com",
-	})
-	assert.NilError(t, err)
+	var token string
+	runStep(t, "request password reset", func(t *testing.T) {
+		body := jsonBody(t, &api.PasswordResetRequest{Email: "skeletor@example.com"})
+		r := httptest.NewRequest(http.MethodPost, "/api/password-reset-request", body)
+		r.Header.Add("Infra-Version", apiVersionLatest)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/password-reset-request", bytes.NewBuffer(body))
-	req.Header.Add("Infra-Version", "0.13.6")
+		w := httptest.NewRecorder()
+		routes.ServeHTTP(w, r)
+		assert.Equal(t, w.Code, http.StatusCreated, w.Body.String())
+		assert.Equal(t, len(email.TestData), 1)
 
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
+		data, ok := email.TestData[0].(email.PasswordResetData)
+		assert.Assert(t, ok)
 
-	assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
-	assert.Assert(t, len(email.TestDataSent) > 0)
+		u, err := url.Parse(data.Link)
+		assert.NilError(t, err)
+		assert.Equal(t, u.Path, "/link")
 
-	// cheat and grab the token from the db.
-	rows, err := s.db.Query("select token from password_reset_tokens")
-	assert.NilError(t, err)
-	tokens := []string{}
-	for rows.Next() {
-		var v string
-		assert.NilError(t, rows.Scan(&v))
-		tokens = append(tokens, v)
-	}
-	assert.NilError(t, rows.Close())
-
-	assert.Assert(t, len(tokens) > 0)
-	token := tokens[len(tokens)-1]
-
-	resetData, ok := email.TestDataSent[0].(email.PasswordResetData)
-	assert.Assert(t, ok)
-	// TODO: fix test so that we can verify the domain; default org has blank domain
-	u, err := url.Parse(resetData.Link)
-	assert.NilError(t, err)
-	link, err := base64.URLEncoding.DecodeString(u.Query().Get("r"))
-	assert.NilError(t, err)
-	assert.Equal(t, string(link), "https:///password-reset?token="+token)
-
-	runStep(t, "reset password with token", func(t *testing.T) {
-		body, err = json.Marshal(&api.VerifiedResetPasswordRequest{
-			Token:    token,
-			Password: "my new pw!2351",
-		})
+		link, err := base64.URLEncoding.DecodeString(u.Query().Get("r"))
 		assert.NilError(t, err)
 
-		req = httptest.NewRequest(http.MethodPost, "/api/password-reset", bytes.NewBuffer(body))
-		req.Header.Add("Infra-Version", apiVersionLatest)
-
-		resp = httptest.NewRecorder()
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
-
-		// check the password was updated
-		cred, err := data.GetCredentialByUserID(s.DB(), user.ID)
+		u, err = url.Parse(string(link))
 		assert.NilError(t, err)
-		err = bcrypt.CompareHashAndPassword(cred.PasswordHash, []byte("my new pw!2351"))
-		assert.NilError(t, err)
+		assert.Equal(t, u.Path, "/password-reset")
+
+		token = u.Query().Get("token")
+		assert.Assert(t, token != "")
 	})
 
-	runStep(t, "token can not be used again", func(t *testing.T) {
-		body, err := json.Marshal(&api.VerifiedResetPasswordRequest{
-			Token:    token,
-			Password: "another password",
-		})
-		assert.NilError(t, err)
-		req = httptest.NewRequest(http.MethodPost, "/api/password-reset", bytes.NewBuffer(body))
-		req.Header.Add("Infra-Version", apiVersionLatest)
+	runStep(t, "new password empty", func(t *testing.T) {
+		body := jsonBody(t, &api.VerifiedResetPasswordRequest{Token: token})
+		r := httptest.NewRequest(http.MethodPost, "/api/password-reset", body)
+		r.Header.Add("Infra-Version", apiVersionLatest)
 
-		resp = httptest.NewRecorder()
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, http.StatusNotFound, resp.Code, (*responseDebug)(resp))
+		w := httptest.NewRecorder()
+		routes.ServeHTTP(w, r)
+		assert.Equal(t, w.Code, http.StatusBadRequest, w.Body.String())
+	})
+
+	runStep(t, "new password does not satisfy password policy", func(t *testing.T) {
+		body := jsonBody(t, &api.VerifiedResetPasswordRequest{Token: token, Password: "secret"})
+		r := httptest.NewRequest(http.MethodPost, "/api/password-reset", body)
+		r.Header.Add("Infra-Version", apiVersionLatest)
+
+		w := httptest.NewRecorder()
+		routes.ServeHTTP(w, r)
+		assert.Equal(t, w.Code, http.StatusBadRequest, w.Body.String())
+	})
+
+	runStep(t, "claim password reset token", func(t *testing.T) {
+		body := jsonBody(t, &api.VerifiedResetPasswordRequest{Token: token, Password: "mysecret"})
+		r := httptest.NewRequest(http.MethodPost, "/api/password-reset", body)
+		r.Header.Add("Infra-Version", apiVersionLatest)
+
+		w := httptest.NewRecorder()
+		routes.ServeHTTP(w, r)
+		assert.Equal(t, w.Code, http.StatusCreated, w.Body.String())
+
+		credential, err := data.GetCredentialByUserID(s.DB(), user.ID)
+		assert.NilError(t, err)
+
+		err = bcrypt.CompareHashAndPassword(credential.PasswordHash, []byte("mysecret"))
+		assert.NilError(t, err)
+	})
+
+	runStep(t, "password reset token cannot be claimed more than once", func(t *testing.T) {
+		body := jsonBody(t, &api.VerifiedResetPasswordRequest{Token: token, Password: "mysecret"})
+		r := httptest.NewRequest(http.MethodPost, "/api/password-reset", body)
+		r.Header.Add("Infra-Version", apiVersionLatest)
+
+		w := httptest.NewRecorder()
+		routes.ServeHTTP(w, r)
+		assert.Equal(t, w.Code, http.StatusNotFound, w.Body.String())
 	})
 }

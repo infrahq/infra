@@ -12,156 +12,153 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
 )
 
-func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+func CreateCredential(c *gin.Context, user *models.Identity) (string, error) {
+	tx, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return "", HandleAuthErr(err, "user", "create", models.InfraAdminRole)
 	}
 
-	tmpPassword, err := generate.CryptoRandom(12, generate.CharsetPassword)
+	password, err := generate.CryptoRandom(12, generate.CharsetPassword)
 	if err != nil {
-		return "", fmt.Errorf("generate: %w", err)
+		return "", fmt.Errorf("crypto random: %w", err)
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(tmpPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("hash: %w", err)
-	}
-
-	userCredential := &models.Credential{
-		IdentityID:      user.ID,
-		PasswordHash:    hash,
+	credential := &models.Credential{
 		OneTimePassword: true,
 	}
 
-	if err := data.CreateCredential(db, userCredential); err != nil {
+	if err := createCredential(tx, user, credential, password); err != nil {
 		return "", err
 	}
 
-	_, err = data.CreateProviderUser(db, data.InfraProvider(db), &user)
-	if err != nil {
-		return "", fmt.Errorf("creating provider user: %w", err)
-	}
-
-	return tmpPassword, nil
+	return password, err
 }
 
+func createCredential(tx *data.Transaction, user *models.Identity, credential *models.Credential, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("generate from password: %w", err)
+	}
+
+	credential.IdentityID = user.ID
+	credential.PasswordHash = hash
+
+	if err := data.CreateCredential(tx, credential); err != nil {
+		return fmt.Errorf("create credential: %w", err)
+	}
+
+	if _, err = data.CreateProviderUser(tx, data.InfraProvider(tx), user); err != nil {
+		return fmt.Errorf("create provider user: %w", err)
+	}
+
+	return nil
+}
+
+// ResetCredential resets a user's password to a specified value. If the input value is empty, a password
+// is randomly generated. No matter the input, the new password is one-time use and must be changed by the user.
+func ResetCredential(c *gin.Context, user *models.Identity, newPassword string) (string, error) {
+	tx, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return "", HandleAuthErr(err, "user", "update", models.InfraAdminRole)
+	}
+
+	if newPassword == "" {
+		password, err := generate.CryptoRandom(12, generate.CharsetPassword)
+		if err != nil {
+			return "", fmt.Errorf("crypto random: %w", err)
+		}
+
+		newPassword = password
+	}
+
+	credential, err := data.GetCredentialByUserID(tx, user.ID)
+	switch {
+	case errors.Is(err, internal.ErrNotFound):
+		if err := createCredential(tx, user, &models.Credential{OneTimePassword: true}, newPassword); err != nil {
+			return "", err
+		}
+
+		return newPassword, nil
+	case err != nil:
+		return "", fmt.Errorf("get credential: %w", err)
+	}
+
+	credential.OneTimePassword = true
+
+	if err := updateCredential(tx, credential, newPassword); err != nil {
+		return "", err
+	}
+
+	return newPassword, nil
+}
+
+// UpdateCredential updates a user's password to a specified valued. In order to update the user's password,
+// specified requirements must be met:
+//
+// 1. The old password hash must match value stored in the database
+// 2. The new password must meet the password policy defined for the organization
 func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPassword string) error {
 	rCtx := GetRequestContext(c)
-	isSelf := isIdentitySelf(rCtx, data.GetIdentityOptions{ByID: user.ID})
+	tx := GetRequestContext(c).DBTxn
 
-	// anyone can update their own credentials, so check authorization when not self
-	if !isSelf {
-		err := IsAuthorized(rCtx, models.InfraAdminRole)
-		if err != nil {
-			return HandleAuthErr(err, "user", "update", models.InfraAdminRole)
-		}
+	errs := make(validate.Error)
+
+	credential, err := data.GetCredentialByUserID(tx, user.ID)
+	if err != nil {
+		return fmt.Errorf("get credential: %w", err)
 	}
 
-	// Users have to supply their old password to change their existing password
-	if isSelf {
-		if oldPassword == "" {
-			errs := make(validate.Error)
-			errs["oldPassword"] = append(errs["oldPassword"], "is required")
-			return errs
-		}
-
-		userCredential, err := data.GetCredentialByUserID(rCtx.DBTxn, user.ID)
-		if err != nil {
-			return fmt.Errorf("existing credential: %w", err)
-		}
-
-		// compare the stored hash of the user's password and the hash of the presented password
-		err = bcrypt.CompareHashAndPassword(userCredential.PasswordHash, []byte(oldPassword))
-		if err != nil {
-			// this probably means the password was wrong
-			logging.L.Trace().Err(err).Msg("bcrypt comparison with oldpassword/newpassword failed")
-
-			errs := make(validate.Error)
-			errs["oldPassword"] = append(errs["oldPassword"], "invalid oldPassword")
-			return errs
-		}
-
+	// compare the stored hash of the user's password and the hash of the presented password
+	if err := bcrypt.CompareHashAndPassword(credential.PasswordHash, []byte(oldPassword)); err != nil {
+		errs["oldPassword"] = append(errs["oldPassword"], "invalid password")
+		return errs
 	}
 
-	if err := updateCredential(c, user, newPassword, isSelf); err != nil {
+	if err := checkPasswordRequirements(tx, newPassword); err != nil {
 		return err
 	}
 
-	if !isSelf {
-		// if the request is from an admin, the infra user may not exist yet, so create the
-		// provider_user if it's missing.
-		_, _ = data.CreateProviderUser(rCtx.DBTxn, data.InfraProvider(rCtx.DBTxn), user)
+	credential.OneTimePassword = false
+
+	if err := updateCredential(tx, credential, newPassword); err != nil {
+		return err
+	}
+
+	// if we updated our own password, remove the password-reset scope from our access key.
+	if accessKey := rCtx.Authenticated.AccessKey; accessKey != nil {
+		for i, v := range accessKey.Scopes {
+			if v == models.ScopePasswordReset {
+				accessKey.Scopes = append(accessKey.Scopes[:i], accessKey.Scopes[i+1:]...)
+				break
+			}
+		}
+
+		if err := data.UpdateAccessKey(tx, accessKey); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func updateCredential(c *gin.Context, user *models.Identity, newPassword string, isSelf bool) error {
-	rCtx := GetRequestContext(c)
-	db := rCtx.DBTxn
-
-	if err := checkPasswordRequirements(db, newPassword); err != nil {
-		return err
-	}
-
-	if err := checkBadPasswords(newPassword); err != nil {
-		return err
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+func updateCredential(tx *data.Transaction, credential *models.Credential, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("hash: %w", err)
+		return fmt.Errorf("generate from password: %w", err)
 	}
 
-	userCredential, err := data.GetCredentialByUserID(db, user.ID)
-	if err != nil {
-		if errors.Is(err, internal.ErrNotFound) && !isSelf {
-			if err := data.CreateCredential(db, &models.Credential{
-				IdentityID:      user.ID,
-				PasswordHash:    hash,
-				OneTimePassword: true,
-			}); err != nil {
-				return fmt.Errorf("creating credentials: %w", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("existing credential: %w", err)
+	credential.PasswordHash = hash
+
+	if err := data.UpdateCredential(tx, credential); err != nil {
+		return fmt.Errorf("update credential: %w", err)
 	}
 
-	userCredential.PasswordHash = hash
-	userCredential.OneTimePassword = !isSelf
-
-	if err := data.UpdateCredential(db, userCredential); err != nil {
-		return fmt.Errorf("saving credentials: %w", err)
-	}
-
-	if isSelf {
-		// if we updated our own password, remove the password-reset scope from our access key.
-		if accessKey := rCtx.Authenticated.AccessKey; accessKey != nil {
-			accessKey.Scopes = sliceWithoutElement(accessKey.Scopes, models.ScopePasswordReset)
-			if err = data.UpdateAccessKey(db, accessKey); err != nil {
-				return fmt.Errorf("updating access key: %w", err)
-			}
-		}
-	}
 	return nil
-}
-
-func sliceWithoutElement(s []string, without string) []string {
-	result := []string{}
-	for _, v := range s {
-		if v != without {
-			result = append(result, v)
-		}
-	}
-	return result
 }
 
 func GetRequestContext(c *gin.Context) RequestContext {
@@ -226,6 +223,10 @@ func checkPasswordRequirements(db data.ReadTxn, password string) error {
 
 	if !valid {
 		return validate.Error{"password": requirementError}
+	}
+
+	if err := checkBadPasswords(password); err != nil {
+		return err
 	}
 
 	return nil

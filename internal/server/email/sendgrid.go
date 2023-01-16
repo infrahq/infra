@@ -55,7 +55,7 @@ var (
 	SendgridAPIKey     = os.Getenv("SENDGRID_API_KEY")
 	SMTPServer         = "smtp.sendgrid.net:465"
 	TestMode           = false
-	TestDataSent       = []any{}
+	TestData           = []any{}
 	ErrUnknownTemplate = errors.New("unknown template")
 	ErrNotConfigured   = errors.New("email sending not configured")
 )
@@ -112,7 +112,7 @@ func SendTemplate(name, address string, template EmailTemplate, data any, bypass
 		logging.Debugf("sent email to %q: %+v\n", address, data)
 		logging.Debugf("plain: %s", string(msg.PlainBody))
 		logging.Debugf("html: %s", string(msg.HTMLBody))
-		TestDataSent = append(TestDataSent, data)
+		TestData = append(TestData, data)
 		return nil // quietly return
 	}
 

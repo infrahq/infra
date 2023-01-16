@@ -68,8 +68,12 @@ type UpdateUserRequest struct {
 func (r UpdateUserRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("id", r.ID),
-		validate.Required("password", r.Password),
 	}
+}
+
+type UpdateUserResponse struct {
+	User
+	OneTimePassword string `json:"oneTimePassword,omitempty"`
 }
 
 func (req ListUsersRequest) SetPage(page int) Paginatable {
