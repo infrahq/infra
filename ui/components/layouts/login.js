@@ -1,18 +1,24 @@
 import { useRouter } from 'next/router'
+import { useEffect } from 'react'
+
 import { useUser } from '../../lib/hooks'
 
 export default function Login({ children }) {
   const router = useRouter()
   const { next } = router.query
-
   const { loading, user } = useUser()
 
-  if (loading) {
-    return null
-  }
+  useEffect(() => {
+    if (loading) {
+      return
+    }
 
-  if (user) {
-    router.replace(next ? decodeURIComponent(next) : '/')
+    if (user) {
+      router.replace(next ? decodeURIComponent(next) : '/')
+    }
+  }, [loading])
+
+  if (loading || user) {
     return null
   }
 
