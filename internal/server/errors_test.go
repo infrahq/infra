@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -139,15 +138,13 @@ func TestSendAPIError(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.err.Error(), func(t *testing.T) {
 			resp := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(resp)
-			c.Request = &http.Request{
+			req := &http.Request{
 				Method:     http.MethodPost,
 				URL:        &url.URL{Path: "/api/path"},
 				RemoteAddr: "10.10.10.10:34124",
 			}
 
-			sendAPIError(c, test.err)
-
+			sendAPIError(resp, req, test.err)
 			assert.Equal(t, test.result.Code, int32(resp.Result().StatusCode))
 
 			if test.emptyResponseBody {

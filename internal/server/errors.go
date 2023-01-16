@@ -2,13 +2,12 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
-
-	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -22,7 +21,7 @@ import (
 // sendAPIError translates err into the appropriate HTTP status code, builds a
 // response body using api.Error, then sends both as a response to the active
 // request.
-func sendAPIError(c *gin.Context, err error) {
+func sendAPIError(writer http.ResponseWriter, req *http.Request, err error) {
 	resp := &api.Error{
 		Code:    http.StatusInternalServerError,
 		Message: "internal server error", // don't leak any info by default
@@ -98,7 +97,7 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = err.Error()
 
 	case errors.As(err, &overLimitError):
-		c.Writer.Header().Set("Retry-After", strconv.Itoa(int(overLimitError.RetryAfter.Seconds())))
+		writer.Header().Set("Retry-After", strconv.Itoa(int(overLimitError.RetryAfter.Seconds())))
 		resp.Code = http.StatusTooManyRequests
 		resp.Message = err.Error()
 
@@ -117,14 +116,22 @@ func sendAPIError(c *gin.Context, err error) {
 
 	log.CallerSkipFrame(1).
 		Err(err).
-		Str("method", c.Request.Method).
-		Str("path", c.Request.URL.Path).
+		Str("method", req.Method).
+		Str("path", req.URL.Path).
 		Int32("statusCode", resp.Code).
-		Str("remoteAddr", c.Request.RemoteAddr).
+		Str("remoteAddr", req.RemoteAddr).
 		Msg("api request error")
 
-	c.JSON(int(resp.Code), resp)
-	c.Abort()
+	if resp.Code == http.StatusNotModified {
+		writer.WriteHeader(int(resp.Code))
+		return
+	}
+
+	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+	writer.WriteHeader(int(resp.Code))
+	if err := json.NewEncoder(writer).Encode(resp); err != nil {
+		logging.L.Error().Err(err).Msg("failed to write error response")
+	}
 }
 
 func newAPIErrorForUniqueConstraintError(ucErr data.UniqueConstraintError, msg string) api.Error {

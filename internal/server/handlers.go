@@ -46,7 +46,7 @@ func addVersionHandler[Req, Res any](a *API, method, path, version string, route
 		handler: func(c *gin.Context) {
 			wrapped := wrapRoute(a, key, routeDef)
 			if err := wrapped(c); err != nil {
-				sendAPIError(c, err)
+				sendAPIError(c.Writer, c.Request, err)
 			}
 		},
 	})
