@@ -92,11 +92,7 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 	}
 
 	vs, ok := source[tagValue]
-	if !ok {
-		return false, nil
-	}
-
-	if len(vs) == 0 {
+	if !ok || len(vs) == 0 {
 		return false, nil
 	}
 	val := vs[0]
@@ -131,6 +127,10 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 }
 
 func setValue(val string, value reflect.Value) error {
+	if val == "" {
+		return nil
+	}
+
 	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
 		return u.UnmarshalText(stringToBytes(val))
 	}
@@ -183,9 +183,6 @@ func stringToBytes(s string) []byte {
 }
 
 func setIntField(val string, bitSize int, field reflect.Value) error {
-	if val == "" {
-		val = "0"
-	}
 	intVal, err := strconv.ParseInt(val, 10, bitSize)
 	if err == nil {
 		field.SetInt(intVal)
@@ -194,9 +191,6 @@ func setIntField(val string, bitSize int, field reflect.Value) error {
 }
 
 func setUintField(val string, bitSize int, field reflect.Value) error {
-	if val == "" {
-		val = "0"
-	}
 	uintVal, err := strconv.ParseUint(val, 10, bitSize)
 	if err == nil {
 		field.SetUint(uintVal)
@@ -205,9 +199,6 @@ func setUintField(val string, bitSize int, field reflect.Value) error {
 }
 
 func setBoolField(val string, field reflect.Value) error {
-	if val == "" {
-		val = "false"
-	}
 	boolVal, err := strconv.ParseBool(val)
 	if err == nil {
 		field.SetBool(boolVal)
@@ -216,9 +207,6 @@ func setBoolField(val string, field reflect.Value) error {
 }
 
 func setFloatField(val string, bitSize int, field reflect.Value) error {
-	if val == "" {
-		val = "0.0"
-	}
 	floatVal, err := strconv.ParseFloat(val, bitSize)
 	if err == nil {
 		field.SetFloat(floatVal)
