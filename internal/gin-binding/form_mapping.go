@@ -36,42 +36,35 @@ func mapping(value reflect.Value, field reflect.StructField, source formSource, 
 		value = value.Elem()
 	}
 
-	vKind := value.Kind()
-	if vKind != reflect.Struct || !field.Anonymous {
-		ok, err := tryToSetValue(value, field, source, tag)
+	tValue := value.Type()
+	var isSet bool
+	for i := 0; i < value.NumField(); i++ {
+		sf := tValue.Field(i)
+		if sf.PkgPath != "" && !sf.Anonymous { // unexported
+			continue
+		}
+
+		if _, ok := value.Field(i).Addr().Interface().(encoding.TextUnmarshaler); ok {
+			_, err := tryToSetValue(value.Field(i), sf, source, tag)
+			if err != nil {
+				return true, err
+			}
+			continue
+		}
+
+		var err error
+		var ok bool
+		if sf.Type.Kind() == reflect.Struct {
+			ok, err = mapping(value.Field(i), sf, source, tag)
+		} else {
+			ok, err = tryToSetValue(value.Field(i), sf, source, tag)
+		}
 		if err != nil {
 			return false, err
 		}
-		if ok {
-			return true, nil
-		}
+		isSet = isSet || ok
 	}
-
-	if vKind == reflect.Struct {
-		tValue := value.Type()
-
-		var isSet bool
-		for i := 0; i < value.NumField(); i++ {
-			sf := tValue.Field(i)
-			if sf.PkgPath != "" && !sf.Anonymous { // unexported
-				continue
-			}
-
-			var err error
-			var ok bool
-			if sf.Type.Kind() == reflect.Struct {
-				ok, err = mapping(value.Field(i), sf, source, tag)
-			} else {
-				ok, err = tryToSetValue(value.Field(i), sf, source, tag)
-			}
-			if err != nil {
-				return false, err
-			}
-			isSet = isSet || ok
-		}
-		return isSet, nil
-	}
-	return false, nil
+	return isSet, nil
 }
 
 func tryToSetValue(value reflect.Value, field reflect.StructField, source formSource, tag string) (bool, error) {
@@ -94,6 +87,7 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 	}
 	val := vs[0]
 
+	// TODO: remove?
 	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
 		return true, u.UnmarshalText([]byte(val))
 	}
@@ -110,14 +104,14 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 			isNew = true
 			vPtr = reflect.New(value.Type().Elem())
 		}
-		isSet, err := mapping(vPtr.Elem(), field, source, tag)
+		err := setValue(val, vPtr.Elem())
 		if err != nil {
 			return false, err
 		}
-		if isNew && isSet {
+		if isNew {
 			value.Set(vPtr)
 		}
-		return isSet, nil
+		return true, nil
 	default:
 		return true, setValue(val, value)
 	}
