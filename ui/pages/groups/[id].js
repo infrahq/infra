@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Head from 'next/head'
@@ -122,8 +122,9 @@ export default function GroupDetails() {
   ]
 
   // Don't allow deleting the last group
-  const showRemoveGroupBtn =
-    isAdmin && !(infraAdmins?.length === 1 && adminGroups.includes(group?.id))
+  const isLastAdmin =
+    infraAdmins?.length === 1 && adminGroups.includes(group?.id)
+  const showRemoveGroupBtn = isAdmin && !isLastAdmin
 
   return (
     <div className='mb-10'>
