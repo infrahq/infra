@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"unsafe"
 )
 
 func BindURI(m map[string][]string, obj any) error {
@@ -96,7 +95,7 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 	val := vs[0]
 
 	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
-		return true, u.UnmarshalText(stringToBytes(val))
+		return true, u.UnmarshalText([]byte(val))
 	}
 
 	// nolint:exhaustive
@@ -130,7 +129,7 @@ func setValue(val string, value reflect.Value) error {
 	}
 
 	if u, ok := value.Addr().Interface().(encoding.TextUnmarshaler); ok {
-		return u.UnmarshalText(stringToBytes(val))
+		return u.UnmarshalText([]byte(val))
 	}
 
 	// nolint:exhaustive
@@ -167,17 +166,6 @@ func setValue(val string, value reflect.Value) error {
 		return fmt.Errorf("type %v is not supported by decode", value.Type())
 	}
 	return nil
-}
-
-// TODO: remove this optimization. Maybe change to []byte everywhere?
-// stringToBytes converts string to byte slice without a memory allocation.
-func stringToBytes(s string) []byte {
-	return *(*[]byte)(unsafe.Pointer(
-		&struct {
-			string
-			Cap int
-		}{s, len(s)},
-	))
 }
 
 func setIntField(val string, bitSize int, field reflect.Value) error {
