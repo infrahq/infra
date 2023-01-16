@@ -402,13 +402,13 @@ func readRequest(c *gin.Context, req interface{}) error {
 		for _, v := range c.Params {
 			params[v.Key] = []string{v.Value}
 		}
-		if err := binding.BindURI(params, req); err != nil {
+		if err := binding.Decode(req, params, "uri"); err != nil {
 			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 		}
 	}
 
-	if len(c.Request.URL.Query()) > 0 {
-		if err := binding.BindQuery(c.Request, req); err != nil {
+	if query := c.Request.URL.Query(); len(query) > 0 {
+		if err := binding.Decode(req, query, "form"); err != nil {
 			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 		}
 	}

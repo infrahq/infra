@@ -64,7 +64,7 @@ func TestDecodeSkipField(t *testing.T) {
 	var s struct {
 		A int
 	}
-	err := decode(&s, formSource{}, "form")
+	err := Decode(&s, formSource{}, "form")
 	assert.NilError(t, err)
 
 	assert.Equal(t, 0, s.A)
@@ -75,7 +75,7 @@ func TestDecodeIgnoreField(t *testing.T) {
 		A int `form:"A"`
 		B int `form:"-"`
 	}
-	err := decode(&s, formSource{"A": {"9"}, "B": {"9"}}, "form")
+	err := Decode(&s, formSource{"A": {"9"}, "B": {"9"}}, "form")
 	assert.NilError(t, err)
 
 	assert.Equal(t, 9, s.A)
@@ -87,7 +87,7 @@ func TestDecodeUnexportedField(t *testing.T) {
 		A int `form:"a"`
 		b int `form:"b"`
 	}
-	err := decode(&s, formSource{"a": {"9"}, "b": {"9"}}, "form")
+	err := Decode(&s, formSource{"a": {"9"}, "b": {"9"}}, "form")
 	assert.NilError(t, err)
 
 	assert.Equal(t, 9, s.A)
@@ -98,7 +98,7 @@ func TestDecodePrivateField(t *testing.T) {
 	var s struct {
 		f int `form:"field"`
 	}
-	err := decode(&s, formSource{"field": {"6"}}, "form")
+	err := Decode(&s, formSource{"field": {"6"}}, "form")
 	assert.NilError(t, err)
 	assert.Equal(t, 0, s.f)
 }
@@ -108,7 +108,7 @@ func TestDecodeUnsupportedType(t *testing.T) {
 		U uintptr
 	}
 
-	err := decode(&s, formSource{"U": {"unknown"}}, "form")
+	err := Decode(&s, formSource{"U": {"unknown"}}, "form")
 	assert.ErrorContains(t, err, "type uintptr is not supported")
 }
 
@@ -116,7 +116,7 @@ func TestBindURI(t *testing.T) {
 	var s struct {
 		F int `uri:"field"`
 	}
-	err := BindURI(map[string][]string{"field": {"6"}}, &s)
+	err := Decode(&s, map[string][]string{"field": {"6"}}, "uri")
 	assert.NilError(t, err)
 	assert.Equal(t, 6, s.F)
 }
@@ -125,7 +125,7 @@ func TestDecodeForm(t *testing.T) {
 	var s struct {
 		F int `form:"field"`
 	}
-	err := decode(&s, map[string][]string{"field": {"6"}}, "form")
+	err := Decode(&s, map[string][]string{"field": {"6"}}, "form")
 	assert.NilError(t, err)
 	assert.Equal(t, 6, s.F)
 }
@@ -136,17 +136,17 @@ func TestDecodeSlice(t *testing.T) {
 	}
 
 	// default value
-	err := decode(&s, formSource{"slice": []string{"9"}}, "form")
+	err := Decode(&s, formSource{"slice": []string{"9"}}, "form")
 	assert.NilError(t, err)
 	assert.DeepEqual(t, []int{9}, s.Slice)
 
 	// ok
-	err = decode(&s, formSource{"slice": {"3", "4"}}, "form")
+	err = Decode(&s, formSource{"slice": {"3", "4"}}, "form")
 	assert.NilError(t, err)
 	assert.DeepEqual(t, []int{3, 4}, s.Slice)
 
 	// error
-	err = decode(&s, formSource{"slice": {"wrong"}}, "form")
+	err = Decode(&s, formSource{"slice": {"wrong"}}, "form")
 	assert.ErrorContains(t, err, "invalid syntax")
 }
 
@@ -156,6 +156,6 @@ func TestDecodeIgnoredCircularRef(t *testing.T) {
 	}
 	var s S
 
-	err := decode(&s, formSource{}, "form")
+	err := Decode(&s, formSource{}, "form")
 	assert.NilError(t, err)
 }

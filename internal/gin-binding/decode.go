@@ -7,22 +7,14 @@ package binding
 import (
 	"encoding"
 	"fmt"
-	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 )
 
-func BindURI(m map[string][]string, obj any) error {
-	return decode(obj, m, "uri")
-}
-
-func BindQuery(req *http.Request, obj any) error {
-	values := req.URL.Query()
-	return decode(obj, values, "form")
-}
-
-func decode(target any, source map[string][]string, tag string) error {
+// Decode populates target with values from source, using the struct tag to
+// identify the appropriate source value for each field.
+func Decode(target any, source map[string][]string, tag string) error {
 	return decodeStruct(reflect.ValueOf(target), source, tag)
 }
 
@@ -50,7 +42,7 @@ func decodeStruct(value reflect.Value, source formSource, tag string) error {
 			name = field.Name
 		}
 
-		vs, _ := source[name]
+		vs := source[name]
 		var val string
 		if len(vs) > 0 {
 			val = vs[0]

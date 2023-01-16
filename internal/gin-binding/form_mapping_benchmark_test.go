@@ -32,7 +32,7 @@ type structFull struct {
 func BenchmarkDecode(b *testing.B) {
 	var s structFull
 	for i := 0; i < b.N; i++ {
-		err := decode(&s, form, "form")
+		err := Decode(&s, form, "form")
 		if err != nil {
 			b.Fatalf("Error on a form mapping")
 		}

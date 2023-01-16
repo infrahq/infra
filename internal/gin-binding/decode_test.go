@@ -45,7 +45,7 @@ func TestUriBinding(t *testing.T) {
 	var tag Tag
 	m := make(map[string][]string)
 	m["name"] = []string{"thinkerou"}
-	assert.NilError(t, BindURI(m, &tag))
+	assert.NilError(t, Decode(&tag, m, "uri"))
 	assert.Equal(t, "thinkerou", tag.Name)
 }
 
@@ -66,7 +66,7 @@ func TestUriInnerBinding(t *testing.T) {
 	}
 
 	var tag Tag
-	assert.NilError(t, BindURI(m, &tag))
+	assert.NilError(t, Decode(&tag, m, "uri"))
 	assert.Equal(t, tag.Name, expectedName)
 	assert.Equal(t, tag.S.Age, expectedAge)
 }
@@ -79,7 +79,7 @@ func testQueryBinding(t *testing.T, method, path, body string) {
 	if method == "POST" {
 		req.Header.Add("Content-Type", MIMEPOSTForm)
 	}
-	err := BindQuery(req, &obj)
+	err := Decode(&obj, req.URL.Query(), "form")
 	assert.NilError(t, err)
 	assert.Equal(t, "bar", obj.Foo)
 	assert.Equal(t, "foo", obj.Bar)
@@ -91,7 +91,7 @@ func testQueryBindingBoolFail(t *testing.T, method, path, body string) {
 	if method == "POST" {
 		req.Header.Add("Content-Type", MIMEPOSTForm)
 	}
-	err := BindQuery(req, &obj)
+	err := Decode(&obj, req.URL.Query(), "form")
 	assert.ErrorContains(t, err, "invalid syntax")
 }
 
