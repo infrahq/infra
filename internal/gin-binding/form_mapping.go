@@ -91,20 +91,14 @@ func tryToSetValue(value reflect.Value, field reflect.StructField, source formSo
 	case reflect.Slice:
 		return setSlice(vs, value)
 	case reflect.Pointer:
-		// TODO: can we reduce this at all?
-		var isNew bool
 		vPtr := value
 		if value.IsNil() {
-			isNew = true
 			vPtr = reflect.New(value.Type().Elem())
 		}
-		err := setValue(val, vPtr.Elem())
-		if err != nil {
+		if err := setValue(val, vPtr.Elem()); err != nil {
 			return err
 		}
-		if isNew {
-			value.Set(vPtr)
-		}
+		value.Set(vPtr)
 		return nil
 	default:
 		return setValue(val, value)
