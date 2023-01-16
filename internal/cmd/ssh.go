@@ -269,7 +269,7 @@ func provisionSSHKey(ctx context.Context, opts provisionSSHKeyOptions) (string, 
 
 		// key doesn't exist in the API
 		fmt.Fprintf(opts.cli.Stderr,
-			"Removing %v because it was expired or deleted from Infra", filename)
+			"Removing %v because it was expired or deleted from Infra\n", filename)
 		if err := os.Remove(filename); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return "", fmt.Errorf("removing deleted key %w", err)
 		}
