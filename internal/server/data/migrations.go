@@ -86,6 +86,7 @@ func migrations() []*migrator.Migration {
 		setGoogleSocialLoginDefaultID(),
 		addUserPublicKeyUserIDIndex(),
 		addGrantsSubjectID(),
+		removeSettingsPasswordPolicy(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1237,6 +1238,22 @@ func addGrantsSubjectID() *migrator.Migration {
 				CREATE UNIQUE INDEX idx_grants_subject_privilege_resource ON grants
 				    USING btree (organization_id, subject_id, privilege, resource) WHERE (deleted_at IS NULL);
 			`)
+			return err
+		},
+	}
+}
+
+func removeSettingsPasswordPolicy() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2023-01-17T11:36",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`
+				ALTER TABLE settings
+					DROP COLUMN IF EXISTS length_min,
+					DROP COLUMN IF EXISTS lowercase_min,
+					DROP COLUMN IF EXISTS uppercase_min,
+					DROP COLUMN IF EXISTS number_min,
+					DROP COLUMN IF EXISTS symbol_min;`)
 			return err
 		},
 	}

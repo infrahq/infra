@@ -416,17 +416,15 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 					LIMIT 1
 				`)
 
-				var settings models.Settings
-				err := row.Scan(
-					&settings.LowercaseMin,
-					&settings.UppercaseMin,
-					&settings.NumberMin,
-					&settings.SymbolMin,
-					&settings.LengthMin,
-				)
+				var lengthMin, lowercaseMin, uppercaseMin, numberMin, symbolMin int
+
+				err := row.Scan(&lowercaseMin, &uppercaseMin, &numberMin, &symbolMin, &lengthMin)
 				assert.NilError(t, err)
-				expected := models.Settings{LengthMin: 8}
-				assert.DeepEqual(t, settings, expected)
+				assert.Equal(t, lengthMin, 8)
+				assert.Equal(t, lowercaseMin, 0)
+				assert.Equal(t, uppercaseMin, 0)
+				assert.Equal(t, numberMin, 0)
+				assert.Equal(t, symbolMin, 0)
 			},
 		},
 		{
@@ -1053,6 +1051,12 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 					{10003, 7265472, models.SubjectKindUser, "res3", 902},
 				}
 				assert.DeepEqual(t, actual, expected)
+			},
+		},
+		{
+			label: testCaseLine("2023-01-17T11:36"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				// schema changes are tested with schema comparison
 			},
 		},
 	}

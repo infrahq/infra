@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -159,59 +158,9 @@ func updateCredential(tx *data.Transaction, credential *models.Credential, passw
 	return nil
 }
 
-// list of special charaters from OWASP:
-// https://owasp.org/www-community/password-special-characters
-func isSymbol(r rune) bool {
-	return (r >= '\u0020' && r <= '\u002F') || (r >= '\u003A' && r <= '\u0040') || (r >= '\u005B' && r <= '\u0060') || (r >= '\u007B' && r <= '\u007E')
-}
-
-func hasMinimumCount(password string, min int, minCheck func(rune) bool) bool {
-	var count int
-	for _, r := range password {
-		if minCheck(r) {
-			count++
-		}
-	}
-	return count >= min
-}
-
 func checkPasswordRequirements(db data.ReadTxn, password string) error {
-	settings, err := data.GetSettings(db)
-	if err != nil {
-		return err
-	}
-
-	requirements := []struct {
-		minCount      int
-		countFunc     func(rune) bool
-		singularError string
-		pluralError   string
-	}{
-		{settings.LengthMin, func(r rune) bool { return true }, "%d character", "%d characters"},
-		{settings.LowercaseMin, unicode.IsLower, "%d lowercase letter", "%d lowercase letters"},
-		{settings.UppercaseMin, unicode.IsUpper, "%d uppercase letter", "%d uppercase letters"},
-		{settings.NumberMin, unicode.IsDigit, "%d number", "%d numbers"},
-		{settings.SymbolMin, isSymbol, "%d symbol", "%d symbols"},
-	}
-
-	requirementError := make([]string, 0)
-
-	valid := true
-	for _, r := range requirements {
-		if !hasMinimumCount(password, r.minCount, r.countFunc) {
-			valid = false
-		}
-
-		switch {
-		case r.minCount == 1:
-			requirementError = append(requirementError, fmt.Sprintf(r.singularError, r.minCount))
-		case r.minCount > 1:
-			requirementError = append(requirementError, fmt.Sprintf(r.pluralError, r.minCount))
-		}
-	}
-
-	if !valid {
-		return validate.Error{"password": requirementError}
+	if len(password) < 8 {
+		return validate.Error{"password": []string{"8 characters"}}
 	}
 
 	if err := checkBadPasswords(password); err != nil {

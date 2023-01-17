@@ -1316,41 +1316,6 @@
           }
         }
       },
-      "Settings": {
-        "properties": {
-          "passwordRequirements": {
-            "properties": {
-              "lengthMin": {
-                "description": "Minimum password length. Must be at least 8 characters.",
-                "format": "int",
-                "minimum": 8,
-                "type": "integer"
-              },
-              "lowercaseMin": {
-                "description": "Minimum number of lowercase ASCII letters.",
-                "format": "int",
-                "type": "integer"
-              },
-              "numberMin": {
-                "description": "Minimum number of numbers.",
-                "format": "int",
-                "type": "integer"
-              },
-              "symbolMin": {
-                "description": "Minimum number of symbols.",
-                "format": "int",
-                "type": "integer"
-              },
-              "uppercaseMin": {
-                "description": "Minimum number of uppercase ASCII letters.",
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
-          }
-        }
-      },
       "UpdateUserResponse": {
         "properties": {
           "created": {
@@ -6549,91 +6514,6 @@
           }
         },
         "summary": "GetServerConfiguration",
-        "tags": [
-          "Settings"
-        ]
-      }
-    },
-    "/api/settings": {
-      "get": {
-        "description": "GetSettings",
-        "operationId": "GetSettings",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "Infra-Version",
-            "required": true,
-            "schema": {
-              "description": "Version of the API being requested",
-              "example": "0.0.0",
-              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Settings"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "GetSettings",
         "tags": [
           "Settings"
         ]
