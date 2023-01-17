@@ -21,10 +21,11 @@ const (
 type AccessKey struct {
 	Model
 	OrganizationMember
-	Name              string
-	IssuedForUser     uid.ID
-	IssuedForUserName string `db:"-"`
-	ProviderID        uid.ID
+	Name                  string
+	IssuedForUser         uid.ID
+	IssuedForUserName     string `db:"-"`
+	IssuedForSCIMProvider uid.ID
+	ProviderID            uid.ID
 
 	ExpiresAt           time.Time     // time at which the key must expire. Extensions to the inactivity timeout do not extend this value.
 	InactivityExtension time.Duration // how long to increase the inactivity timout by

@@ -33,6 +33,7 @@ func (r ListAccessKeysRequest) ValidationRules() []validate.ValidationRule {
 
 type CreateAccessKeyRequest struct {
 	UserID            uid.ID   `json:"userID"`
+	SCIMProviderID    uid.ID   `json:"scimProviderID"` // set when granting a SCIM provider an access key
 	Name              string   `json:"name"`
 	Expiry            Duration `json:"expiry" note:"maximum time valid"`
 	InactivityTimeout Duration `json:"inactivityTimeout" note:"key must be used within this duration to remain valid"`
@@ -41,7 +42,10 @@ type CreateAccessKeyRequest struct {
 func (r CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		ValidateName(r.Name),
-		validate.Required("userID", r.UserID),
+		validate.RequireOneOf(
+			validate.Field{Name: "userID", Value: r.UserID},
+			validate.Field{Name: "scimProviderID", Value: r.SCIMProviderID},
+		),
 		validate.Required("expiry", r.Expiry),
 		validate.Required("inactivityTimeout", r.InactivityTimeout),
 	}

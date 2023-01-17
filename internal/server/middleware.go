@@ -205,10 +205,10 @@ func requireAccessKey(c *gin.Context, db data.WriteTxn, srv *Server) (access.Aut
 	}
 
 	// either this access key was issued for a user or for an identity provider to do SCIM
-	if accessKey.IssuedForUser == accessKey.ProviderID {
+	if accessKey.IssuedForSCIMProvider != 0 {
 		// this access key was issued for SCIM for an identity provider, validate the provider still exists
 		_, err := data.GetProvider(db, data.GetProviderOptions{
-			ByID:             accessKey.IssuedForUser,
+			ByID:             accessKey.IssuedForSCIMProvider,
 			FromOrganization: accessKey.OrganizationID,
 		})
 		if err != nil {
