@@ -344,9 +344,7 @@ export default function Users() {
               )
 
               // cannot delete the currently logged in user
-              if (
-                info.row.original.id === user?.id
-              ) {
+              if (info.row.original.id === user?.id) {
                 return null
               }
 
