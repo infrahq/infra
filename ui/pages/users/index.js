@@ -346,7 +346,8 @@ export default function Users() {
               // can only delete users that exist within Infra which are not the currently logged in user
               if (
                 info.row.original.id === user?.id ||
-                !info.row.original.providerNames?.includes('infra')
+                (info.row.original.providerNames !== undefined &&
+                  !info.row.original.providerNames?.includes('infra'))
               ) {
                 return null
               }
