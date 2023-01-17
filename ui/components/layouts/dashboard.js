@@ -78,7 +78,7 @@ function SidebarNav({ children, open, setOpen }) {
 export default function Dashboard({ children }) {
   const router = useRouter()
 
-  const { user, loading, isAdmin, org, logout } = useUser()
+  const { user, loading, isAdmin, isAdminLoading, org, logout } = useUser()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function Dashboard({ children }) {
     }
   }, [loading])
 
-  if (loading || !user) {
+  if (loading || !user || isAdminLoading) {
     return null
   }
 
