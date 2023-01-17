@@ -118,12 +118,12 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
         }
       }
 
-      const newGrants = await fetch('/api/grants', {
+      const addGrantsStatus = await fetch('/api/grants', {
         method: 'PATCH',
         body: JSON.stringify({ grantsToAdd }),
       })
 
-      onCreated(newGrants)
+      onCreated(grantsToAdd)
       setOpen(false)
     } catch (e) {
       console.error(e)
@@ -508,11 +508,26 @@ export default function AccessControl() {
   const [openCreateAccess, setOpenCreateAccess] = useState(false)
   const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
   const [selectedDeleteIds, setSelectedDeleteIds] = useState([])
+  const [newCreatedGrants, setNewCreatedGrants] = useState([])
 
   useEffect(() => {
+    console.log(allGrants)
     setGrants(
       allGrants
         // ?.filter(g => g.resource !== 'infra')
+        ?.map(g => {
+          if (newCreatedGrants.length > 0) {
+            const result = newCreatedGrants.filter(
+              ng =>
+                ng.privilege === g.privilege &&
+                ng.resource === g.resource &&
+                (ng.group === g.group || ng.user === g.user)
+            )
+
+            return { ...g, newCreate: result.length > 0 }
+          }
+          return g
+        })
         ?.map(g => {
           if (g.group) {
             return { ...g, type: 'group', identityId: g.group }
@@ -525,7 +540,11 @@ export default function AccessControl() {
           return g
         })
     )
-  }, [allGrants])
+
+    if (allGrants?.length === 0 && totalCount === 0) {
+      router.replace(`access-control?p=${page - 1}`)
+    }
+  }, [allGrants, totalCount, newCreatedGrants])
 
   const columns = []
 
@@ -595,8 +614,9 @@ export default function AccessControl() {
                       <Dialog.Panel className='relative w-full transform rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-md'>
                         <CreateAccessDialog
                           setOpen={setOpenCreateAccess}
-                          onCreated={() => {
+                          onCreated={newGrants => {
                             mutate()
+                            setNewCreatedGrants(newGrants)
                           }}
                         />
                       </Dialog.Panel>
@@ -700,48 +720,21 @@ export default function AccessControl() {
           {
             id: 'delete',
             cell: function Cell(info) {
-              const [open, setOpen] = useState(false)
-              const { id, identityId, resource, privilege } = info.row.original
-
-              const name =
-                users?.find(u => u.id === identityId)?.name ||
-                groups?.find(g => g.id === identityId)?.name
-
               return (
                 isAdmin && (
-                  <>
-                    <div className='group invisible rounded-md bg-white group-hover:visible'>
-                      <button
-                        type='button'
-                        onClick={() => setOpen(true)}
-                        className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
-                      >
-                        <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                        <span className='hidden sm:block'>Remove</span>
-                      </button>
-                    </div>
-                    <DeleteModal
-                      open={open}
-                      setOpen={setOpen}
-                      onSubmit={async () => {
-                        await fetch(`/api/grants/${id}`, {
-                          method: 'DELETE',
-                        })
-
-                        mutate()
-                        setSelectedDeleteIds([])
-                        setOpen(false)
+                  <div className='group invisible rounded-md bg-transparent group-hover:visible'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setSelectedDeleteIds([info.row.original.id])
+                        setOpenSelectedDeleteModal(true)
                       }}
-                      title='Remove access'
-                      message={
-                        <div>
-                          Are you sure you want to remove{' '}
-                          <span className='break-all font-bold'>{name}</span>
-                          &apos;s {resource} {privilege} access ?
-                        </div>
-                      }
-                    />
-                  </>
+                      className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
+                    >
+                      <TrashIcon className='mr-2 h-3.5 w-3.5' />
+                      <span className='hidden sm:block'>Remove</span>
+                    </button>
+                  </div>
                 )
               )
             },
@@ -774,6 +767,7 @@ export default function AccessControl() {
           })
 
           mutate()
+
           setSelectedDeleteIds([])
           setOpenSelectedDeleteModal(false)
         }}

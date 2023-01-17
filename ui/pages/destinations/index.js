@@ -5,7 +5,8 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 
 import { useUser } from '../../lib/hooks'
-import { CommandLineIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/solid'
+import { CommandLineIcon } from '@heroicons/react/24/solid'
+import { TrashIcon } from '@heroicons/react/24/outline'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
@@ -146,7 +147,7 @@ export default function Destinations() {
             cell: function Cell(info) {
               return (
                 info.row.original.kind === 'ssh' && (
-                  <div className='group invisible rounded-md bg-white group-hover:visible'>
+                  <div className='group invisible rounded-md bg-transparent group-hover:visible'>
                     <button
                       type='button'
                       onClick={() => {

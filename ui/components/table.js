@@ -1,11 +1,15 @@
+import Link from 'next/link'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { usePopper } from 'react-popper'
+import * as ReactDOM from 'react-dom'
+
 import { TrashIcon } from '@heroicons/react/24/outline'
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import Link from 'next/link'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { Menu } from '@headlessui/react'
 
 import Loader from './loader'
 
@@ -50,6 +54,27 @@ export default function Table({
 
   const [checkedAll, setCheckedAll] = useState(false)
   const [indeterminate, setIndeterminate] = useState(false)
+  const [referenceElement, setReferenceElement] = useState(null)
+  const [popperElement, setPopperElement] = useState(null)
+  let { styles, attributes, update } = usePopper(
+    referenceElement,
+    popperElement,
+    {
+      placement: 'bottom-end',
+      modifiers: [
+        {
+          name: 'flip',
+          enabled: false,
+        },
+        {
+          name: 'offset',
+          options: {
+            offset: [0, 0],
+          },
+        },
+      ],
+    }
+  )
 
   function toggleAll() {
     if (checkedAll || indeterminate) {
@@ -110,7 +135,7 @@ export default function Table({
                   >
                     <input
                       type='checkbox'
-                      className='absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
+                      className='absolute left-4 top-1/2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
                       ref={el => (checkbox.current = el)}
                       checked={checkedAll}
                       onChange={toggleAll}
@@ -214,18 +239,79 @@ export default function Table({
       {/* Pagination */}
       {data?.length > 0 && (
         <div className='sticky left-0 z-0 flex w-full items-center justify-between border-t border-gray-200/75 py-2 px-5 text-2xs'>
-          <div className='text-gray-500'>
-            Showing{' '}
-            {count === 1
-              ? '1'
-              : `${pageIndex * pageSize + 1} – ${Math.min(
-                  (pageIndex + 1) * pageSize,
-                  count
-                )}`}{' '}
-            of {count} result
-            {count === 1 ? '' : 's'}
+          <div className='flex items-center text-gray-400'>
+            <div className='items-center pr-2'>
+              Showing
+              <Menu as='div' className='relative inline-block px-px text-left'>
+                {({ open }) => (
+                  <>
+                    <Menu.Button
+                      type='button'
+                      ref={setReferenceElement}
+                      className={`cursor-pointer rounded-md border border-transparent p-2 hover:bg-gray-100 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20 ${
+                        open ? 'bg-gray-100 text-gray-600' : 'text-gray-400'
+                      }`}
+                    >
+                      {count === 1
+                        ? '1'
+                        : `${pageIndex * pageSize + 1} – ${Math.min(
+                            (pageIndex + 1) * pageSize,
+                            count
+                          )}`}{' '}
+                      of {count}
+                    </Menu.Button>
+                    {ReactDOM.createPortal(
+                      <Menu.Items
+                        ref={setPopperElement}
+                        style={styles.popper}
+                        {...attributes.popper}
+                        className='absolute z-30 w-[6rem] divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'
+                      >
+                        <div>
+                          <Menu.Item>
+                            {({ active }) => (
+                              <button
+                                className={`${
+                                  active ? 'bg-gray-50' : 'bg-white'
+                                } group flex w-full items-center justify-center rounded-md px-2 py-1.5 text-xs font-medium text-gray-500`}
+                                onClick={() => {
+                                  console.log(pageCount)
+                                  table.setPageIndex(0)
+                                  update()
+                                }}
+                              >
+                                Oldest
+                              </button>
+                            )}
+                          </Menu.Item>
+                          <Menu.Item>
+                            {({ active }) => (
+                              <button
+                                className={`${
+                                  active ? 'bg-gray-50' : 'bg-white'
+                                } group flex w-full items-center justify-center rounded-md px-2 py-1.5 text-xs font-medium text-gray-500 disabled:cursor-not-allowed disabled:opacity-30`}
+                                onClick={() => {
+                                  console.log(pageCount)
+                                  table.setPageIndex(pageCount)
+                                  update()
+                                }}
+                                disabled={pageCount === 1}
+                              >
+                                Newest
+                              </button>
+                            )}
+                          </Menu.Item>
+                        </div>
+                      </Menu.Items>,
+                      document.querySelector('body')
+                    )}
+                  </>
+                )}
+              </Menu>
+              result{count > 1 ? 's' : ''}
+            </div>
           </div>
-          <div className='space-x-1 text-2xs text-gray-700'>
+          <div className='flex items-center space-x-1 text-2xs text-gray-700'>
             <button
               className='rounded-md border border-gray-200 px-3 py-1 hover:bg-gray-50 disabled:cursor-default disabled:border-gray-100 disabled:text-gray-300 disabled:hover:bg-white'
               onClick={() => table.previousPage()}
