@@ -210,7 +210,8 @@ CREATE TABLE groups (
     name text,
     created_by bigint,
     created_by_provider bigint,
-    organization_id bigint
+    organization_id bigint,
+    membership_update_index bigint DEFAULT 2 NOT NULL
 );
 
 CREATE TABLE identities (

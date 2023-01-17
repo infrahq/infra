@@ -87,6 +87,7 @@ func migrations() []*migrator.Migration {
 		addUserPublicKeyUserIDIndex(),
 		addGrantsSubjectID(),
 		removeSettingsPasswordPolicy(),
+		addUpdateIndexToGroups(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1255,6 +1256,21 @@ func removeSettingsPasswordPolicy() *migrator.Migration {
 					DROP COLUMN IF EXISTS number_min,
 					DROP COLUMN IF EXISTS symbol_min;`)
 			return err
+		},
+	}
+}
+
+func addUpdateIndexToGroups() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2023-01-17T13:17",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `ALTER TABLE groups ADD COLUMN IF NOT EXISTS membership_update_index bigint NOT NULL default 2`
+			_, err := tx.Exec(stmt)
+			if err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 }
