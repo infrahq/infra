@@ -16,14 +16,14 @@ export default function Destinations() {
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 20
 
-  const { isAdmin, loading } = useUser()
+  const { isAdmin, isAdminLoading } = useUser()
 
   const { data: { items: destinations, totalCount, totalPages } = {}, mutate } =
     useSWR(`/api/destinations?page=${page}&limit=${limit}`)
   const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
   const [selectedDeleteId, setSelectedDeleteId] = useState(null)
 
-  if (loading) {
+  if (isAdminLoading) {
     return null
   }
 

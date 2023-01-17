@@ -12,21 +12,12 @@ export function useUser() {
       : null
   )
 
-  const loading =
-    // User loading
-    (!user && !error) ||
-    // isAdmin loading
-    (!!user && !grants && !grantsError)
-
-  if (loading) {
-    return { loading }
-  }
-
   return {
     user,
-    loading,
+    loading: !user && !error,
     org,
     isAdmin: grants?.some(g => g.privilege === INFRA_ADMIN_ROLE),
+    isAdminLoading: !!user && !grants && !grantsError,
     login: async body => {
       const res = await fetch('/api/login', {
         method: 'POST',
