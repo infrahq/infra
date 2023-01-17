@@ -118,7 +118,7 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
         }
       }
 
-      const addGrantsStatus = await fetch('/api/grants', {
+      await fetch('/api/grants', {
         method: 'PATCH',
         body: JSON.stringify({ grantsToAdd }),
       })
@@ -511,7 +511,6 @@ export default function AccessControl() {
   const [newCreatedGrants, setNewCreatedGrants] = useState([])
 
   useEffect(() => {
-    console.log(allGrants)
     setGrants(
       allGrants
         // ?.filter(g => g.resource !== 'infra')
