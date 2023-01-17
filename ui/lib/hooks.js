@@ -4,7 +4,7 @@ const INFRA_ADMIN_ROLE = 'admin'
 
 export function useUser() {
   const { cache } = useSWRConfig()
-  const { data: user, error } = useSWR('/api/users/self')
+  const { data: user, error, mutate } = useSWR('/api/users/self')
   const { data: org } = useSWR(() => (user ? '/api/organizations/self' : null))
   const { data: { items: grants } = {}, grantsError } = useSWR(() =>
     user
@@ -12,23 +12,12 @@ export function useUser() {
       : null
   )
 
-  const loading =
-    // User loading
-    (!user && !error) ||
-    // isAdmin loading
-    (!!user && !grants && !grantsError)
-
-  if (loading) {
-    return { loading }
-  }
-
   return {
     user,
-    loading,
+    loading: !user && !error,
     org,
     isAdmin: grants?.some(g => g.privilege === INFRA_ADMIN_ROLE),
-
-    // login logs the user in and clears the local cache
+    isAdminLoading: !!user && !grants && !grantsError,
     login: async body => {
       const res = await fetch('/api/login', {
         method: 'POST',
@@ -37,19 +26,17 @@ export function useUser() {
 
       const data = await jsonBody(res)
 
-      for (const key of cache.keys()) {
-        cache.delete(key)
-      }
+      await mutate()
 
       return data
     },
-
-    // logout logs the user out and redirects them to the login page
     logout: async () => {
       await fetch('/api/logout', { method: 'POST' })
-      for (const key of cache.keys()) {
-        cache.delete(key)
-      }
+
+      // clear cache to remove any local user data
+      cache.clear()
+
+      await mutate(undefined)
     },
   }
 }

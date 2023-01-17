@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { Dialog, Transition } from '@headlessui/react'
@@ -81,16 +81,21 @@ export default function Dashboard({ children }) {
   const { user, loading, isAdmin, org, logout } = useUser()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  if (loading) {
-    return null
-  }
+  useEffect(() => {
+    if (loading) {
+      return
+    }
 
-  if (!user) {
-    router.replace(
-      router.asPath === '/'
-        ? '/login'
-        : `/login?next=${encodeURIComponent(router.asPath)}`
-    )
+    if (!user) {
+      router.replace(
+        router.asPath === '/'
+          ? '/login'
+          : `/login?next=${encodeURIComponent(router.asPath)}`
+      )
+    }
+  }, [loading])
+
+  if (loading || !user) {
     return null
   }
 
