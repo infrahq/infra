@@ -60,9 +60,9 @@ func ListGrants(rCtx RequestContext, opts data.ListGrantsOptions, lastUpdateInde
 		return ListGrantsResponse{}, err
 	}
 
-	listenOpts := data.ListenForNotifyOptions{
-		GrantsByDestination: opts.ByDestination,
-		OrgID:               rCtx.DBTxn.OrganizationID(),
+	listenOpts := data.ListenChannelGrantsByDestination{
+		Destination: opts.ByDestination,
+		OrgID:       rCtx.DBTxn.OrganizationID(),
 	}
 	listener, err := data.ListenForNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 	if err != nil {

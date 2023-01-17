@@ -28,9 +28,9 @@ func TestCreateDestinationCredentialPgNotifyRequest(t *testing.T) {
 	wg.Add(2)
 
 	go func() {
-		listener, err := ListenForNotify(context.Background(), db, ListenForNotifyOptions{
-			OrgID:                                 orgID,
-			DestinationCredentialsByDestinationID: destID,
+		listener, err := ListenForNotify(context.Background(), db, ListenChannelDestinationCredentialsByDestinationID{
+			OrgID:         orgID,
+			DestinationID: destID,
 		})
 		assert.NilError(t, err)
 
@@ -97,9 +97,9 @@ func TestAnswerDestinationCredentialPgNotifyResponse(t *testing.T) {
 	wg.Add(2)
 
 	go func() {
-		listener, err := ListenForNotify(context.Background(), db, ListenForNotifyOptions{
-			OrgID:                      orgID,
-			DestinationCredentialsByID: dcID,
+		listener, err := ListenForNotify(context.Background(), db, ListenChannelDestinationCredentialsByID{
+			OrgID:                    orgID,
+			DestinationCredentialsID: dcID,
 		})
 		assert.NilError(t, err)
 
