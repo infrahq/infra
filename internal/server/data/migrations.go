@@ -85,6 +85,7 @@ func migrations() []*migrator.Migration {
 		addDestinationCredentials(),
 		setGoogleSocialLoginDefaultID(),
 		addUserPublicKeyUserIDIndex(),
+		renameAccessKeyIssuedFor(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1170,6 +1171,27 @@ func addUserPublicKeyUserIDIndex() *migrator.Migration {
 
 			_, err := tx.Exec(stmt)
 			return err
+		},
+	}
+}
+
+func renameAccessKeyIssuedFor() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2023-01-17T11:00",
+		Migrate: func(tx migrator.DB) error {
+			if !migrator.HasColumn(tx, "access_keys", "issued_for") {
+				return nil
+			}
+			if _, err := tx.Exec(`DROP INDEX IF EXISTS idx_access_keys_issued_for_name`); err != nil {
+				return fmt.Errorf("drop access key issued_for index: %w", err)
+			}
+			if _, err := tx.Exec(`ALTER TABLE access_keys RENAME COLUMN issued_for TO issued_for_user;`); err != nil {
+				return fmt.Errorf("rename access key issued_for: %w", err)
+			}
+			if _, err := tx.Exec(`CREATE UNIQUE INDEX idx_access_keys_issued_for_user_name ON access_keys USING btree (organization_id, issued_for_user, name) WHERE (deleted_at IS NULL);`); err != nil {
+				return fmt.Errorf("create access key issued_for_user index: %w", err)
+			}
+			return nil
 		},
 	}
 }

@@ -226,12 +226,12 @@ func (s Server) loadAccessKey(db data.WriteTxn, identity *models.Identity, key S
 		provider := data.InfraProvider(db)
 
 		accessKey := &models.AccessKey{
-			IssuedFor:  identity.ID,
-			ExpiresAt:  time.Now().AddDate(10, 0, 0),
-			KeyID:      keyID,
-			Secret:     secret,
-			ProviderID: provider.ID,
-			Scopes:     models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey}, // allows user to create access keys
+			IssuedForUser: identity.ID,
+			ExpiresAt:     time.Now().AddDate(10, 0, 0),
+			KeyID:         keyID,
+			Secret:        secret,
+			ProviderID:    provider.ID,
+			Scopes:        models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey}, // allows user to create access keys
 		}
 
 		if _, err := data.CreateAccessKey(db, accessKey); err != nil {
@@ -245,7 +245,7 @@ func (s Server) loadAccessKey(db data.WriteTxn, identity *models.Identity, key S
 		return nil
 	}
 
-	if accessKey.IssuedFor != identity.ID {
+	if accessKey.IssuedForUser != identity.ID {
 		return fmt.Errorf("access key assigned to %q is already assigned to another user, a user's access key must have a unique ID", identity.Name)
 	}
 

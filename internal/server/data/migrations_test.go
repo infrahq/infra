@@ -953,7 +953,7 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 						ID: 3,
 					},
 					Name:           "google-access",
-					IssuedFor:      user.ID,
+					IssuedForUser:  user.ID,
 					ProviderID:     0, // old google ID
 					ExpiresAt:      time.Now().Add(1 * time.Minute),
 					KeyID:          "key_id",
@@ -966,7 +966,7 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 					INSERT INTO access_keys(id, name, issued_for, provider_id, expires_at, key_id, secret_checksum, organization_id)
 					VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 				`
-				_, err = tx.Exec(stmt, key.ID, key.Name, key.IssuedFor, key.ProviderID, key.ExpiresAt, key.KeyID, key.SecretChecksum, key.OrganizationID)
+				_, err = tx.Exec(stmt, key.ID, key.Name, key.IssuedForUser, key.ProviderID, key.ExpiresAt, key.KeyID, key.SecretChecksum, key.OrganizationID)
 				assert.NilError(t, err)
 			},
 			cleanup: func(t *testing.T, tx WriteTxn) {
@@ -988,17 +988,23 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.DeepEqual(t, expectedUser, providerUser)
 
 				var accessKey accessKeyTable
-				err = tx.QueryRow(`SELECT issued_for, provider_id FROM access_keys`).Scan(&accessKey.IssuedFor, &accessKey.ProviderID)
+				err = tx.QueryRow(`SELECT issued_for, provider_id FROM access_keys`).Scan(&accessKey.IssuedForUser, &accessKey.ProviderID)
 				assert.NilError(t, err)
 				expectedKey := accessKeyTable{
-					IssuedFor:  1,
-					ProviderID: models.InternalGoogleProviderID,
+					IssuedForUser: 1,
+					ProviderID:    models.InternalGoogleProviderID,
 				}
 				assert.DeepEqual(t, expectedKey, accessKey)
 			},
 		},
 		{
 			label: testCaseLine("2023-01-05T17:33"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
+		{
+			label: testCaseLine(renameAccessKeyIssuedFor().ID),
 			expected: func(t *testing.T, tx WriteTxn) {
 				// schema changes are tested with schema comparison
 			},

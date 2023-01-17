@@ -211,26 +211,26 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 	assert.NilError(t, err)
 
 	ak1 := &models.AccessKey{
-		Name:       "foo",
-		IssuedFor:  user.ID,
-		ProviderID: provider.ID,
-		ExpiresAt:  time.Now().UTC().Add(5 * time.Minute),
+		Name:          "foo",
+		IssuedForUser: user.ID,
+		ProviderID:    provider.ID,
+		ExpiresAt:     time.Now().UTC().Add(5 * time.Minute),
 	}
 	_, err = data.CreateAccessKey(db, ak1)
 	assert.NilError(t, err)
 
 	ak2 := &models.AccessKey{
-		Name:       "expired",
-		IssuedFor:  user.ID,
-		ProviderID: provider.ID,
-		ExpiresAt:  time.Now().UTC().Add(-5 * time.Minute),
+		Name:          "expired",
+		IssuedForUser: user.ID,
+		ProviderID:    provider.ID,
+		ExpiresAt:     time.Now().UTC().Add(-5 * time.Minute),
 	}
 	_, err = data.CreateAccessKey(db, ak2)
 	assert.NilError(t, err)
 
 	ak3 := &models.AccessKey{
 		Name:              "not_extended",
-		IssuedFor:         user.ID,
+		IssuedForUser:     user.ID,
 		ProviderID:        provider.ID,
 		ExpiresAt:         time.Now().UTC().Add(5 * time.Minute),
 		InactivityTimeout: time.Now().UTC().Add(-5 * time.Minute),
@@ -330,7 +330,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.Equal(t, errMsg.Code, int32(400))
 	})
 
-	var cmpResponse = gocmp.Options{
+	cmpResponse := gocmp.Options{
 		gocmp.FilterPath(pathMapKey(`created`, `lastUsed`, `expires`), cmpApproximateTime),
 	}
 
@@ -437,20 +437,20 @@ func TestAPI_DeleteAccessKey(t *testing.T) {
 	assert.NilError(t, err)
 
 	ak1 := &models.AccessKey{
-		Name:       "foo",
-		IssuedFor:  user.ID,
-		ProviderID: provider.ID,
-		ExpiresAt:  time.Now().UTC().Add(5 * time.Minute),
+		Name:          "foo",
+		IssuedForUser: user.ID,
+		ProviderID:    provider.ID,
+		ExpiresAt:     time.Now().UTC().Add(5 * time.Minute),
 	}
 	_, err = data.CreateAccessKey(db, ak1)
 	assert.NilError(t, err)
 
 	t.Run("delete by name", func(t *testing.T) {
 		key := &models.AccessKey{
-			Name:       "deleteme",
-			IssuedFor:  user.ID,
-			ProviderID: provider.ID,
-			ExpiresAt:  time.Now().Add(5 * time.Minute),
+			Name:          "deleteme",
+			IssuedForUser: user.ID,
+			ProviderID:    provider.ID,
+			ExpiresAt:     time.Now().Add(5 * time.Minute),
 		}
 		_, err := data.CreateAccessKey(srv.db, key)
 		assert.NilError(t, err)
@@ -485,7 +485,7 @@ func TestAPI_DeleteAccessKey(t *testing.T) {
 
 		key1 := &models.AccessKey{
 			Name:               "deletemetoo",
-			IssuedFor:          user.ID,
+			IssuedForUser:      user.ID,
 			ProviderID:         provider.ID,
 			ExpiresAt:          time.Now().Add(5 * time.Minute),
 			OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID},
@@ -495,7 +495,7 @@ func TestAPI_DeleteAccessKey(t *testing.T) {
 
 		key2 := &models.AccessKey{
 			Name:               "deletemetoo2",
-			IssuedFor:          user.ID,
+			IssuedForUser:      user.ID,
 			ProviderID:         provider.ID,
 			ExpiresAt:          time.Now().Add(5 * time.Minute),
 			OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID},

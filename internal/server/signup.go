@@ -321,11 +321,11 @@ func signupUser(c *gin.Context, keyExpiresAt time.Time, user *models.ProviderUse
 
 	// grant the user a session on initial sign-up
 	accessKey := &models.AccessKey{
-		IssuedFor:     identity.ID,
-		IssuedForName: identity.Name,
-		ProviderID:    user.ProviderID,
-		ExpiresAt:     keyExpiresAt,
-		Scopes:        []string{models.ScopeAllowCreateAccessKey},
+		IssuedForUser:     identity.ID,
+		IssuedForUserName: identity.Name,
+		ProviderID:        user.ProviderID,
+		ExpiresAt:         keyExpiresAt,
+		Scopes:            []string{models.ScopeAllowCreateAccessKey},
 	}
 
 	bearer, err := data.CreateAccessKey(tx, accessKey)

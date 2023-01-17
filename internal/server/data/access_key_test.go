@@ -32,8 +32,8 @@ func TestCreateAccessKey(t *testing.T) {
 
 		t.Run("all default values", func(t *testing.T) {
 			key := &models.AccessKey{
-				IssuedFor:  jerry.ID,
-				ProviderID: infraProviderID,
+				IssuedForUser: jerry.ID,
+				ProviderID:    infraProviderID,
 			}
 			pair, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
@@ -45,7 +45,7 @@ func TestCreateAccessKey(t *testing.T) {
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				},
-				IssuedFor:      jerry.ID,
+				IssuedForUser:  jerry.ID,
 				ProviderID:     infraProviderID,
 				KeyID:          "<any-string>",
 				Secret:         "<any-string>",
@@ -73,7 +73,7 @@ func TestCreateAccessKey(t *testing.T) {
 					UpdatedAt: time.Now(),
 				},
 				Name:                "the-key",
-				IssuedFor:           jerry.ID,
+				IssuedForUser:       jerry.ID,
 				ProviderID:          infraProviderID,
 				ExpiresAt:           time.Now().Add(time.Hour),
 				InactivityExtension: 3 * time.Hour,
@@ -96,9 +96,9 @@ func TestCreateAccessKey(t *testing.T) {
 
 		t.Run("invalid specified key id length", func(t *testing.T) {
 			key := &models.AccessKey{
-				KeyID:      "too-short",
-				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(tx).ID,
+				KeyID:         "too-short",
+				IssuedForUser: jerry.ID,
+				ProviderID:    InfraProvider(tx).ID,
 			}
 			_, err := CreateAccessKey(tx, key)
 			assert.Error(t, err, "invalid key length")
@@ -106,9 +106,9 @@ func TestCreateAccessKey(t *testing.T) {
 
 		t.Run("invalid specified key secret length", func(t *testing.T) {
 			key := &models.AccessKey{
-				Secret:     "too-short",
-				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(tx).ID,
+				Secret:        "too-short",
+				IssuedForUser: jerry.ID,
+				ProviderID:    InfraProvider(tx).ID,
 			}
 			_, err := CreateAccessKey(tx, key)
 			assert.Error(t, err, "invalid secret length")
@@ -123,13 +123,13 @@ func TestCreateAccessKey(t *testing.T) {
 			assert.NilError(t, err)
 
 			key := &models.AccessKey{
-				Name:      "okta-scim",
-				Secret:    "012345678901234567890123",
-				IssuedFor: provider.ID,
+				Name:          "okta-scim",
+				Secret:        "012345678901234567890123",
+				IssuedForUser: provider.ID,
 			}
 			_, err = CreateAccessKey(tx, key)
 			assert.NilError(t, err)
-			assert.Equal(t, key.ProviderID, key.IssuedFor)
+			assert.Equal(t, key.ProviderID, key.IssuedForUser)
 		})
 	})
 }
@@ -170,7 +170,7 @@ func createAccessKeyWithInactivityTimeout(t *testing.T, db WriteTxn, expiry, tim
 	assert.NilError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor:         identity.ID,
+		IssuedForUser:     identity.ID,
 		ProviderID:        InfraProvider(db).ID,
 		ExpiresAt:         time.Now().Add(expiry),
 		InactivityTimeout: time.Now().Add(timeout).UTC(),
@@ -215,12 +215,12 @@ func TestDeleteAccessKeys(t *testing.T) {
 
 		t.Run("by user id", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
-			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}
-			key2 := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
-			toKeep := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: otherProvider.ID}
+			key1 := &models.AccessKey{IssuedForUser: user.ID, ProviderID: provider.ID}
+			key2 := &models.AccessKey{IssuedForUser: user.ID, ProviderID: otherProvider.ID}
+			toKeep := &models.AccessKey{IssuedForUser: otherUser.ID, ProviderID: otherProvider.ID}
 			createAccessKeys(t, tx, key1, key2, toKeep)
 
-			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: user.ID, ByProviderID: provider.ID})
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForUserID: user.ID, ByProviderID: provider.ID})
 			assert.NilError(t, err)
 
 			remaining, err := ListAccessKeys(tx, ListAccessKeyOptions{})
@@ -235,15 +235,15 @@ func TestDeleteAccessKeys(t *testing.T) {
 		t.Run("by user id requires provider id", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: uid.New()})
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForUserID: uid.New()})
 			assert.ErrorContains(t, err, "DeleteAccessKeys by IssuedForID requires ProviderID")
 		})
 
 		t.Run("by provider id", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
-			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}
-			key2 := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: provider.ID}
-			toKeep := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
+			key1 := &models.AccessKey{IssuedForUser: user.ID, ProviderID: provider.ID}
+			key2 := &models.AccessKey{IssuedForUser: otherUser.ID, ProviderID: provider.ID}
+			toKeep := &models.AccessKey{IssuedForUser: user.ID, ProviderID: otherProvider.ID}
 			createAccessKeys(t, tx, key1, key2, toKeep)
 
 			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByProviderID: provider.ID})
@@ -259,8 +259,8 @@ func TestDeleteAccessKeys(t *testing.T) {
 
 		t.Run("by id", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
-			key1 := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: provider.ID}
-			toKeep := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
+			key1 := &models.AccessKey{IssuedForUser: otherUser.ID, ProviderID: provider.ID}
+			toKeep := &models.AccessKey{IssuedForUser: user.ID, ProviderID: otherProvider.ID}
 			createAccessKeys(t, tx, key1, toKeep)
 
 			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByID: key1.ID})
@@ -277,8 +277,8 @@ func TestDeleteAccessKeys(t *testing.T) {
 		t.Run("already deleted", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 			key1 := &models.AccessKey{
-				IssuedFor:  otherUser.ID,
-				ProviderID: provider.ID,
+				IssuedForUser: otherUser.ID,
+				ProviderID:    provider.ID,
 			}
 			key1.DeletedAt.Valid = true
 			key1.DeletedAt.Time = time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC)
@@ -336,25 +336,25 @@ func TestListAccessKeys(t *testing.T) {
 		createIdentities(t, db, user, otherUser)
 
 		first := &models.AccessKey{
-			Name:       "alpha",
-			Model:      models.Model{ID: 5},
-			IssuedFor:  user.ID,
-			ProviderID: InfraProvider(db).ID,
-			ExpiresAt:  time.Now().Add(time.Hour).UTC(),
-			KeyID:      "1234567890",
+			Name:          "alpha",
+			Model:         models.Model{ID: 5},
+			IssuedForUser: user.ID,
+			ProviderID:    InfraProvider(db).ID,
+			ExpiresAt:     time.Now().Add(time.Hour).UTC(),
+			KeyID:         "1234567890",
 		}
 		second := &models.AccessKey{
-			Name:       "beta",
-			Model:      models.Model{ID: 6},
-			IssuedFor:  user.ID,
-			ProviderID: InfraProvider(db).ID,
-			ExpiresAt:  time.Now().Add(-time.Hour).UTC(),
-			KeyID:      "1234567891",
+			Name:          "beta",
+			Model:         models.Model{ID: 6},
+			IssuedForUser: user.ID,
+			ProviderID:    InfraProvider(db).ID,
+			ExpiresAt:     time.Now().Add(-time.Hour).UTC(),
+			KeyID:         "1234567891",
 		}
 		third := &models.AccessKey{
 			Name:              "charlie",
 			Model:             models.Model{ID: 7},
-			IssuedFor:         user.ID,
+			IssuedForUser:     user.ID,
 			ProviderID:        InfraProvider(db).ID,
 			ExpiresAt:         time.Now().Add(time.Hour).UTC(),
 			InactivityTimeout: time.Now().Add(-time.Hour).UTC(),
@@ -363,7 +363,7 @@ func TestListAccessKeys(t *testing.T) {
 		deleted := &models.AccessKey{
 			Name:              "delta",
 			Model:             models.Model{ID: 8},
-			IssuedFor:         user.ID,
+			IssuedForUser:     user.ID,
 			ProviderID:        InfraProvider(db).ID,
 			ExpiresAt:         time.Now().Add(time.Hour).UTC(),
 			InactivityTimeout: time.Now().Add(time.Hour).UTC(),
@@ -373,12 +373,12 @@ func TestListAccessKeys(t *testing.T) {
 		deleted.DeletedAt.Valid = true
 
 		forth := &models.AccessKey{
-			Name:       "delta",
-			Model:      models.Model{ID: 9},
-			IssuedFor:  otherUser.ID,
-			ProviderID: InfraProvider(db).ID,
-			ExpiresAt:  time.Now().Add(time.Hour).UTC(),
-			KeyID:      "1234567894",
+			Name:          "delta",
+			Model:         models.Model{ID: 9},
+			IssuedForUser: otherUser.ID,
+			ProviderID:    InfraProvider(db).ID,
+			ExpiresAt:     time.Now().Add(time.Hour).UTC(),
+			KeyID:         "1234567894",
 		}
 
 		createAccessKeys(t, db, forth, third, second, first, deleted)
@@ -399,7 +399,7 @@ func TestListAccessKeys(t *testing.T) {
 				Model:              models.Model{ID: 17},
 				OrganizationMember: models.OrganizationMember{OrganizationID: otherOrg.ID},
 				Name:               "epsilon",
-				IssuedFor:          otherOrgUser.ID,
+				IssuedForUser:      otherOrgUser.ID,
 				ProviderID:         InfraProvider(tx).ID,
 				ExpiresAt:          time.Now().Add(time.Hour).UTC(),
 				KeyID:              "2234567800",
@@ -409,7 +409,7 @@ func TestListAccessKeys(t *testing.T) {
 		})
 
 		cmpAccessKeyShallow := cmp.Comparer(func(x, y models.AccessKey) bool {
-			return x.ID == y.ID && x.IssuedForName == y.IssuedForName
+			return x.ID == y.ID && x.IssuedForUserName == y.IssuedForUserName
 		})
 
 		t.Run("default other org ID", func(t *testing.T) {
@@ -419,7 +419,7 @@ func TestListAccessKeys(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 17}, IssuedForName: "gamma@other.org"},
+				{Model: models.Model{ID: 17}, IssuedForUserName: "gamma@other.org"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 		})
@@ -429,8 +429,8 @@ func TestListAccessKeys(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
-				{Model: models.Model{ID: 9}, IssuedForName: "admin@infrahq.com"},
+				{Model: models.Model{ID: 5}, IssuedForUserName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 9}, IssuedForUserName: "admin@infrahq.com"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 		})
@@ -440,10 +440,10 @@ func TestListAccessKeys(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
-				{Model: models.Model{ID: 6}, IssuedForName: "tmp@infrahq.com"},
-				{Model: models.Model{ID: 7}, IssuedForName: "tmp@infrahq.com"},
-				{Model: models.Model{ID: 9}, IssuedForName: "admin@infrahq.com"},
+				{Model: models.Model{ID: 5}, IssuedForUserName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 6}, IssuedForUserName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 7}, IssuedForUserName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 9}, IssuedForUserName: "admin@infrahq.com"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 		})
@@ -453,17 +453,17 @@ func TestListAccessKeys(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 5}, IssuedForUserName: "tmp@infrahq.com"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 		})
 
 		t.Run("by issued for user", func(t *testing.T) {
-			actual, err := ListAccessKeys(db, ListAccessKeyOptions{ByIssuedForID: user.ID})
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{ByIssuedForUserID: user.ID})
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 5}, IssuedForUserName: "tmp@infrahq.com"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 		})
@@ -476,22 +476,22 @@ func TestListAccessKeys(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 6}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 6}, IssuedForUserName: "tmp@infrahq.com"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 		})
 
 		t.Run("by issued for an expired", func(t *testing.T) {
 			actual, err := ListAccessKeys(db, ListAccessKeyOptions{
-				ByIssuedForID:  user.ID,
-				IncludeExpired: true,
+				ByIssuedForUserID: user.ID,
+				IncludeExpired:    true,
 			})
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
-				{Model: models.Model{ID: 6}, IssuedForName: "tmp@infrahq.com"},
-				{Model: models.Model{ID: 7}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 5}, IssuedForUserName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 6}, IssuedForUserName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 7}, IssuedForUserName: "tmp@infrahq.com"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 		})
@@ -505,8 +505,8 @@ func TestListAccessKeys(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 7}, IssuedForName: "tmp@infrahq.com"},
-				{Model: models.Model{ID: 9}, IssuedForName: "admin@infrahq.com"},
+				{Model: models.Model{ID: 7}, IssuedForUserName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 9}, IssuedForUserName: "admin@infrahq.com"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 			expectedPage := &Pagination{
@@ -520,13 +520,13 @@ func TestListAccessKeys(t *testing.T) {
 		t.Run("by issued for with pagination", func(t *testing.T) {
 			page := &Pagination{Page: 1, Limit: 2}
 			actual, err := ListAccessKeys(db, ListAccessKeyOptions{
-				ByIssuedForID: user.ID,
-				Pagination:    page,
+				ByIssuedForUserID: user.ID,
+				Pagination:        page,
 			})
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
-				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 5}, IssuedForUserName: "tmp@infrahq.com"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 			expectedPage := &Pagination{
@@ -545,9 +545,9 @@ func createTestAccessKey(t *testing.T, db WriteTxn, sessionDuration time.Duratio
 	assert.NilError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor:  user.ID,
-		ProviderID: InfraProvider(db).ID,
-		ExpiresAt:  time.Now().Add(sessionDuration),
+		IssuedForUser: user.ID,
+		ProviderID:    InfraProvider(db).ID,
+		ExpiresAt:     time.Now().Add(sessionDuration),
 	}
 
 	body, err := CreateAccessKey(db, token)
@@ -571,7 +571,7 @@ func TestUpdateAccessKey(t *testing.T) {
 					UpdatedAt: created,
 				},
 				Name:                "this-is-my-key",
-				IssuedFor:           212121,
+				IssuedForUser:       212121,
 				ProviderID:          provider.ID,
 				ExpiresAt:           time.Date(2022, 2, 1, 2, 3, 4, 0, time.UTC),
 				InactivityTimeout:   time.Date(2022, 2, 1, 4, 3, 4, 0, time.UTC),
@@ -617,15 +617,15 @@ func TestGetAccessKey(t *testing.T) {
 		createIdentities(t, db, user)
 
 		ak := &models.AccessKey{
-			Name:       "the-key",
-			IssuedFor:  user.ID,
-			ProviderID: 700700,
+			Name:          "the-key",
+			IssuedForUser: user.ID,
+			ProviderID:    700700,
 		}
 
 		other := &models.AccessKey{
-			Name:       "the-other-key",
-			IssuedFor:  user.ID,
-			ProviderID: 700700,
+			Name:          "the-other-key",
+			IssuedForUser: user.ID,
+			ProviderID:    700700,
 		}
 
 		createAccessKeys(t, db, ak, other)
@@ -642,7 +642,7 @@ func TestGetAccessKey(t *testing.T) {
 			assert.NilError(t, err)
 			expected := *ak
 			expected.Secret = ""
-			expected.IssuedForName = "su@example.com"
+			expected.IssuedForUserName = "su@example.com"
 			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
 		})
 
@@ -651,7 +651,7 @@ func TestGetAccessKey(t *testing.T) {
 			assert.NilError(t, err)
 			expected := *ak
 			expected.Secret = ""
-			expected.IssuedForName = "su@example.com"
+			expected.IssuedForUserName = "su@example.com"
 			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
 		})
 
@@ -660,7 +660,7 @@ func TestGetAccessKey(t *testing.T) {
 			assert.NilError(t, err)
 			expected := *ak
 			expected.Secret = ""
-			expected.IssuedForName = "su@example.com"
+			expected.IssuedForUserName = "su@example.com"
 			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
 		})
 
@@ -685,15 +685,15 @@ func TestGetAccessKey(t *testing.T) {
 func TestGetAccessKeyByID(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		ak := &models.AccessKey{
-			Name:       "the-key",
-			IssuedFor:  600600,
-			ProviderID: 700700,
+			Name:          "the-key",
+			IssuedForUser: 600600,
+			ProviderID:    700700,
 		}
 
 		other := &models.AccessKey{
-			Name:       "the-other-key",
-			IssuedFor:  600600,
-			ProviderID: 700700,
+			Name:          "the-other-key",
+			IssuedForUser: 600600,
+			ProviderID:    700700,
 		}
 
 		createAccessKeys(t, db, ak, other)
@@ -728,19 +728,19 @@ func TestRemoveExpiredAccessKeys(t *testing.T) {
 		createIdentities(t, tx, user)
 
 		ak := &models.AccessKey{
-			Name:      "foo expiry",
-			IssuedFor: user.ID,
-			ExpiresAt: time.Now().Add(-2 * time.Hour),
+			Name:          "foo expiry",
+			IssuedForUser: user.ID,
+			ExpiresAt:     time.Now().Add(-2 * time.Hour),
 		}
 		ak2 := &models.AccessKey{
-			Name:      "foo expiry2",
-			IssuedFor: user.ID,
-			ExpiresAt: time.Now().Add(10 * time.Minute),
+			Name:          "foo expiry2",
+			IssuedForUser: user.ID,
+			ExpiresAt:     time.Now().Add(10 * time.Minute),
 		}
 		ak3 := &models.AccessKey{
-			Name:      "already deleted",
-			IssuedFor: user.ID,
-			ExpiresAt: time.Now().Add(-2 * time.Hour),
+			Name:          "already deleted",
+			IssuedForUser: user.ID,
+			ExpiresAt:     time.Now().Add(-2 * time.Hour),
 		}
 		ak3.DeletedAt.Valid = true
 		ak3.DeletedAt.Time = time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC)

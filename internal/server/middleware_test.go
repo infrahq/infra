@@ -48,9 +48,9 @@ func issueToken(t *testing.T, db data.WriteTxn, identityName string, sessionDura
 	provider := data.InfraProvider(db)
 
 	token := &models.AccessKey{
-		IssuedFor:  user.ID,
-		ProviderID: provider.ID,
-		ExpiresAt:  time.Now().Add(sessionDuration).UTC(),
+		IssuedForUser: user.ID,
+		ProviderID:    provider.ID,
+		ExpiresAt:     time.Now().Add(sessionDuration).UTC(),
 	}
 	body, err := data.CreateAccessKey(db, token)
 	assert.NilError(t, err)
@@ -80,10 +80,10 @@ func TestRequireAccessKey(t *testing.T) {
 			setup: func(t *testing.T, db data.WriteTxn) *http.Request {
 				provider := data.InfraProvider(db)
 				token := &models.AccessKey{
-					IssuedFor:  provider.ID,
-					ProviderID: provider.ID,
-					Name:       fmt.Sprintf("%s-scim", provider.Name),
-					ExpiresAt:  time.Now().Add(1 * time.Minute).UTC(),
+					IssuedForUser: provider.ID,
+					ProviderID:    provider.ID,
+					Name:          fmt.Sprintf("%s-scim", provider.Name),
+					ExpiresAt:     time.Now().Add(1 * time.Minute).UTC(),
 				}
 				authentication, err := data.CreateAccessKey(db, token)
 				assert.NilError(t, err)
@@ -100,9 +100,9 @@ func TestRequireAccessKey(t *testing.T) {
 			setup: func(t *testing.T, db data.WriteTxn) *http.Request {
 				provider := data.InfraProvider(db)
 				token := &models.AccessKey{
-					IssuedFor: provider.ID,
-					Name:      fmt.Sprintf("%s-scim", provider.Name),
-					ExpiresAt: time.Now().Add(1 * time.Minute).UTC(),
+					IssuedForUser: provider.ID,
+					Name:          fmt.Sprintf("%s-scim", provider.Name),
+					ExpiresAt:     time.Now().Add(1 * time.Minute).UTC(),
 				}
 				authentication, err := data.CreateAccessKey(db, token)
 				assert.NilError(t, err)
@@ -349,9 +349,9 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	assert.NilError(t, err)
 
 	token := models.AccessKey{
-		IssuedFor:  connector.ID,
-		ProviderID: data.InfraProvider(db).ID,
-		ExpiresAt:  time.Now().Add(time.Hour).UTC(),
+		IssuedForUser: connector.ID,
+		ProviderID:    data.InfraProvider(db).ID,
+		ExpiresAt:     time.Now().Add(time.Hour).UTC(),
 	}
 	secret, err := data.CreateAccessKey(db, &token)
 	assert.NilError(t, err)
@@ -467,7 +467,7 @@ func TestAuthenticateRequest(t *testing.T) {
 	createIdentities(t, tx, user)
 
 	token := &models.AccessKey{
-		IssuedFor:           user.ID,
+		IssuedForUser:       user.ID,
 		ProviderID:          data.InfraProvider(tx).ID,
 		ExpiresAt:           time.Now().Add(time.Minute),
 		InactivityExtension: time.Hour,
@@ -670,7 +670,7 @@ func TestValidateRequestOrganization(t *testing.T) {
 	createIdentities(t, tx, user)
 
 	token := &models.AccessKey{
-		IssuedFor:          user.ID,
+		IssuedForUser:      user.ID,
 		ProviderID:         data.InfraProvider(tx).ID,
 		ExpiresAt:          time.Now().Add(10 * time.Second),
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},

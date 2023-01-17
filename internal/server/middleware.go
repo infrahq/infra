@@ -194,7 +194,7 @@ func requireAccessKey(c *gin.Context, db data.WriteTxn, srv *Server) (access.Aut
 
 	if accessKey.Scopes.Includes(models.ScopePasswordReset) {
 		// PUT /api/users/:id only
-		if c.Request.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || c.Request.Method != http.MethodPut {
+		if c.Request.URL.Path != "/api/users/"+accessKey.IssuedForUser.String() || c.Request.Method != http.MethodPut {
 			return u, fmt.Errorf("%w: temporary passwords can only be used to set new passwords", access.ErrNotAuthorized)
 		}
 	}
@@ -205,10 +205,10 @@ func requireAccessKey(c *gin.Context, db data.WriteTxn, srv *Server) (access.Aut
 	}
 
 	// either this access key was issued for a user or for an identity provider to do SCIM
-	if accessKey.IssuedFor == accessKey.ProviderID {
+	if accessKey.IssuedForUser == accessKey.ProviderID {
 		// this access key was issued for SCIM for an identity provider, validate the provider still exists
 		_, err := data.GetProvider(db, data.GetProviderOptions{
-			ByID:             accessKey.IssuedFor,
+			ByID:             accessKey.IssuedForUser,
 			FromOrganization: accessKey.OrganizationID,
 		})
 		if err != nil {
@@ -217,7 +217,7 @@ func requireAccessKey(c *gin.Context, db data.WriteTxn, srv *Server) (access.Aut
 	} else {
 		// the typical case, this is an access key for a user, validate the user still exists
 		identity, err := data.GetIdentity(db, data.GetIdentityOptions{
-			ByID:             accessKey.IssuedFor,
+			ByID:             accessKey.IssuedForUser,
 			FromOrganization: accessKey.OrganizationID,
 		})
 		if err != nil {

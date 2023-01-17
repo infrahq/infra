@@ -50,9 +50,9 @@ func TestWellKnownJWKs(t *testing.T) {
 
 	connector := data.InfraConnectorIdentity(otherOrgTx)
 	accessKey, err := data.CreateAccessKey(otherOrgTx, &models.AccessKey{
-		IssuedFor:  connector.ID,
-		ExpiresAt:  time.Now().Add(20 * time.Second),
-		ProviderID: data.InfraProvider(otherOrgTx).ID,
+		IssuedForUser: connector.ID,
+		ExpiresAt:     time.Now().Add(20 * time.Second),
+		ProviderID:    data.InfraProvider(otherOrgTx).ID,
 	})
 	assert.NilError(t, err)
 

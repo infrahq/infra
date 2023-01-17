@@ -38,7 +38,7 @@ func (a *API) DeleteAccessKeys(c *gin.Context, r *api.DeleteAccessKeyRequest) (*
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
 	accessKey := &models.AccessKey{
-		IssuedFor:           r.UserID,
+		IssuedForUser:       r.UserID,
 		Name:                r.Name,
 		ExpiresAt:           time.Now().UTC().Add(time.Duration(r.Expiry)),
 		InactivityExtension: time.Duration(r.InactivityTimeout),
@@ -54,7 +54,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		ID:                accessKey.ID,
 		Created:           api.Time(accessKey.CreatedAt),
 		Name:              accessKey.Name,
-		IssuedFor:         accessKey.IssuedFor,
+		IssuedFor:         accessKey.IssuedForUser,
 		Expires:           api.Time(accessKey.ExpiresAt),
 		InactivityTimeout: api.Time(accessKey.InactivityTimeout),
 		AccessKey:         raw,

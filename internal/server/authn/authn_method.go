@@ -52,8 +52,8 @@ func Login(
 	// login authentication was successful, create an access key for the user
 
 	accessKey := &models.AccessKey{
-		IssuedFor:           authenticated.Identity.ID,
-		IssuedForName:       authenticated.Identity.Name,
+		IssuedForUser:       authenticated.Identity.ID,
+		IssuedForUserName:   authenticated.Identity.Name,
 		ProviderID:          authenticated.Provider.ID,
 		ExpiresAt:           authenticated.SessionExpiry,
 		InactivityTimeout:   time.Now().UTC().Add(inactivityTimeout),

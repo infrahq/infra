@@ -21,14 +21,10 @@ const (
 type AccessKey struct {
 	Model
 	OrganizationMember
-	Name string
-	/* IssuedFor is either:
-	1. The ID of the user that this access key was created for.
-	2. The ID of a provider that is doing SCIM provisioning using this access key.
-	*/
-	IssuedFor     uid.ID
-	IssuedForName string `db:"-"`
-	ProviderID    uid.ID
+	Name              string
+	IssuedForUser     uid.ID
+	IssuedForUserName string `db:"-"`
+	ProviderID        uid.ID
 
 	ExpiresAt           time.Time     // time at which the key must expire. Extensions to the inactivity timeout do not extend this value.
 	InactivityExtension time.Duration // how long to increase the inactivity timout by
@@ -47,8 +43,8 @@ func (ak *AccessKey) ToAPI() *api.AccessKey {
 		Name:              ak.Name,
 		Created:           api.Time(ak.CreatedAt),
 		LastUsed:          api.Time(ak.UpdatedAt), // this tracks UpdatedAt which requires the InactivityTimeout to be set, otherwise it won't be updated
-		IssuedFor:         ak.IssuedFor,
-		IssuedForName:     ak.IssuedForName,
+		IssuedFor:         ak.IssuedForUser,
+		IssuedForName:     ak.IssuedForUserName,
 		ProviderID:        ak.ProviderID,
 		Expires:           api.Time(ak.ExpiresAt),
 		InactivityTimeout: api.Time(ak.InactivityTimeout),

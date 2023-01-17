@@ -24,10 +24,10 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 	}
 
 	opts := data.ListAccessKeyOptions{
-		Pagination:     p,
-		IncludeExpired: showExpired,
-		ByIssuedForID:  identityID,
-		ByName:         name,
+		Pagination:        p,
+		IncludeExpired:    showExpired,
+		ByIssuedForUserID: identityID,
+		ByName:            name,
 	}
 	return data.ListAccessKeys(rCtx.DBTxn, opts)
 }
@@ -36,14 +36,14 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (string, error
 	rCtx := GetRequestContext(c)
 
 	if rCtx.Authenticated.AccessKey != nil && !rCtx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
-		if connector := data.InfraConnectorIdentity(rCtx.DBTxn); connector.ID != accessKey.IssuedFor {
+		if connector := data.InfraConnectorIdentity(rCtx.DBTxn); connector.ID != accessKey.IssuedForUser {
 			// non-login access keys can not currently create non-connector access keys.
 			return "", fmt.Errorf("%w: cannot use an access key to create other access keys", internal.ErrBadRequest)
 		}
 	}
 
 	err := IsAuthorized(rCtx, models.InfraAdminRole)
-	if err != nil && accessKey.IssuedFor != rCtx.Authenticated.User.ID {
+	if err != nil && accessKey.IssuedForUser != rCtx.Authenticated.User.ID {
 		return "", HandleAuthErr(err, "access key", "create", models.InfraAdminRole)
 	}
 
@@ -67,9 +67,9 @@ func DeleteAccessKey(rCtx RequestContext, id uid.ID, name string) error {
 	} else {
 		// if the specific key isn't specified, look up the key by name for the current user
 		opts := data.ListAccessKeyOptions{
-			IncludeExpired: false,
-			ByIssuedForID:  rCtx.Authenticated.User.ID,
-			ByName:         name,
+			IncludeExpired:    false,
+			ByIssuedForUserID: rCtx.Authenticated.User.ID,
+			ByName:            name,
 		}
 		keys, err := data.ListAccessKeys(rCtx.DBTxn, opts)
 		if err != nil {
@@ -82,7 +82,7 @@ func DeleteAccessKey(rCtx RequestContext, id uid.ID, name string) error {
 		}
 	}
 
-	if key.IssuedFor == rCtx.Authenticated.User.ID {
+	if key.IssuedForUser == rCtx.Authenticated.User.ID {
 		// users can delete their own keys
 	} else {
 		if err := IsAuthorized(rCtx, models.InfraAdminRole); err != nil {

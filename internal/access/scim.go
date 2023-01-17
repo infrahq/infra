@@ -20,7 +20,7 @@ func GetProviderUser(c *gin.Context, id uid.ID) (*models.ProviderUser, error) {
 	if err := checkKeyIdentityProvider(ctx); err != nil {
 		return nil, err
 	}
-	user, err := data.GetProviderUser(ctx.DBTxn, ctx.Authenticated.AccessKey.IssuedFor, id)
+	user, err := data.GetProviderUser(ctx.DBTxn, ctx.Authenticated.AccessKey.IssuedForUser, id)
 	if err != nil {
 		return nil, fmt.Errorf("get provider users: %w", err)
 	}
@@ -34,7 +34,7 @@ func ListProviderUsers(c *gin.Context, p *data.SCIMParameters) ([]models.Provide
 		return []models.ProviderUser{}, err
 	}
 	opts := data.ListProviderUsersOptions{
-		ByProviderID:   ctx.Authenticated.AccessKey.IssuedFor,
+		ByProviderID:   ctx.Authenticated.AccessKey.IssuedForUser,
 		SCIMParameters: p,
 	}
 	users, err := data.ListProviderUsers(ctx.DBTxn, opts)
@@ -50,7 +50,7 @@ func CreateProviderUser(c *gin.Context, u *models.ProviderUser) error {
 	if err := checkKeyIdentityProvider(ctx); err != nil {
 		return err
 	}
-	u.ProviderID = ctx.Authenticated.AccessKey.IssuedFor
+	u.ProviderID = ctx.Authenticated.AccessKey.IssuedForUser
 	err := data.ProvisionProviderUser(ctx.DBTxn, u)
 	if err != nil {
 		return fmt.Errorf("provision provider user: %w", err)
@@ -64,7 +64,7 @@ func UpdateProviderUser(c *gin.Context, u *models.ProviderUser) error {
 	if err := checkKeyIdentityProvider(ctx); err != nil {
 		return err
 	}
-	u.ProviderID = ctx.Authenticated.AccessKey.IssuedFor
+	u.ProviderID = ctx.Authenticated.AccessKey.IssuedForUser
 	err := data.UpdateProviderUser(ctx.DBTxn, u)
 	if err != nil {
 		if errors.Is(err, data.ErrSourceOfTruthConflict) {
@@ -81,7 +81,7 @@ func PatchProviderUser(c *gin.Context, u *models.ProviderUser) (*models.Provider
 	if err := checkKeyIdentityProvider(ctx); err != nil {
 		return nil, err
 	}
-	u.ProviderID = ctx.Authenticated.AccessKey.IssuedFor
+	u.ProviderID = ctx.Authenticated.AccessKey.IssuedForUser
 	updated, err := data.PatchProviderUserActiveStatus(ctx.DBTxn, u)
 	if err != nil {
 		return nil, fmt.Errorf("patch provider user: %w", err)
@@ -95,7 +95,7 @@ func DeleteProviderUser(c *gin.Context, userID uid.ID) error {
 	if err := checkKeyIdentityProvider(ctx); err != nil {
 		return err
 	}
-	providerID := ctx.Authenticated.AccessKey.IssuedFor
+	providerID := ctx.Authenticated.AccessKey.IssuedForUser
 	// delete the provider user, and if its the last reference to the user, remove their identity also
 	opts := data.DeleteIdentitiesOptions{
 		ByProviderID: providerID,
@@ -109,7 +109,7 @@ func DeleteProviderUser(c *gin.Context, userID uid.ID) error {
 
 func checkKeyIdentityProvider(ctx RequestContext) error {
 	_, err := data.GetProvider(ctx.DBTxn,
-		data.GetProviderOptions{ByID: ctx.Authenticated.AccessKey.IssuedFor})
+		data.GetProviderOptions{ByID: ctx.Authenticated.AccessKey.IssuedForUser})
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			return internal.ErrUnauthorized

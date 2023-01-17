@@ -33,7 +33,7 @@ func (a *keyExchangeAuthn) Authenticate(_ context.Context, db *data.Transaction,
 		sessionExpiry = validatedRequestKey.ExpiresAt
 	}
 
-	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: validatedRequestKey.IssuedFor})
+	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: validatedRequestKey.IssuedForUser})
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("user is not valid: %w", err) // the user was probably deleted
 	}

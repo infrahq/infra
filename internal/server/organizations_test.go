@@ -59,9 +59,9 @@ func TestAPI_GetOrganization(t *testing.T) {
 	idMe := createID(t, "me@example.com")
 
 	token := &models.AccessKey{
-		IssuedFor:  idMe,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForUser: idMe,
+		ProviderID:    data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:     time.Now().Add(10 * time.Second),
 	}
 
 	accessKeyMe, err := data.CreateAccessKey(srv.DB(), token)
@@ -425,9 +425,9 @@ func TestAPI_UpdateOrganization(t *testing.T) {
 	idDiffOrg := createID(t, "me@example.com")
 
 	token := &models.AccessKey{
-		IssuedFor:  idDiffOrg,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForUser: idDiffOrg,
+		ProviderID:    data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:     time.Now().Add(10 * time.Second),
 	}
 
 	accessDifferentOrg, err := data.CreateAccessKey(srv.DB(), token)
@@ -443,8 +443,8 @@ func TestAPI_UpdateOrganization(t *testing.T) {
 	userAccess := &models.AccessKey{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 		Name:               "org key",
-		IssuedFor:          user.ID,
-		IssuedForName:      user.Name,
+		IssuedForUser:      user.ID,
+		IssuedForUserName:  user.Name,
 		ProviderID:         data.InfraProvider(srv.db).ID,
 		ExpiresAt:          time.Now().Add(10 * time.Minute).UTC().Truncate(time.Second),
 	}
@@ -469,8 +469,8 @@ func TestAPI_UpdateOrganization(t *testing.T) {
 	adminAccessKey := &models.AccessKey{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 		Name:               "org admin key",
-		IssuedFor:          admin.ID,
-		IssuedForName:      admin.Name,
+		IssuedForUser:      admin.ID,
+		IssuedForUserName:  admin.Name,
 		ProviderID:         data.InfraProvider(srv.db).ID,
 		ExpiresAt:          time.Now().Add(10 * time.Minute).UTC().Truncate(time.Second),
 	}

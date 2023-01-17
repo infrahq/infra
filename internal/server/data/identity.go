@@ -707,7 +707,7 @@ func DeleteIdentities(tx WriteTxn, opts DeleteIdentitiesOptions) error {
 
 func deleteReferencesToIdentities(tx WriteTxn, providerID uid.ID, toDelete []models.Identity) (unreferencedIdentityIDs []uid.ID, err error) {
 	for _, i := range toDelete {
-		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: i.ID, ByProviderID: providerID}); err != nil {
+		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForUserID: i.ID, ByProviderID: providerID}); err != nil {
 			return nil, fmt.Errorf("delete identity access keys: %w", err)
 		}
 		if err := DeleteUserPublicKeys(tx, i.ID); err != nil {

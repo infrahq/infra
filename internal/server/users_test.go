@@ -55,9 +55,9 @@ func TestAPI_GetUser(t *testing.T) {
 	idHal := createID(t, "HAL@example.com")
 
 	token := &models.AccessKey{
-		IssuedFor:  idMe,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForUser: idMe,
+		ProviderID:    data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:     time.Now().Add(10 * time.Second),
 	}
 
 	accessKeyMe, err := data.CreateAccessKey(srv.DB(), token)
@@ -133,9 +133,9 @@ func TestAPI_GetUser(t *testing.T) {
 			urlPath: "/api/users/self",
 			setup: func(t *testing.T, req *http.Request) {
 				token := &models.AccessKey{
-					IssuedFor:  idMe,
-					ProviderID: data.InfraProvider(srv.DB()).ID,
-					ExpiresAt:  time.Now().Add(10 * time.Second),
+					IssuedForUser: idMe,
+					ProviderID:    data.InfraProvider(srv.DB()).ID,
+					ExpiresAt:     time.Now().Add(10 * time.Second),
 				}
 
 				key, err := data.CreateAccessKey(srv.DB(), token)
@@ -935,7 +935,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 		err := data.CreateIdentity(srv.DB(), user)
 		assert.NilError(t, err)
 
-		accessKey := &models.AccessKey{IssuedFor: user.ID, ProviderID: data.InfraProvider(srv.DB()).ID}
+		accessKey := &models.AccessKey{IssuedForUser: user.ID, ProviderID: data.InfraProvider(srv.DB()).ID}
 		accessKeySecret, err := data.CreateAccessKey(srv.DB(), accessKey)
 		assert.NilError(t, err)
 
@@ -1009,9 +1009,9 @@ func TestAPI_UpdateUser(t *testing.T) {
 
 		t.Run("changing own password unsets password reset scope", func(t *testing.T) {
 			accessKey := &models.AccessKey{
-				IssuedFor:  user.ID,
-				ProviderID: data.InfraProvider(srv.DB()).ID,
-				Scopes:     models.CommaSeparatedStrings{models.ScopePasswordReset},
+				IssuedForUser: user.ID,
+				ProviderID:    data.InfraProvider(srv.DB()).ID,
+				Scopes:        models.CommaSeparatedStrings{models.ScopePasswordReset},
 			}
 
 			accessKeySecret, err := data.CreateAccessKey(srv.DB(), accessKey)

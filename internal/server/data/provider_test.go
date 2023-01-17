@@ -359,10 +359,10 @@ func TestDeleteProviders(t *testing.T) {
 			tx := setup(t)
 
 			key := &models.AccessKey{
-				Name:       "test key",
-				IssuedFor:  user.ID,
-				ProviderID: providerDevelop.ID,
-				ExpiresAt:  time.Now().Add(5 * time.Minute),
+				Name:          "test key",
+				IssuedForUser: user.ID,
+				ProviderID:    providerDevelop.ID,
+				ExpiresAt:     time.Now().Add(5 * time.Minute),
 			}
 
 			_, err := CreateAccessKey(tx, key)
@@ -382,10 +382,10 @@ func TestDeleteProviders(t *testing.T) {
 			assert.NilError(t, err)
 
 			key := &models.AccessKey{
-				Name:       "test key",
-				IssuedFor:  user.ID,
-				ProviderID: providerProduction.ID,
-				ExpiresAt:  time.Now().Add(5 * time.Minute),
+				Name:          "test key",
+				IssuedForUser: user.ID,
+				ProviderID:    providerProduction.ID,
+				ExpiresAt:     time.Now().Add(5 * time.Minute),
 			}
 
 			_, err = CreateAccessKey(tx, key)

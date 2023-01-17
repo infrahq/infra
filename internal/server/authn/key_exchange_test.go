@@ -45,10 +45,10 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
-					Name:       "expired-key",
-					IssuedFor:  user.ID,
-					ProviderID: data.InfraProvider(db).ID,
-					ExpiresAt:  time.Now().Add(-1 * time.Minute),
+					Name:          "expired-key",
+					IssuedForUser: user.ID,
+					ProviderID:    data.InfraProvider(db).ID,
+					ExpiresAt:     time.Now().Add(-1 * time.Minute),
 				}
 
 				bearer, err := data.CreateAccessKey(db, key)
@@ -67,10 +67,10 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
-					Name:       "no-user-key",
-					IssuedFor:  user.ID,
-					ProviderID: data.InfraProvider(db).ID,
-					ExpiresAt:  time.Now().Add(5 * time.Minute),
+					Name:          "no-user-key",
+					IssuedForUser: user.ID,
+					ProviderID:    data.InfraProvider(db).ID,
+					ExpiresAt:     time.Now().Add(5 * time.Minute),
 				}
 
 				bearer, err := data.CreateAccessKey(db, key)
@@ -87,10 +87,10 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
-					Name:       "krillins-key",
-					IssuedFor:  user.ID,
-					ProviderID: data.InfraProvider(db).ID,
-					ExpiresAt:  shortExpiry,
+					Name:          "krillins-key",
+					IssuedForUser: user.ID,
+					ProviderID:    data.InfraProvider(db).ID,
+					ExpiresAt:     shortExpiry,
 				}
 
 				bearer, err := data.CreateAccessKey(db, key)
@@ -111,10 +111,10 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
-					Name:       "cell-key",
-					IssuedFor:  user.ID,
-					ProviderID: data.InfraProvider(db).ID,
-					ExpiresAt:  time.Now().Add(31 * 24 * time.Hour),
+					Name:          "cell-key",
+					IssuedForUser: user.ID,
+					ProviderID:    data.InfraProvider(db).ID,
+					ExpiresAt:     time.Now().Add(31 * 24 * time.Hour),
 				}
 
 				bearer, err := data.CreateAccessKey(db, key)

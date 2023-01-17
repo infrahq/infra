@@ -40,9 +40,9 @@ func createOtherOrg(t *testing.T, db *data.DB) organizationData {
 	admin := createAdmin(t, tx)
 
 	token := &models.AccessKey{
-		IssuedFor:  admin.ID,
-		ProviderID: data.InfraProvider(tx).ID,
-		ExpiresAt:  time.Now().Add(1000 * time.Second),
+		IssuedForUser: admin.ID,
+		ProviderID:    data.InfraProvider(tx).ID,
+		ExpiresAt:     time.Now().Add(1000 * time.Second),
 	}
 
 	accessKey, err := data.CreateAccessKey(tx, token)
@@ -115,9 +115,9 @@ func createAccessKey(t *testing.T, db data.WriteTxn, email string) (string, *mod
 	provider := data.InfraProvider(db)
 
 	token := &models.AccessKey{
-		IssuedFor:  user.ID,
-		ProviderID: provider.ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForUser: user.ID,
+		ProviderID:    provider.ID,
+		ExpiresAt:     time.Now().Add(10 * time.Second),
 	}
 
 	body, err := data.CreateAccessKey(db, token)

@@ -55,9 +55,9 @@ func TestAPI_CreateToken(t *testing.T) {
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
-					IssuedFor:  user.ID,
-					ProviderID: data.InfraProvider(srv.DB()).ID,
-					ExpiresAt:  time.Now().Add(10 * time.Second),
+					IssuedForUser: user.ID,
+					ProviderID:    data.InfraProvider(srv.DB()).ID,
+					ExpiresAt:     time.Now().Add(10 * time.Second),
 				}
 				accessKey, err := data.CreateAccessKey(srv.DB(), key)
 				assert.NilError(t, err)
