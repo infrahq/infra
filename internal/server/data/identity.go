@@ -674,88 +674,69 @@ type DeleteIdentitiesOptions struct {
 }
 
 func DeleteIdentities(tx WriteTxn, opts DeleteIdentitiesOptions) error {
-	if opts.ByProviderID == 0 {
-		return fmt.Errorf("DeleteIdentities requires a provider ID")
+	if opts.ByID == 0 && len(opts.ByIDs) == 0 {
+		return fmt.Errorf("DeleteIdentities requires an ID")
 	}
-	listOpts := ListIdentityOptions{
-		ByID:  opts.ByID,
-		ByIDs: opts.ByIDs,
-	}
-	toDelete, err := ListIdentities(tx, listOpts)
-	if err != nil {
-		return err
+	ids := opts.ByIDs
+	if opts.ByID != 0 {
+		ids = append(ids, opts.ByID)
 	}
 
-	ids, err := deleteReferencesToIdentities(tx, opts.ByProviderID, toDelete)
-	if err != nil {
+	if err := deleteReferencesToIdentities(tx, ids); err != nil {
 		return fmt.Errorf("remove identities: %w", err)
 	}
 
-	if len(ids) > 0 {
-		query := querybuilder.New("UPDATE identities")
-		query.B("SET deleted_at = ?", time.Now())
-		query.B("WHERE id IN")
-		queryInClause(query, ids)
-		query.B("AND organization_id = ?", tx.OrganizationID())
-
-		_, err := tx.Exec(query.String(), query.Args...)
-		return err
-	}
-
-	return nil
+	query := querybuilder.New("UPDATE identities")
+	query.B("SET deleted_at = ?", time.Now())
+	query.B("WHERE id IN")
+	queryInClause(query, ids)
+	query.B("AND organization_id = ?", tx.OrganizationID())
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
 }
 
-func deleteReferencesToIdentities(tx WriteTxn, providerID uid.ID, toDelete []models.Identity) (unreferencedIdentityIDs []uid.ID, err error) {
-	for _, i := range toDelete {
-		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: i.ID, ByProviderID: providerID}); err != nil {
-			return nil, fmt.Errorf("delete identity access keys: %w", err)
+// deleteReferencesToIdentities removes all entities (keys, grants, etc.) that reference an identity
+func deleteReferencesToIdentities(tx WriteTxn, ids []uid.ID) error {
+	for _, id := range ids {
+		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: id}); err != nil {
+			return fmt.Errorf("delete identity access keys: %w", err)
 		}
-		if err := DeleteUserPublicKeys(tx, i.ID); err != nil {
-			return nil, fmt.Errorf("delete identity public keys: %w", err)
-		}
-
-		if providerID == InfraProvider(tx).ID {
-			// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
-			credential, err := GetCredentialByUserID(tx, i.ID)
-			if err != nil && !errors.Is(err, internal.ErrNotFound) {
-				return nil, fmt.Errorf("get delete identity creds: %w", err)
-			}
-			if credential != nil {
-				err := DeleteCredential(tx, credential.ID)
-				if err != nil {
-					return nil, fmt.Errorf("delete identity creds: %w", err)
-				}
-			}
-		}
-		if err := DeleteProviderUsers(tx, DeleteProviderUsersOptions{ByIdentityID: i.ID, ByProviderID: providerID}); err != nil {
-			return nil, fmt.Errorf("remove provider user: %w", err)
+		if err := DeleteUserPublicKeys(tx, id); err != nil {
+			return fmt.Errorf("delete identity public keys: %w", err)
 		}
 
-		// if this identity no longer exists in any identity providers then remove all their references
-		user, err := GetIdentity(tx, GetIdentityOptions{ByID: i.ID, LoadProviders: true})
+		// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
+		credential, err := GetCredentialByUserID(tx, id)
+		if err != nil && !errors.Is(err, internal.ErrNotFound) {
+			return fmt.Errorf("get delete identity creds: %w", err)
+		}
+		if credential != nil {
+			err := DeleteCredential(tx, credential.ID)
+			if err != nil {
+				return fmt.Errorf("delete identity creds: %w", err)
+			}
+		}
+
+		if err := DeleteProviderUsers(tx, DeleteProviderUsersOptions{ByIdentityID: id}); err != nil {
+			return fmt.Errorf("remove provider user: %w", err)
+		}
+
+		groups, err := ListGroups(tx, ListGroupsOptions{ByGroupMember: id})
 		if err != nil {
-			return nil, fmt.Errorf("check user providers: %w", err)
+			return fmt.Errorf("list groups for identity: %w", err)
 		}
-
-		if len(user.Providers) == 0 {
-			groups, err := ListGroups(tx, ListGroupsOptions{ByGroupMember: i.ID})
+		for _, group := range groups {
+			err = RemoveUsersFromGroup(tx, group.ID, []uid.ID{id})
 			if err != nil {
-				return nil, fmt.Errorf("list groups for identity: %w", err)
+				return fmt.Errorf("delete group membership for identity: %w", err)
 			}
-			for _, group := range groups {
-				err = RemoveUsersFromGroup(tx, group.ID, []uid.ID{i.ID})
-				if err != nil {
-					return nil, fmt.Errorf("delete group membership for identity: %w", err)
-				}
-			}
-			err = DeleteGrants(tx, DeleteGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(i.ID)})
-			if err != nil {
-				return nil, fmt.Errorf("delete identity creds: %w", err)
-			}
-			unreferencedIdentityIDs = append(unreferencedIdentityIDs, user.ID)
+		}
+		err = DeleteGrants(tx, DeleteGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(id)})
+		if err != nil {
+			return fmt.Errorf("delete identity creds: %w", err)
 		}
 	}
-	return unreferencedIdentityIDs, nil
+	return nil
 }
 
 func CountAllIdentities(tx ReadTxn) (int64, error) {

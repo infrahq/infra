@@ -240,13 +240,16 @@ type DeleteProviderUsersOptions struct {
 }
 
 func DeleteProviderUsers(tx WriteTxn, opts DeleteProviderUsersOptions) error {
-	if opts.ByProviderID == 0 {
-		return fmt.Errorf("DeleteProviderUsers must supply a provider_id")
+	if opts.ByIdentityID == 0 && opts.ByProviderID == 0 {
+		return fmt.Errorf("DeleteProviderUsers must supply an identity_id or provider_id")
 	}
 	query := querybuilder.New("DELETE FROM provider_users")
-	query.B("WHERE provider_id = ?", opts.ByProviderID)
+	query.B("WHERE 1=1") // this is always true, used to make the logic of adding clauses simpler by always appending them with an AND
 	if opts.ByIdentityID != 0 {
 		query.B("AND identity_id = ?", opts.ByIdentityID)
+	}
+	if opts.ByProviderID != 0 {
+		query.B("AND provider_id = ?", opts.ByProviderID)
 	}
 
 	_, err := tx.Exec(query.String(), query.Args...)
