@@ -248,6 +248,8 @@ func TestDeleteGroup(t *testing.T) {
 		otherOrgGroup := &models.Group{Name: "Everyone"}
 		createGroups(t, tx.WithOrgID(otherOrg.ID), otherOrgGroup)
 
+		var startUpdateIndex int64 = 10004
+
 		t.Run("success", func(t *testing.T) {
 			_, err := GetGroup(tx, GetGroupOptions{ByID: everyone.ID})
 			assert.NilError(t, err)
@@ -272,6 +274,9 @@ func TestDeleteGroup(t *testing.T) {
 			grants, err := ListGrants(tx, ListGrantsOptions{BySubject: groupGrant.Subject})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, grants, []models.Grant{}, cmpopts.EquateEmpty())
+
+			actual := getGroupMembershipUpdateIndex(t, tx, everyone.ID)
+			assert.Equal(t, actual, startUpdateIndex+1)
 		})
 		t.Run("delete non-existent", func(t *testing.T) {
 			err := DeleteGroup(tx, uid.ID(1234))
@@ -284,6 +289,14 @@ func TestDeleteGroup(t *testing.T) {
 			assert.NilError(t, err)
 		})
 	})
+}
+
+func getGroupMembershipUpdateIndex(t *testing.T, tx ReadTxn, id uid.ID) int64 {
+	t.Helper()
+	row := tx.QueryRow(`SELECT membership_update_index FROM groups WHERE id = ?`, id)
+	var updateIndex int64
+	assert.NilError(t, row.Scan(&updateIndex))
+	return updateIndex
 }
 
 func TestRecreateGroupSameName(t *testing.T) {
@@ -324,6 +337,7 @@ func TestAddUsersToGroup(t *testing.T) {
 		)
 
 		createIdentities(t, db, &bond, &bourne, &bauer, &forth)
+		startUpdateIndex := getGroupMembershipUpdateIndex(t, db, everyone.ID)
 
 		t.Run("add identities to group", func(t *testing.T) {
 			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
@@ -342,6 +356,9 @@ func TestAddUsersToGroup(t *testing.T) {
 			actual, err = ListIdentities(db, ListIdentityOptions{ByGroupID: other.ID})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 0)
+
+			actualIndex := getGroupMembershipUpdateIndex(t, db, everyone.ID)
+			assert.Equal(t, actualIndex, startUpdateIndex+1)
 		})
 	})
 }
@@ -380,6 +397,8 @@ func TestRemoveUsersFromGroup(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, len(users), 3)
 
+		startUpdateIndex := getGroupMembershipUpdateIndex(t, tx, everyone.ID)
+
 		err = RemoveUsersFromGroup(tx, everyone.ID, []uid.ID{bond.ID, bourne.ID, forth.ID})
 		assert.NilError(t, err)
 
@@ -392,6 +411,9 @@ func TestRemoveUsersFromGroup(t *testing.T) {
 		assert.NilError(t, err)
 		expected = []models.Identity{bauer, bond, bourne}
 		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
+		actualUpdateIndex := getGroupMembershipUpdateIndex(t, tx, everyone.ID)
+		assert.Equal(t, actualUpdateIndex, startUpdateIndex+1)
 	})
 }
 

@@ -165,7 +165,7 @@ func DeleteGroup(tx WriteTxn, id uid.ID) error {
 
 	stmt := `
 		UPDATE groups
-		SET deleted_at = ?
+		SET deleted_at = ?, membership_update_index = nextval('seq_update_index')
 		WHERE id = ?
 		AND deleted_at is null
 		AND organization_id = ?`
@@ -184,7 +184,12 @@ func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
 	}
 	query.B("ON CONFLICT DO NOTHING")
 
-	_, err := tx.Exec(query.String(), query.Args...)
+	if _, err := tx.Exec(query.String(), query.Args...); err != nil {
+		return handleError(err)
+	}
+
+	stmt := `UPDATE groups SET membership_update_index = nextval('seq_update_index') WHERE id = ?`
+	_, err := tx.Exec(stmt, groupID)
 	return handleError(err)
 }
 
@@ -196,7 +201,12 @@ func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) err
 	query.B(`WHERE group_id = ?`, groupID)
 	query.B(`AND identity_id IN`)
 	queryInClause(query, idsToRemove)
-	_, err := tx.Exec(query.String(), query.Args...)
+	if _, err := tx.Exec(query.String(), query.Args...); err != nil {
+		return handleError(err)
+	}
+
+	stmt := `UPDATE groups SET membership_update_index = nextval('seq_update_index') WHERE id = ?`
+	_, err := tx.Exec(stmt, groupID)
 	return handleError(err)
 }
 

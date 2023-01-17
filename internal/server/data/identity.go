@@ -61,7 +61,7 @@ func deduplicate(groups []string) []string {
 }
 
 // AssignIdentityToGroups updates the identity's group membership relations based on the provider user's groups
-// and returns the identity's current groups after the update has persisted them
+// and returns the identity's current groups after the update has persisted them.
 func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []string) ([]models.Group, error) {
 	identity, err := GetIdentity(tx, GetIdentityOptions{ByID: user.IdentityID, LoadGroups: true})
 	if err != nil {
@@ -155,6 +155,15 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 		}
 	}
 
+	if count := len(groupsToBeAdded) + len(groupsToBeRemoved); count > 0 {
+		names := make([]string, 0, count)
+		names = append(names, groupsToBeAdded...)
+		names = append(names, groupsToBeRemoved...)
+		if err := updateGroupsMembershipUpdateIndexByName(tx, names); err != nil {
+			return nil, err
+		}
+	}
+
 	return identity.Groups, nil
 }
 
@@ -184,6 +193,16 @@ func listGroupIDsFromNames(tx ReadTxn, names []string) (map[string]uid.ID, error
 		result[item.Name] = item.ID
 	}
 	return result, nil
+}
+
+func updateGroupsMembershipUpdateIndexByName(tx WriteTxn, names []string) error {
+	query := querybuilder.New("UPDATE groups")
+	query.B("SET membership_update_index = nextval('seq_update_index')")
+	query.B("WHERE name IN")
+	queryInClause(query, names)
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
 }
 
 func CreateIdentity(tx WriteTxn, identity *models.Identity) error {

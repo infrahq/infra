@@ -685,6 +685,9 @@ func TestAssignIdentityToGroups(t *testing.T) {
 		ExistingGroups []string       // groups from last provider sync
 		IncomingGroups []string       // groups from this provider sync
 		ExpectedGroups []models.Group // groups identity should have at end
+		// expectedUpdateIndexDelta is the delta from the update index that
+		// existed before running AssignIdentityToGroups.
+		expectedUpdateIndexDelta map[string]int64
 	}{
 		{
 			Name:           "test where the provider is trying to add a group the identity doesn't have elsewhere",
@@ -705,6 +708,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 					},
 				},
 			},
+			expectedUpdateIndexDelta: map[string]int64{"foo": -1, "foo2": 1},
 		},
 		{
 			Name:           "test where the provider is trying to add a group the identity has from elsewhere",
@@ -725,6 +729,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 					},
 				},
 			},
+			expectedUpdateIndexDelta: map[string]int64{"foo": 1, "foo2": 2},
 		},
 		{
 			Name:           "test where the group with the same name exists in another org",
@@ -739,6 +744,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 					},
 				},
 			},
+			expectedUpdateIndexDelta: map[string]int64{"Everyone": 1},
 		},
 		{
 			Name:           "test where user has groups from this provider removed",
@@ -753,6 +759,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 					},
 				},
 			},
+			expectedUpdateIndexDelta: map[string]int64{"foo": 1, "foo2": 2},
 		},
 		{
 			Name:           "test where the user has duplicate groups",
@@ -767,6 +774,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 					},
 				},
 			},
+			expectedUpdateIndexDelta: map[string]int64{"foo": 1, "foo2": 2},
 		},
 	}
 
@@ -780,46 +788,72 @@ func TestAssignIdentityToGroups(t *testing.T) {
 
 		for i, test := range tests {
 			t.Run(test.Name, func(t *testing.T) {
+				tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
 				// setup identity
 				identity := &models.Identity{Name: fmt.Sprintf("foo+%d@example.com", i)}
-				err := CreateIdentity(db, identity)
+				err := CreateIdentity(tx, identity)
 				assert.NilError(t, err)
 
 				// setup identity's groups
 				for _, gn := range test.StartingGroups {
-					g, err := GetGroup(db, GetGroupOptions{ByName: gn})
+					g, err := GetGroup(tx, GetGroupOptions{ByName: gn})
 					if errors.Is(err, internal.ErrNotFound) {
 						g = &models.Group{Name: gn}
-						err = CreateGroup(db, g)
+						err = CreateGroup(tx, g)
 						assert.NilError(t, err)
 					}
-					assert.NilError(t, AddUsersToGroup(db, g.ID, []uid.ID{identity.ID}))
+					assert.NilError(t, AddUsersToGroup(tx, g.ID, []uid.ID{identity.ID}))
 				}
 
 				// setup providerUser record
-				provider := InfraProvider(db)
-				pu, err := CreateProviderUser(db, provider, identity)
+				provider := InfraProvider(tx)
+				pu, err := CreateProviderUser(tx, provider, identity)
 				assert.NilError(t, err)
 
 				pu.Groups = test.ExistingGroups
-				err = UpdateProviderUser(db, pu)
+				err = UpdateProviderUser(tx, pu)
 				assert.NilError(t, err)
 
-				_, err = AssignIdentityToGroups(db, pu, test.ExistingGroups)
+				_, err = AssignIdentityToGroups(tx, pu, test.ExistingGroups)
 				assert.NilError(t, err)
 
-				result, err := AssignIdentityToGroups(db, pu, test.IncomingGroups)
+				startIndex := currentSequenceValue(t, tx, "seq_update_index")
+
+				result, err := AssignIdentityToGroups(tx, pu, test.IncomingGroups)
 				assert.NilError(t, err)
 
 				assert.DeepEqual(t, result, test.ExpectedGroups, cmpModelsGroupShallow)
 
 				// check the persisted result
-				persisted, err := ListGroups(db, ListGroupsOptions{ByGroupMember: identity.ID})
+				persisted, err := ListGroups(tx, ListGroupsOptions{ByGroupMember: identity.ID})
 				assert.NilError(t, err)
 				assert.DeepEqual(t, persisted, test.ExpectedGroups, cmpModelsGroupShallow)
+
+				for name, expectedDelta := range test.expectedUpdateIndexDelta {
+					actual := getGroupMembershipUpdateIndexByName(t, tx, name)
+					assert.Equal(t, actual, startIndex+expectedDelta, name)
+				}
+
 			})
 		}
 	})
+}
+
+func getGroupMembershipUpdateIndexByName(t *testing.T, tx ReadTxn, name string) int64 {
+	t.Helper()
+	row := tx.QueryRow(`SELECT membership_update_index FROM groups WHERE name = ?`, name)
+	var updateIndex int64
+	assert.NilError(t, row.Scan(&updateIndex))
+	return updateIndex
+}
+
+func currentSequenceValue(t *testing.T, tx ReadTxn, seq string) int64 {
+	t.Helper()
+	row := tx.QueryRow(`SELECT nextval(?)`, seq)
+	var value int64
+	assert.NilError(t, row.Scan(&value))
+	return value
 }
 
 func TestCountAllIdentities(t *testing.T) {
