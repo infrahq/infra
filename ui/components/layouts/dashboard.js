@@ -95,11 +95,7 @@ export default function Dashboard({ children }) {
     }
   }, [loading])
 
-  if (loading || !user) {
-    return null
-  }
-
-  if (isAdminLoading) {
+  if (loading || !user || isAdminLoading) {
     return null
   }
 
