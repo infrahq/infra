@@ -541,7 +541,9 @@ export default function AccessControl() {
     )
 
     if (allGrants?.length === 0 && totalCount === 0) {
-      router.replace(`access-control?p=${page - 1}`)
+      page > 1
+        ? router.replace(`/access-control?p=${page - 1}`)
+        : router.replace('/access-control')
     }
   }, [allGrants, totalCount, newCreatedGrants])
 
