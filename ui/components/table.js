@@ -1,7 +1,5 @@
 import Link from 'next/link'
 import { useLayoutEffect, useRef, useState } from 'react'
-import { usePopper } from 'react-popper'
-import * as ReactDOM from 'react-dom'
 
 import { TrashIcon } from '@heroicons/react/24/outline'
 import {
@@ -9,7 +7,6 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Menu } from '@headlessui/react'
 
 import Loader from './loader'
 
