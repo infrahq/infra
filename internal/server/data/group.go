@@ -170,7 +170,16 @@ func DeleteGroup(tx WriteTxn, id uid.ID) error {
 		AND deleted_at is null
 		AND organization_id = ?`
 	_, err = tx.Exec(stmt, time.Now(), id, tx.OrganizationID())
-	return handleError(err)
+	if err != nil {
+		return handleError(err)
+	}
+	return notifyGroupMembershipChange(tx, id)
+}
+
+func notifyGroupMembershipChange(tx WriteTxn, groupID uid.ID) error {
+	stmt := `SELECT pg_notify(current_schema() || '.groupMembers.' || ?, '')`
+	_, err := tx.Exec(stmt, fmt.Sprintf("%v.%v", tx.OrganizationID(), groupID))
+	return err
 }
 
 func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
@@ -188,9 +197,10 @@ func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
 		return handleError(err)
 	}
 
-	stmt := `UPDATE groups SET membership_update_index = nextval('seq_update_index') WHERE id = ?`
-	_, err := tx.Exec(stmt, groupID)
-	return handleError(err)
+	if err := updateGroupsMembershipUpdateIndex(tx, groupID); err != nil {
+		return err
+	}
+	return notifyGroupMembershipChange(tx, groupID)
 }
 
 // RemoveUsersFromGroup removes any user ID listed in idsToRemove from the group
@@ -205,9 +215,10 @@ func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) err
 		return handleError(err)
 	}
 
-	stmt := `UPDATE groups SET membership_update_index = nextval('seq_update_index') WHERE id = ?`
-	_, err := tx.Exec(stmt, groupID)
-	return handleError(err)
+	if err := updateGroupsMembershipUpdateIndex(tx, groupID); err != nil {
+		return err
+	}
+	return notifyGroupMembershipChange(tx, groupID)
 }
 
 func countUsersInGroup(tx ReadTxn, groupID uid.ID) (int64, error) {

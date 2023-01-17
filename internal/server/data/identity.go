@@ -155,12 +155,18 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 		}
 	}
 
-	if count := len(groupsToBeAdded) + len(groupsToBeRemoved); count > 0 {
-		names := make([]string, 0, count)
-		names = append(names, groupsToBeAdded...)
-		names = append(names, groupsToBeRemoved...)
-		if err := updateGroupsMembershipUpdateIndexByName(tx, names); err != nil {
+	if count := len(idsToRemove) + len(addIDs); count > 0 {
+		ids := make([]uid.ID, 0, count)
+		ids = append(ids, idsToRemove...)
+		ids = append(ids, maps.Values(addIDs)...)
+
+		if err := updateGroupsMembershipUpdateIndex(tx, ids...); err != nil {
 			return nil, err
+		}
+		for _, id := range ids {
+			if err := notifyGroupMembershipChange(tx, id); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -195,11 +201,12 @@ func listGroupIDsFromNames(tx ReadTxn, names []string) (map[string]uid.ID, error
 	return result, nil
 }
 
-func updateGroupsMembershipUpdateIndexByName(tx WriteTxn, names []string) error {
+func updateGroupsMembershipUpdateIndex(tx WriteTxn, ids ...uid.ID) error {
 	query := querybuilder.New("UPDATE groups")
 	query.B("SET membership_update_index = nextval('seq_update_index')")
-	query.B("WHERE name IN")
-	queryInClause(query, names)
+	query.B("WHERE id IN")
+	queryInClause(query, ids)
+	query.B("AND organization_id = ?", tx.OrganizationID())
 
 	_, err := tx.Exec(query.String(), query.Args...)
 	return handleError(err)

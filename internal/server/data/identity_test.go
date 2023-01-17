@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -688,6 +689,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 		// expectedUpdateIndexDelta is the delta from the update index that
 		// existed before running AssignIdentityToGroups.
 		expectedUpdateIndexDelta map[string]int64
+		listenChannelGroupName   string
 	}{
 		{
 			Name:           "test where the provider is trying to add a group the identity doesn't have elsewhere",
@@ -760,6 +762,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				},
 			},
 			expectedUpdateIndexDelta: map[string]int64{"foo": 1, "foo2": 2},
+			listenChannelGroupName:   "foo",
 		},
 		{
 			Name:           "test where the user has duplicate groups",
@@ -776,18 +779,42 @@ func TestAssignIdentityToGroups(t *testing.T) {
 			},
 			expectedUpdateIndexDelta: map[string]int64{"foo": 1, "foo2": 2},
 		},
+		{
+			Name:           "user is added to an existing group",
+			IncomingGroups: []string{"existing"},
+			ExpectedGroups: []models.Group{
+				{
+					Name:               "existing",
+					OrganizationMember: models.OrganizationMember{OrganizationID: 1000},
+				},
+			},
+			expectedUpdateIndexDelta: map[string]int64{"existing": 1},
+			listenChannelGroupName:   "existing",
+		},
 	}
 
 	runDBTests(t, func(t *testing.T, db *DB) {
 		otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
 		assert.NilError(t, CreateOrganization(db, otherOrg))
-		tx := txnForTestCase(t, db, otherOrg.ID)
-		group := &models.Group{Name: "Everyone"}
-		assert.NilError(t, CreateGroup(tx, group))
-		assert.NilError(t, tx.Commit())
 
 		for i, test := range tests {
 			t.Run(test.Name, func(t *testing.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				t.Cleanup(cancel)
+
+				existingGroup := &models.Group{Name: "existing"}
+				assert.NilError(t, CreateGroup(db, existingGroup))
+
+				otherOrgTx := txnForTestCase(t, db, otherOrg.ID)
+				group := &models.Group{Name: "Everyone"}
+				assert.NilError(t, CreateGroup(otherOrgTx, group))
+				assert.NilError(t, otherOrgTx.Commit())
+
+				t.Cleanup(func() {
+					_, err := db.Exec(`DELETE FROM groups; DELETE FROM identities_groups;`)
+					assert.NilError(t, err)
+				})
+
 				tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 				// setup identity
@@ -804,6 +831,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 						assert.NilError(t, err)
 					}
 					assert.NilError(t, AddUsersToGroup(tx, g.ID, []uid.ID{identity.ID}))
+
 				}
 
 				// setup providerUser record
@@ -817,6 +845,25 @@ func TestAssignIdentityToGroups(t *testing.T) {
 
 				_, err = AssignIdentityToGroups(tx, pu, test.ExistingGroups)
 				assert.NilError(t, err)
+
+				// Commit test setup, and start a new transaction
+				assert.NilError(t, tx.Commit())
+				tx = txnForTestCase(t, db, db.DefaultOrg.ID)
+
+				var listener *Listener
+				if test.listenChannelGroupName != "" {
+					group, err := GetGroup(tx, GetGroupOptions{ByName: test.listenChannelGroupName})
+					assert.NilError(t, err)
+
+					listener, err = ListenForNotify(ctx, db, ListenChannelGroupMembership{
+						OrgID:   tx.OrganizationID(),
+						GroupID: group.ID,
+					})
+					assert.NilError(t, err)
+					t.Cleanup(func() {
+						assert.NilError(t, listener.Release(context.Background()))
+					})
+				}
 
 				startIndex := currentSequenceValue(t, tx, "seq_update_index")
 
@@ -835,6 +882,14 @@ func TestAssignIdentityToGroups(t *testing.T) {
 					assert.Equal(t, actual, startIndex+expectedDelta, name)
 				}
 
+				assert.NilError(t, tx.Commit())
+
+				if listener != nil {
+					ctx, cancel := context.WithTimeout(ctx, time.Second)
+					t.Cleanup(cancel)
+					err = listener.WaitForNotification(ctx)
+					assert.NilError(t, err)
+				}
 			})
 		}
 	})
@@ -842,7 +897,10 @@ func TestAssignIdentityToGroups(t *testing.T) {
 
 func getGroupMembershipUpdateIndexByName(t *testing.T, tx ReadTxn, name string) int64 {
 	t.Helper()
-	row := tx.QueryRow(`SELECT membership_update_index FROM groups WHERE name = ?`, name)
+	row := tx.QueryRow(`
+		SELECT membership_update_index
+		FROM groups
+		WHERE name = ? AND organization_id = ?`, name, tx.OrganizationID())
 	var updateIndex int64
 	assert.NilError(t, row.Scan(&updateIndex))
 	return updateIndex

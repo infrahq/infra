@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -248,11 +249,26 @@ func TestDeleteGroup(t *testing.T) {
 		otherOrgGroup := &models.Group{Name: "Everyone"}
 		createGroups(t, tx.WithOrgID(otherOrg.ID), otherOrgGroup)
 
-		var startUpdateIndex int64 = 10004
+		assert.NilError(t, tx.Commit())
 
 		t.Run("success", func(t *testing.T) {
-			_, err := GetGroup(tx, GetGroupOptions{ByID: everyone.ID})
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			ctx, cancel := context.WithCancel(context.Background())
+			t.Cleanup(cancel)
+
+			listener, err := ListenForNotify(ctx, db, ListenChannelGroupMembership{
+				GroupID: everyone.ID,
+				OrgID:   db.DefaultOrg.ID,
+			})
 			assert.NilError(t, err)
+			t.Cleanup(func() {
+				assert.NilError(t, listener.Release(context.Background()))
+			})
+
+			_, err = GetGroup(tx, GetGroupOptions{ByID: everyone.ID})
+			assert.NilError(t, err)
+
+			startUpdateIndex := currentSequenceValue(t, tx, "seq_update_index")
 
 			err = DeleteGroup(tx, everyone.ID)
 			assert.NilError(t, err)
@@ -275,14 +291,23 @@ func TestDeleteGroup(t *testing.T) {
 			assert.NilError(t, err)
 			assert.DeepEqual(t, grants, []models.Grant{}, cmpopts.EquateEmpty())
 
-			actual := getGroupMembershipUpdateIndex(t, tx, everyone.ID)
-			assert.Equal(t, actual, startUpdateIndex+1)
+			assert.NilError(t, tx.Commit())
+
+			actual := getGroupMembershipUpdateIndex(t, db, everyone.ID)
+			assert.Equal(t, actual, startUpdateIndex+2) // delete of grant takes 1 value
+
+			ctx, cancel = context.WithTimeout(ctx, 2*time.Second)
+			t.Cleanup(cancel)
+			err = listener.WaitForNotification(ctx)
+			assert.NilError(t, err)
 		})
 		t.Run("delete non-existent", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 			err := DeleteGroup(tx, uid.ID(1234))
 			assert.NilError(t, err)
 		})
 		t.Run("delete already soft-deleted", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 			err := DeleteGroup(tx, everyone.ID)
 			assert.NilError(t, err)
 			err = DeleteGroup(tx, everyone.ID)
@@ -340,6 +365,18 @@ func TestAddUsersToGroup(t *testing.T) {
 		startUpdateIndex := getGroupMembershipUpdateIndex(t, db, everyone.ID)
 
 		t.Run("add identities to group", func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			t.Cleanup(cancel)
+
+			listener, err := ListenForNotify(ctx, db, ListenChannelGroupMembership{
+				GroupID: everyone.ID,
+				OrgID:   db.DefaultOrg.ID,
+			})
+			assert.NilError(t, err)
+			t.Cleanup(func() {
+				assert.NilError(t, listener.Release(context.Background()))
+			})
+
 			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
 			assert.NilError(t, err)
 			expected := []models.Identity{forth, bond}
@@ -359,6 +396,11 @@ func TestAddUsersToGroup(t *testing.T) {
 
 			actualIndex := getGroupMembershipUpdateIndex(t, db, everyone.ID)
 			assert.Equal(t, actualIndex, startUpdateIndex+1)
+
+			ctx, cancel = context.WithTimeout(ctx, 2*time.Second)
+			t.Cleanup(cancel)
+			err = listener.WaitForNotification(ctx)
+			assert.NilError(t, err)
 		})
 	})
 }
@@ -389,6 +431,18 @@ func TestRemoveUsersFromGroup(t *testing.T) {
 		}
 		createIdentities(t, tx, &bond, &bourne, &bauer, &forth)
 
+		ctx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+
+		listener, err := ListenForNotify(ctx, db, ListenChannelGroupMembership{
+			GroupID: everyone.ID,
+			OrgID:   db.DefaultOrg.ID,
+		})
+		assert.NilError(t, err)
+		t.Cleanup(func() {
+			assert.NilError(t, listener.Release(context.Background()))
+		})
+
 		users, err := ListIdentities(tx, ListIdentityOptions{ByGroupID: everyone.ID})
 		assert.NilError(t, err)
 		assert.Equal(t, len(users), 4)
@@ -414,6 +468,13 @@ func TestRemoveUsersFromGroup(t *testing.T) {
 
 		actualUpdateIndex := getGroupMembershipUpdateIndex(t, tx, everyone.ID)
 		assert.Equal(t, actualUpdateIndex, startUpdateIndex+1)
+
+		assert.NilError(t, tx.Commit())
+
+		ctx, cancel = context.WithTimeout(ctx, 2*time.Second)
+		t.Cleanup(cancel)
+		err = listener.WaitForNotification(ctx)
+		assert.NilError(t, err)
 	})
 }
 
