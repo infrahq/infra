@@ -968,7 +968,7 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 						ID: 3,
 					},
 					Name:           "google-access",
-					IssuedFor:      user.ID,
+					IssuedForID:    user.ID,
 					ProviderID:     0, // old google ID
 					ExpiresAt:      time.Now().Add(1 * time.Minute),
 					KeyID:          "key_id",
@@ -981,7 +981,7 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 					INSERT INTO access_keys(id, name, issued_for, provider_id, expires_at, key_id, secret_checksum, organization_id)
 					VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 				`
-				_, err = tx.Exec(stmt, key.ID, key.Name, key.IssuedFor, key.ProviderID, key.ExpiresAt, key.KeyID, key.SecretChecksum, key.OrganizationID)
+				_, err = tx.Exec(stmt, key.ID, key.Name, key.IssuedForID, key.ProviderID, key.ExpiresAt, key.KeyID, key.SecretChecksum, key.OrganizationID)
 				assert.NilError(t, err)
 			},
 			cleanup: func(t *testing.T, tx WriteTxn) {
@@ -1003,11 +1003,11 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.DeepEqual(t, expectedUser, providerUser)
 
 				var accessKey accessKeyTable
-				err = tx.QueryRow(`SELECT issued_for, provider_id FROM access_keys`).Scan(&accessKey.IssuedFor, &accessKey.ProviderID)
+				err = tx.QueryRow(`SELECT issued_for, provider_id FROM access_keys`).Scan(&accessKey.IssuedForID, &accessKey.ProviderID)
 				assert.NilError(t, err)
 				expectedKey := accessKeyTable{
-					IssuedFor:  1,
-					ProviderID: models.InternalGoogleProviderID,
+					IssuedForID: 1,
+					ProviderID:  models.InternalGoogleProviderID,
 				}
 				assert.DeepEqual(t, expectedKey, accessKey)
 			},
@@ -1129,6 +1129,67 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				}
 
 				assert.DeepEqual(t, actual, expected)
+			},
+		},
+		{
+			label: testCaseLine(addAccessKeyIssuedForKind().ID),
+			setup: func(t *testing.T, tx WriteTxn) {
+				stmt := `
+					INSERT INTO identities(id, name, organization_id) VALUES (1, 'test@example.com', 100);
+					INSERT INTO identities(id, name, organization_id) VALUES (2, 'connector', 100);
+				`
+
+				_, err := tx.Exec(stmt)
+				assert.NilError(t, err)
+				stmt = `
+					INSERT INTO providers(id, name, organization_id) VALUES (3, 'okta', 100);
+				`
+				_, err = tx.Exec(stmt)
+				assert.NilError(t, err)
+				stmt = `
+					INSERT INTO access_keys(id, name, issued_for, provider_id, organization_id) VALUES (4, 'userKey', 1, 3, 100);
+					INSERT INTO access_keys(id, name, issued_for, provider_id, organization_id) VALUES (5, 'connectorKey', 2, 3, 100);
+					INSERT INTO access_keys(id, name, issued_for, provider_id, organization_id) VALUES (6, 'providerKey', 3, 3, 100);
+				`
+				_, err = tx.Exec(stmt)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE from identities`)
+				assert.NilError(t, err)
+				_, err = tx.Exec(`DELETE from providers`)
+				assert.NilError(t, err)
+				_, err = tx.Exec(`DELETE from access_keys`)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				var accessKey accessKeyTable
+				err := tx.QueryRow(`SELECT name, issued_for_id, issued_for_kind FROM access_keys WHERE id = 4`).Scan(&accessKey.Name, &accessKey.IssuedForID, &accessKey.IssuedForKind)
+				assert.NilError(t, err)
+				expectedKey := accessKeyTable{
+					Name:          "userKey",
+					IssuedForID:   1,
+					IssuedForKind: models.IssuedForKindUser,
+				}
+				assert.DeepEqual(t, expectedKey, accessKey)
+
+				err = tx.QueryRow(`SELECT name, issued_for_id, issued_for_kind FROM access_keys WHERE id = 5`).Scan(&accessKey.Name, &accessKey.IssuedForID, &accessKey.IssuedForKind)
+				assert.NilError(t, err)
+				expectedKey = accessKeyTable{
+					Name:          "connectorKey",
+					IssuedForID:   2,
+					IssuedForKind: models.IssuedForKindOrganization,
+				}
+				assert.DeepEqual(t, expectedKey, accessKey)
+
+				err = tx.QueryRow(`SELECT name, issued_for_id, issued_for_kind FROM access_keys WHERE id = 6`).Scan(&accessKey.Name, &accessKey.IssuedForID, &accessKey.IssuedForKind)
+				assert.NilError(t, err)
+				expectedKey = accessKeyTable{
+					Name:          "providerKey",
+					IssuedForID:   3,
+					IssuedForKind: models.IssuedForKindProvider,
+				}
+				assert.DeepEqual(t, expectedKey, accessKey)
 			},
 		},
 	}

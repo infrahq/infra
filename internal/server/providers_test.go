@@ -47,9 +47,9 @@ func TestAPI_ListProviders(t *testing.T) {
 		assert.NilError(t, err)
 
 		key := &models.AccessKey{
-			IssuedFor:  user.ID,
-			ProviderID: testProvider.ID,
-			ExpiresAt:  time.Now().Add(-1 * time.Minute),
+			IssuedForID: user.ID,
+			ProviderID:  testProvider.ID,
+			ExpiresAt:   time.Now().Add(-1 * time.Minute),
 		}
 		bearer, err := data.CreateAccessKey(s.DB(), key)
 		assert.NilError(t, err)
@@ -141,9 +141,9 @@ func TestAPI_GetProvider(t *testing.T) {
 		assert.NilError(t, err)
 
 		key := &models.AccessKey{
-			IssuedFor:  user.ID,
-			ProviderID: testProvider.ID,
-			ExpiresAt:  time.Now().Add(-1 * time.Minute),
+			IssuedForID: user.ID,
+			ProviderID:  testProvider.ID,
+			ExpiresAt:   time.Now().Add(-1 * time.Minute),
 		}
 		bearer, err := data.CreateAccessKey(s.DB(), key)
 		assert.NilError(t, err)

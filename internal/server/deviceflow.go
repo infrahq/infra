@@ -95,7 +95,8 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 	}
 
 	accessKey := &models.AccessKey{
-		IssuedFor:     user.ID,
+		IssuedForID:   user.ID,
+		IssuedForKind: models.IssuedForKindUser,
 		IssuedForName: user.Name,
 
 		// Share the same provider ID that was used to approve
@@ -116,9 +117,9 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 		return nil, fmt.Errorf("%w: update user last seen: %v", internal.ErrUnauthorized, err)
 	}
 
-	a.t.User(accessKey.IssuedFor.String(), user.Name)
-	a.t.OrgMembership(accessKey.OrganizationID.String(), accessKey.IssuedFor.String())
-	a.t.Event("login", accessKey.IssuedFor.String(), accessKey.OrganizationID.String(), Properties{"method": "deviceflow"})
+	a.t.User(accessKey.IssuedForID.String(), user.Name)
+	a.t.OrgMembership(accessKey.OrganizationID.String(), accessKey.IssuedForID.String())
+	a.t.Event("login", accessKey.IssuedForID.String(), accessKey.OrganizationID.String(), Properties{"method": "deviceflow"})
 
 	// Update the request context so that logging middleware can include the userID
 	rctx.Authenticated.User = user
@@ -139,7 +140,7 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 		Status:     api.DeviceFlowStatusConfirmed,
 		DeviceCode: dfar.DeviceCode,
 		LoginResponse: &api.LoginResponse{
-			UserID:           accessKey.IssuedFor,
+			UserID:           accessKey.IssuedForID,
 			Name:             accessKey.IssuedForName,
 			AccessKey:        string(bearer),
 			Expires:          api.Time(accessKey.ExpiresAt),

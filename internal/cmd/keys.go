@@ -80,9 +80,11 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 			}
 
 			userID := config.UserID
+			kind := api.KeyIssuedForKindUser
 
 			// override the user setting if the user wants to create a connector access key
 			if options.Connector {
+				kind = api.KeyIssuedForKindOrganization
 				options.UserName = "connector"
 			}
 
@@ -102,7 +104,8 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 
 			logging.Debugf("call server: create access key named %q", options.Name)
 			resp, err := client.CreateAccessKey(ctx, &api.CreateAccessKeyRequest{
-				UserID:            userID,
+				IssuedForID:       userID,
+				IssuedForKind:     kind,
 				Name:              options.Name,
 				Expiry:            api.Duration(options.Expiry),
 				InactivityTimeout: api.Duration(options.InactivityTimeout),
@@ -324,7 +327,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 
 			var rows []row
 			for _, k := range keys {
-				name := k.IssuedFor.String()
+				name := k.IssuedForID.String()
 				if k.IssuedForName != "" {
 					name = k.IssuedForName
 				}

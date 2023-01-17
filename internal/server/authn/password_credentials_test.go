@@ -13,7 +13,7 @@ import (
 )
 
 func TestPasswordCredentialAuthentication(t *testing.T) {
-	db := setupDB(t)
+	tx := setupDB(t)
 
 	type testCase struct {
 		setup       func(t *testing.T, db *data.Transaction) LoginMethod
@@ -180,9 +180,9 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			credentialLogin := tc.setup(t, db)
+			credentialLogin := tc.setup(t, tx)
 
-			authnIdentity, err := credentialLogin.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
+			authnIdentity, err := credentialLogin.Authenticate(context.Background(), tx, time.Now().Add(1*time.Minute))
 			if tc.expectedErr != "" {
 				assert.ErrorContains(t, err, tc.expectedErr)
 				return

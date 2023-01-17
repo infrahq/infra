@@ -113,7 +113,7 @@ CREATE TABLE access_keys (
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
     name text,
-    issued_for bigint,
+    issued_for_id bigint,
     provider_id bigint,
     expires_at timestamp with time zone,
     inactivity_extension bigint,
@@ -121,7 +121,8 @@ CREATE TABLE access_keys (
     key_id text,
     secret_checksum bytea,
     scopes text,
-    organization_id bigint
+    organization_id bigint,
+    issued_for_kind smallint DEFAULT 1
 );
 
 CREATE TABLE credentials (
@@ -349,7 +350,7 @@ ALTER TABLE ONLY user_public_keys
 
 CREATE INDEX idx_access_keys_expires_at ON access_keys USING btree (expires_at);
 
-CREATE UNIQUE INDEX idx_access_keys_issued_for_name ON access_keys USING btree (organization_id, issued_for, name) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_access_keys_issued_for ON access_keys USING btree (organization_id, issued_for_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
 

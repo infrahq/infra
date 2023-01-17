@@ -11,7 +11,8 @@ type AccessKey struct {
 	LastUsed          Time     `json:"lastUsed"`
 	Name              string   `json:"name" example:"cicdkey" note:"Name of the access key"`
 	IssuedForName     string   `json:"issuedForName" example:"admin@example.com" note:"Name of the user the key was issued to"`
-	IssuedFor         uid.ID   `json:"issuedFor" note:"ID of the user the key was issued to"`
+	IssuedForID       uid.ID   `json:"issuedForID" note:"ID of the entity the key was issued to"`
+	IssuedForKind     string   `json:"issuedForKind" example:"user" note:"the kind entity the key was issued for (eg: user, organization, or provider)"`
 	ProviderID        uid.ID   `json:"providerID" note:"ID of the provider if the user is managed by an OIDC provider"`
 	Expires           Time     `json:"expires" note:"key is no longer valid after this time"`
 	InactivityTimeout Time     `json:"inactivityTimeout" note:"key must be used by this time to remain valid"`
@@ -31,8 +32,15 @@ func (r ListAccessKeysRequest) ValidationRules() []validate.ValidationRule {
 	return nil
 }
 
+const (
+	KeyIssuedForKindUser         = "user"
+	KeyIssuedForKindProvider     = "provider"
+	KeyIssuedForKindOrganization = "organization"
+)
+
 type CreateAccessKeyRequest struct {
-	UserID            uid.ID   `json:"userID"`
+	IssuedForID       uid.ID   `json:"issuedForID"`
+	IssuedForKind     string   `json:"issuedForKind"`
 	Name              string   `json:"name"`
 	Expiry            Duration `json:"expiry" note:"maximum time valid"`
 	InactivityTimeout Duration `json:"inactivityTimeout" note:"key must be used within this duration to remain valid"`
@@ -41,7 +49,9 @@ type CreateAccessKeyRequest struct {
 func (r CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		ValidateName(r.Name),
-		validate.Required("userID", r.UserID),
+		validate.Required("issuedForID", r.IssuedForID),
+		validate.Required("issuedForKind", r.IssuedForKind),
+		validate.Enum("issuedForKind", r.IssuedForKind, []string{KeyIssuedForKindUser, KeyIssuedForKindProvider, KeyIssuedForKindOrganization}),
 		validate.Required("expiry", r.Expiry),
 		validate.Required("inactivityTimeout", r.InactivityTimeout),
 	}
@@ -51,7 +61,8 @@ type CreateAccessKeyResponse struct {
 	ID                uid.ID `json:"id"`
 	Created           Time   `json:"created"`
 	Name              string `json:"name"`
-	IssuedFor         uid.ID `json:"issuedFor"`
+	IssuedForID       uid.ID `json:"issuedForID"`
+	IssuedForKind     string `json:"issuedForKind"`
 	ProviderID        uid.ID `json:"providerID"`
 	Expires           Time   `json:"expires" note:"after this deadline the key is no longer valid"`
 	InactivityTimeout Time   `json:"inactivityTimeout" note:"the key must be used by this time to remain valid"`

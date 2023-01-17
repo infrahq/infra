@@ -31,10 +31,13 @@
             "format": "date-time",
             "type": "string"
           },
-          "issuedFor": {
+          "issuedForID": {
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "issuedForKind": {
             "type": "string"
           },
           "name": {
@@ -456,11 +459,16 @@
                   "format": "date-time",
                   "type": "string"
                 },
-                "issuedFor": {
-                  "description": "ID of the user the key was issued to",
+                "issuedForID": {
+                  "description": "ID of the entity the key was issued to",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "issuedForKind": {
+                  "description": "the kind entity the key was issued for (eg: user, organization, or provider)",
+                  "example": "user",
                   "type": "string"
                 },
                 "issuedForName": {
@@ -1861,21 +1869,30 @@
                     "format": "duration",
                     "type": "string"
                   },
+                  "issuedForID": {
+                    "example": "4yJ3n3D8E2",
+                    "format": "uid",
+                    "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                    "type": "string"
+                  },
+                  "issuedForKind": {
+                    "enum": [
+                      "user",
+                      "provider",
+                      "organization"
+                    ],
+                    "type": "string"
+                  },
                   "name": {
                     "format": "[a-zA-Z0-9\\-_.]",
                     "maxLength": 256,
                     "minLength": 2,
                     "type": "string"
-                  },
-                  "userID": {
-                    "example": "4yJ3n3D8E2",
-                    "format": "uid",
-                    "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
-                    "type": "string"
                   }
                 },
                 "required": [
-                  "userID",
+                  "issuedForID",
+                  "issuedForKind",
                   "expiry",
                   "inactivityTimeout"
                 ],
