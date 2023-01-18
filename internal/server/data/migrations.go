@@ -87,6 +87,7 @@ func migrations() []*migrator.Migration {
 		addUserPublicKeyUserIDIndex(),
 		addGrantsSubjectID(),
 		removeSettingsPasswordPolicy(),
+		removeTriggersAndFunctions(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1254,6 +1255,35 @@ func removeSettingsPasswordPolicy() *migrator.Migration {
 					DROP COLUMN IF EXISTS uppercase_min,
 					DROP COLUMN IF EXISTS number_min,
 					DROP COLUMN IF EXISTS symbol_min;`)
+			return err
+		},
+	}
+}
+func sqlFunctionsMigration() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-22T14:58:00Z",
+		Migrate: func(tx migrator.DB) error {
+			// The use of these functions was removed
+			return nil
+		},
+	}
+}
+
+func removeTriggersAndFunctions() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2023-01-18T13:18",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+				DROP TRIGGER IF EXISTS credreq_notify_insert_trigger ON destination_credentials;
+				DROP TRIGGER IF EXISTS credreq_notify_update_trigger ON destination_credentials;
+				DROP TRIGGER IF EXISTS grants_notify_trigger ON grants;
+				DROP FUNCTION IF EXISTS destination_credential_insert_notify;
+				DROP FUNCTION IF EXISTS destination_credential_update_notify;
+				DROP FUNCTION IF EXISTS grants_notify;
+				DROP FUNCTION IF EXISTS uidinttostr;
+				DROP FUNCTION IF EXISTS uidstrtoint;
+`
+			_, err := tx.Exec(stmt)
 			return err
 		},
 	}

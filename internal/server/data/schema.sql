@@ -4,108 +4,12 @@
 --     go test -run TestMigrations ./internal/server/data -update
 --
 
-CREATE FUNCTION destination_credential_insert_notify() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-				BEGIN
-					-- on insert, we notify connector listeners for this destination
-					PERFORM pg_notify(current_schema() || '.credreq_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.destination_id), NEW.id::TEXT);
-					RETURN NULL;
-				END; $$;
-
-CREATE FUNCTION destination_credential_update_notify() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-				BEGIN
-					-- on update, we notify user listeners for this specific id, waiting to login
-					PERFORM pg_notify(current_schema() || '.credans_' || uidinttostr(NEW.organization_id) || '_' || uidinttostr(NEW.id), NEW.id::TEXT);
-					RETURN NULL;
-				END; $$;
-
-CREATE FUNCTION grants_notify() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-PERFORM pg_notify(current_schema() || '.grants_' || NEW.organization_id, row_to_json(NEW)::text);
-RETURN NULL;
-END; $$;
-
 CREATE FUNCTION listen_on_chan(chan text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
     EXECUTE format('LISTEN %I', current_schema() || '.' || chan);
 END; $$;
-
-CREATE FUNCTION uidinttostr(id bigint) RETURNS text
-    LANGUAGE plpgsql
-    AS $$
-			DECLARE
-			encodebase58map CONSTANT TEXT := '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
-			base_count 			BIGINT DEFAULT 0;
-				encoded    			TEXT DEFAULT '';
-				divisor    			BIGINT;
-				mod        			BIGINT DEFAULT 0;
-			
-			BEGIN
-				IF id <= 0 THEN
-					RETURN '';
-				END IF;
-
-				IF id < 58 THEN
-					RETURN SUBSTRING(encodeBase58Map FROM id FOR 1);
-				END IF;
-
-				WHILE id > 0 LOOP
-					divisor := id / 58;
-					mod := (id - (58 * divisor));
-					encoded = CONCAT(SUBSTRING(encodeBase58Map FROM CAST(mod+1 as int) FOR 1), encoded);
-					id = id / 58;
-				END LOOP;
-			
-				RETURN encoded;
-			
-			END; $$;
-
-CREATE FUNCTION uidstrtoint(encoded text) RETURNS bigint
-    LANGUAGE plpgsql
-    AS $$
-			DECLARE
-				encodebase58map CONSTANT TEXT := '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
-				base_count 			BIGINT := 0;
-				result    			BIGINT := 0;
-				i    						INT := 1;
-				pos        			BIGINT := 0;
-				MAX_SIGNED_INT CONSTANT BIGINT := 9223372036854775807;
-			
-			BEGIN
-				WHILE (SUBSTRING(encoded FROM 1 FOR 1) = '1') LOOP
-					encoded = SUBSTRING(encoded FROM 2 FOR LENGTH(encoded)-1);
-				END LOOP;
-
-				IF LENGTH(encoded) > 11 THEN
-					RAISE EXCEPTION 'invalid base58: too long';
-				END IF;
-
-				WHILE (i <= LENGTH(encoded)) LOOP
-				  IF (result > MAX_SIGNED_INT/58) THEN 
-						RAISE EXCEPTION 'invalid base58: value too large: %', encoded;
-					END IF;
-					result = result * 58;
-					pos := POSITION(SUBSTRING(encoded FROM i FOR 1) in encodeBase58Map);
-					IF (pos <= 0) THEN
-						RAISE EXCEPTION 'invalid base58: byte % is out of range', i-1;
-					END IF;
-					IF (MAX_SIGNED_INT - (pos - 1) < result) THEN
-						RAISE EXCEPTION 'invalid base58: value too large: %', encoded;
-					END IF;
-					result = result + (pos-1);
-					i = i + 1;
-				END LOOP;
-
-				RETURN result;
-			
-			END; $$;
 
 CREATE TABLE access_keys (
     id bigint NOT NULL,
@@ -404,9 +308,3 @@ CREATE INDEX idx_user_public_keys_user_id ON user_public_keys USING btree (user_
 CREATE UNIQUE INDEX idx_user_ssh_login_name ON identities USING btree (organization_id, ssh_login_name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);
-
-CREATE TRIGGER credreq_notify_insert_trigger AFTER INSERT ON destination_credentials FOR EACH ROW EXECUTE FUNCTION destination_credential_insert_notify();
-
-CREATE TRIGGER credreq_notify_update_trigger AFTER UPDATE ON destination_credentials FOR EACH ROW EXECUTE FUNCTION destination_credential_update_notify();
-
-CREATE TRIGGER grants_notify_trigger AFTER INSERT OR UPDATE ON grants FOR EACH ROW EXECUTE FUNCTION grants_notify();
