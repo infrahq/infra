@@ -141,12 +141,6 @@ type ListResponse[T any] struct {
 	LastUpdateIndex `json:"-"`
 }
 
-func (r ListResponse[T]) SetHeaders(h http.Header) {
-	if r.LastUpdateIndex.Index > 0 {
-		h.Set("Last-Update-Index", strconv.FormatInt(r.LastUpdateIndex.Index, 10))
-	}
-}
-
 func NewListResponse[T, M any](items []M, pr PaginationResponse, fn func(item M) T) *ListResponse[T] {
 	result := &ListResponse[T]{
 		Items:              make([]T, 0, len(items)),
@@ -172,6 +166,12 @@ func (l *LastUpdateIndex) setValuesFromHeader(header http.Header) error {
 		return err
 	}
 	return nil
+}
+
+func (l LastUpdateIndex) SetHeaders(h http.Header) {
+	if l.Index > 0 {
+		h.Set("Last-Update-Index", strconv.FormatInt(l.Index, 10))
+	}
 }
 
 // CopyListResponse makes a copy of old, and translates the items from old type
