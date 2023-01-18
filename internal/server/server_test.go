@@ -278,7 +278,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		u := httpSrv.URL + tc.path
-		req, err := http.NewRequest(http.MethodGet, u, nil)
+		req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, u, nil)
 		assert.NilError(t, err)
 
 		if tc.setup != nil {
