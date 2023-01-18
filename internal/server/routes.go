@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"path"
@@ -12,6 +13,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -395,16 +397,24 @@ func del[Req any, Res any](a *API, r *routeGroup, path string, handler HandlerFu
 }
 
 func readRequest(c *gin.Context, req interface{}) error {
-	if err := c.ShouldBindUri(req); err != nil {
-		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	if len(c.Params) > 0 {
+		params := make(map[string][]string)
+		for _, v := range c.Params {
+			params[v.Key] = []string{v.Value}
+		}
+		if err := binding.Uri.BindUri(params, req); err != nil {
+			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+		}
 	}
 
-	if err := c.ShouldBindQuery(req); err != nil {
-		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	if len(c.Request.URL.Query()) > 0 {
+		if err := binding.Query.Bind(c.Request, req); err != nil {
+			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+		}
 	}
 
 	if c.Request.Body != nil && c.Request.ContentLength > 0 {
-		if err := c.ShouldBindJSON(req); err != nil {
+		if err := json.NewDecoder(c.Request.Body).Decode(req); err != nil {
 			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 		}
 	}

@@ -110,7 +110,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		}
 	}
 
-	if err := a.setProviderInfoFromServer(c, provider); err != nil {
+	if err := a.setProviderInfoFromServer(rCtx.Request.Context(), provider); err != nil {
 		return nil, err
 	}
 
@@ -163,7 +163,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 	}
 	provider.Kind = kind
 
-	if err := a.setProviderInfoFromServer(c, provider); err != nil {
+	if err := a.setProviderInfoFromServer(c.Request.Context(), provider); err != nil {
 		return nil, err
 	}
 
@@ -179,19 +179,19 @@ func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyRespons
 }
 
 // setProviderInfoFromServer checks information provided by an OIDC server
-func (a *API) setProviderInfoFromServer(c *gin.Context, provider *models.Provider) error {
+func (a *API) setProviderInfoFromServer(ctx context.Context, provider *models.Provider) error {
 	// create a provider client to validate the server and get its info
-	oidc, err := a.server.providerClient(c, provider, "")
+	oidc, err := a.server.providerClient(ctx, provider, "")
 	if err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
 
-	err = oidc.Validate(c)
+	err = oidc.Validate(ctx)
 	if err != nil {
 		return err
 	}
 
-	authServerInfo, err := oidc.AuthServerInfo(c)
+	authServerInfo, err := oidc.AuthServerInfo(ctx)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err)
