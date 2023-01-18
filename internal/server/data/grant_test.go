@@ -730,7 +730,7 @@ func TestGrantsMaxUpdateIndex(t *testing.T) {
 	})
 }
 
-func TestListenForGrantsNotify(t *testing.T) {
+func TestListenForNotify(t *testing.T) {
 	type operation struct {
 		name        string
 		run         func(t *testing.T, tx WriteTxn)
@@ -805,7 +805,7 @@ func TestListenForGrantsNotify(t *testing.T) {
 
 		testcases := []testCase{
 			{
-				name: "by destination",
+				name: "grants by destination",
 				opts: ListenChannelGrantsByDestination{
 					DestinationID: dest.ID,
 					OrgID:         mainOrg.ID,
