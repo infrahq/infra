@@ -14,6 +14,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// TODO: move to test case in TestListenForNotify
 func TestCreateDestinationCredentialPgNotifyRequest(t *testing.T) {
 	db := setupDB(t)
 
@@ -73,6 +74,7 @@ func TestCreateDestinationCredentialPgNotifyRequest(t *testing.T) {
 	}
 }
 
+// TODO: move to test case in TestListenForNotify
 func TestAnswerDestinationCredentialPgNotifyResponse(t *testing.T) {
 	db := setupDB(t)
 

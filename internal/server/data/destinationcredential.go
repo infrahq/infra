@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
@@ -33,7 +34,9 @@ func CreateDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) 
 		return handleError(err)
 	}
 
-	return nil
+	stmt := `SELECT pg_notify(current_schema() || '.destCredReq.' || ?, '')`
+	_, err = tx.Exec(stmt, fmt.Sprintf("%v.%v", tx.OrganizationID(), cr.DestinationID))
+	return err
 }
 
 func AnswerDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) error {
@@ -50,7 +53,9 @@ func AnswerDestinationCredential(tx WriteTxn, cr *models.DestinationCredential) 
 		return handleError(err)
 	}
 
-	return nil
+	stmt := `SELECT pg_notify(current_schema() || '.destCredResp.' || ?, '')`
+	_, err = tx.Exec(stmt, fmt.Sprintf("%v.%v", tx.OrganizationID(), cr.ID))
+	return err
 }
 
 func ListDestinationCredentials(tx ReadTxn, destinationID uid.ID) ([]models.DestinationCredential, error) {
