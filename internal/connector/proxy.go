@@ -6,34 +6,49 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 	"sync"
+	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/metrics"
 )
 
 func proxyMiddleware(
 	proxy *httputil.ReverseProxy,
 	authn *authenticator,
 	bearerToken string,
-) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		claim, err := authn.Authenticate(c.Request)
+) func(resp http.ResponseWriter, req *http.Request) {
+	return func(resp http.ResponseWriter, req *http.Request) {
+		start := time.Now()
+		status := http.StatusOK
+		defer func() {
+			metrics.RequestDuration.With(prometheus.Labels{
+				"host":   req.Host,
+				"method": req.Method,
+				"path":   "proxy",
+				"status": strconv.Itoa(status),
+			}).Observe(time.Since(start).Seconds())
+		}()
+
+		claim, err := authn.Authenticate(req)
 		if err != nil {
 			logging.L.Info().Err(err).Msgf("failed to authenticate request")
-			c.AbortWithStatus(http.StatusUnauthorized)
+			resp.WriteHeader(http.StatusUnauthorized)
+			status = http.StatusUnauthorized
 			return
 		}
 
-		c.Request.Header.Set("Impersonate-User", claim.Name)
+		req.Header.Set("Impersonate-User", claim.Name)
 		for _, g := range claim.Groups {
-			c.Request.Header.Add("Impersonate-Group", g)
+			req.Header.Add("Impersonate-Group", g)
 		}
 
-		c.Request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
-		proxy.ServeHTTP(c.Writer, c.Request)
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
+		proxy.ServeHTTP(resp, req)
 	}
 }
 
