@@ -55,14 +55,19 @@ func ListGrants(rCtx RequestContext, opts data.ListGrantsOptions, lastUpdateInde
 		return ListGrantsResponse{Grants: result}, err
 	}
 
+	dest, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByName: opts.ByDestination})
+	if err != nil {
+		return ListGrantsResponse{}, err
+	}
+
 	// Close the request scoped txn to avoid long-running transactions.
 	if err := rCtx.DBTxn.Rollback(); err != nil {
 		return ListGrantsResponse{}, err
 	}
 
 	listenOpts := data.ListenChannelGrantsByDestination{
-		Destination: opts.ByDestination,
-		OrgID:       rCtx.DBTxn.OrganizationID(),
+		DestinationID: dest.ID,
+		OrgID:         rCtx.DBTxn.OrganizationID(),
 	}
 	listener, err := data.ListenForNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 	if err != nil {

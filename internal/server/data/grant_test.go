@@ -82,10 +82,13 @@ func TestCreateGrant(t *testing.T) {
 			assert.NilError(t, err)
 		})
 		t.Run("notify", func(t *testing.T) {
+			dest := &models.Destination{Name: "match", Kind: "other"}
+			createDestinations(t, db, dest)
+
 			ctx := context.Background()
 			listener, err := ListenForNotify(ctx, db, ListenChannelGrantsByDestination{
-				Destination: "match",
-				OrgID:       defaultOrganizationID,
+				DestinationID: dest.ID,
+				OrgID:         defaultOrganizationID,
 			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
@@ -102,7 +105,7 @@ func TestCreateGrant(t *testing.T) {
 			assert.NilError(t, err)
 			assert.NilError(t, tx.Commit())
 
-			ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
 			err = listener.WaitForNotification(ctx)
 			assert.NilError(t, err)
@@ -209,10 +212,13 @@ func TestDeleteGrants(t *testing.T) {
 			}
 			assert.NilError(t, CreateGrant(db, &g))
 
+			dest := &models.Destination{Name: "match", Kind: "other"}
+			createDestinations(t, db, dest)
+
 			ctx := context.Background()
 			listener, err := ListenForNotify(ctx, db, ListenChannelGrantsByDestination{
-				Destination: "match",
-				OrgID:       defaultOrganizationID,
+				DestinationID: dest.ID,
+				OrgID:         defaultOrganizationID,
 			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
@@ -224,7 +230,7 @@ func TestDeleteGrants(t *testing.T) {
 			assert.NilError(t, err)
 			assert.NilError(t, tx.Commit())
 
-			ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
 			t.Cleanup(cancel)
 
 			err = listener.WaitForNotification(ctx)
@@ -238,6 +244,10 @@ func TestUpdateGrants(t *testing.T) {
 		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
 		assert.NilError(t, CreateOrganization(db, otherOrg))
 
+		dest1 := &models.Destination{Name: "foo", Kind: "ssh"}
+		dest2 := &models.Destination{Name: "foo2", Kind: "ssh"}
+		createDestinations(t, db, dest1, dest2)
+
 		ctx, cancel := context.WithCancel(context.Background())
 		t.Cleanup(cancel)
 
@@ -245,8 +255,8 @@ func TestUpdateGrants(t *testing.T) {
 
 		t.Run("success add", func(t *testing.T) {
 			listener, err := ListenForNotify(ctx, db, ListenChannelGrantsByDestination{
-				OrgID:       db.DefaultOrg.ID,
-				Destination: "foo",
+				OrgID:         db.DefaultOrg.ID,
+				DestinationID: dest1.ID,
 			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
@@ -313,8 +323,8 @@ func TestUpdateGrants(t *testing.T) {
 		})
 		t.Run("success delete", func(t *testing.T) {
 			listener, err := ListenForNotify(ctx, db, ListenChannelGrantsByDestination{
-				OrgID:       db.DefaultOrg.ID,
-				Destination: "foo2",
+				OrgID:         db.DefaultOrg.ID,
+				DestinationID: dest2.ID,
 			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
@@ -742,6 +752,13 @@ func TestListenForGrantsNotify(t *testing.T) {
 		otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
 		assert.NilError(t, CreateOrganization(db, otherOrg))
 
+		dest := &models.Destination{
+			Name:               "mydest",
+			Kind:               "ssh",
+			OrganizationMember: models.OrganizationMember{OrganizationID: mainOrg.ID},
+		}
+		createDestinations(t, db, dest)
+
 		run := func(t *testing.T, tc testCase) {
 			listener, err := ListenForNotify(ctx, db, tc.opts)
 			assert.NilError(t, err)
@@ -790,8 +807,8 @@ func TestListenForGrantsNotify(t *testing.T) {
 			{
 				name: "by destination",
 				opts: ListenChannelGrantsByDestination{
-					Destination: "mydest",
-					OrgID:       mainOrg.ID,
+					DestinationID: dest.ID,
+					OrgID:         mainOrg.ID,
 				},
 				ops: []operation{
 					{
@@ -832,10 +849,8 @@ func TestListenForGrantsNotify(t *testing.T) {
 					{
 						name: "different org",
 						run: func(t *testing.T, tx WriteTxn) {
+							tx = tx.(*Transaction).WithOrgID(otherOrg.ID) // nolint
 							err := CreateGrant(tx, &models.Grant{
-								OrganizationMember: models.OrganizationMember{
-									OrganizationID: otherOrg.ID,
-								},
 								Subject:   models.NewSubjectForUser(1999),
 								Resource:  "mydest",
 								Privilege: "admin",
