@@ -3,10 +3,12 @@ package data
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"golang.org/x/exp/maps"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
@@ -63,7 +65,8 @@ func CreateGrant(tx WriteTxn, grant *models.Grant) error {
 		return handleError(err)
 	}
 	_, _ = tx.Exec("RELEASE SAVEPOINT beforeCreate")
-	return nil
+
+	return notifyGrantsChanged(tx, grant)
 }
 
 func isPgErrorCode(err error, code string) bool {
@@ -236,13 +239,6 @@ func GrantsMaxUpdateIndex(tx ReadTxn, opts GrantsMaxUpdateIndexOptions) (int64, 
 	return *result, err
 }
 
-// grantJSON is used to decode the JSON payload from a channel notification.
-// models.Grant does not work because it expects to decode uid.ID from a string
-// not a number.
-type grantJSON struct {
-	Resource string
-}
-
 type DeleteGrantsOptions struct {
 	// ByID instructs DeleteGrants to delete the grant with this ID. When set
 	// all other fields on this struct are ignored.
@@ -277,8 +273,22 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 		return fmt.Errorf("DeleteGrants requires an ID to delete")
 	}
 
-	_, err := tx.Exec(query.String(), query.Args...)
-	return err
+	query.B("RETURNING")
+	query.B(columnsForSelect(grantsTable{}))
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return err
+	}
+
+	grants, err := scanRows(rows, func(g **models.Grant) []any {
+		*g = &models.Grant{}
+		return (*grantsTable)(*g).ScanFields()
+	})
+	if err != nil {
+		return err
+	}
+	return notifyGrantsChanged(tx, grants...)
 }
 
 func UpdateGrants(tx WriteTxn, addGrants, rmGrants []*models.Grant) error {
@@ -299,8 +309,45 @@ func UpdateGrants(tx WriteTxn, addGrants, rmGrants []*models.Grant) error {
 		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeUpdate")
 		return handleError(err)
 	}
-
 	_, _ = tx.Exec("RELEASE SAVEPOINT beforeUpdate")
+
+	all := make([]*models.Grant, 0, len(addGrants)+len(rmGrants))
+	all = append(all, addGrants...)
+	all = append(all, rmGrants...)
+	return notifyGrantsChanged(tx, all...)
+}
+
+func notifyGrantsChanged(tx WriteTxn, all ...*models.Grant) error {
+	destinations := make(map[string]struct{})
+	for _, grant := range all {
+		name, _, _ := strings.Cut(grant.Resource, ".")
+		destinations[name] = struct{}{}
+	}
+
+	query := querybuilder.New(`SELECT id from destinations`)
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+	query.B("AND name IN")
+	queryInClause(query, maps.Keys(destinations))
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return err
+	}
+
+	ids, err := scanRows(rows, func(p *uid.ID) []any {
+		return []any{p}
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, id := range ids {
+		stmt := `SELECT pg_notify(current_schema() || '.grantsByDest.' || ?, '')`
+		_, err = tx.Exec(stmt, fmt.Sprintf("%v.%v", tx.OrganizationID(), id))
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

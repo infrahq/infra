@@ -103,6 +103,9 @@ func TestAPI_ListGrants(t *testing.T) {
 	admin, err := data.GetIdentity(srv.DB(), data.GetIdentityOptions{ByName: "admin@example.com"})
 	assert.NilError(t, err)
 
+	err = data.CreateDestination(srv.DB(), &models.Destination{Name: "res1", Kind: "ssh"})
+	assert.NilError(t, err)
+
 	otherOrg := createOtherOrg(t, srv.db)
 
 	type testCase struct {
@@ -745,7 +748,10 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withShortRequestTimeout)
 	routes := srv.GenerateRoutes()
 
-	urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+	err := data.CreateDestination(srv.db, &models.Destination{Name: "special", Kind: "ssh"})
+	assert.NilError(t, err)
+
+	urlPath := "/api/grants?destination=special&lastUpdateIndex=10001"
 	req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", apiVersionLatest)
@@ -773,7 +779,10 @@ func TestAPI_ListGrants_ExtendedRequestTimeout_CancelledByClient(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withShortRequestTimeout)
 	routes := srv.GenerateRoutes()
 
-	urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+	err := data.CreateDestination(srv.db, &models.Destination{Name: "special", Kind: "ssh"})
+	assert.NilError(t, err)
+
+	urlPath := "/api/grants?destination=special&lastUpdateIndex=10001"
 	req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", apiVersionLatest)
@@ -814,10 +823,13 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
+	err := data.CreateDestination(srv.db, &models.Destination{Name: "special", Kind: "ssh"})
+	assert.NilError(t, err)
+
 	g := errgroup.Group{}
 	respCh := make(chan *httptest.ResponseRecorder)
 	g.Go(func() error {
-		urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+		urlPath := "/api/grants?destination=special&lastUpdateIndex=10001"
 		req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", apiVersionLatest)
@@ -831,7 +843,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 	isBlocked(t, respCh)
 
 	// unrelated grant
-	err := data.CreateGrant(srv.db, &models.Grant{
+	err = data.CreateGrant(srv.db, &models.Grant{
 		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "somethingelse",
@@ -843,7 +855,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 	err = data.CreateGrant(srv.db, &models.Grant{
 		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
-		Resource:  "infra",
+		Resource:  "special",
 	})
 	assert.NilError(t, err)
 
@@ -854,7 +866,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 	respBody := &api.ListResponse[api.Grant]{}
 	assert.NilError(t, json.NewDecoder(resp.Body).Decode(respBody))
 
-	assert.Equal(t, len(respBody.Items), 2)
+	assert.Equal(t, len(respBody.Items), 1)
 }
 
 func isBlocked[T any](t *testing.T, ch chan T) {
@@ -886,6 +898,9 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
+	err := data.CreateDestination(srv.db, &models.Destination{Name: "deferred", Kind: "ssh"})
+	assert.NilError(t, err)
+
 	g := errgroup.Group{}
 	respCh := make(chan *httptest.ResponseRecorder)
 	g.Go(func() error {
@@ -903,7 +918,7 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 	isBlocked(t, respCh)
 
 	// unrelated grant
-	err := data.CreateGrant(srv.db, &models.Grant{
+	err = data.CreateGrant(srv.db, &models.Grant{
 		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "somethingelse",

@@ -3,10 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/jackc/pgx/v4"
 	pgxstdlib "github.com/jackc/pgx/v4/stdlib"
@@ -18,36 +15,14 @@ import (
 type Listener struct {
 	sqlDB   *sql.DB
 	pgxConn *pgx.Conn
-
-	isMatchingNotify func(payload string) error
 }
-
-var errNotificationNoMatch = fmt.Errorf("notification did not match")
 
 // WaitForNotification blocks until the listener receivers a notification on
 // one of the channels, or until the context is cancelled.
 // Returns the notification on success, or an error on failure or timeout.
 func (l *Listener) WaitForNotification(ctx context.Context) error {
-	for {
-		notficaition, err := l.pgxConn.WaitForNotification(ctx)
-		if err != nil {
-			return err
-		}
-
-		if l.isMatchingNotify == nil {
-			return nil
-		}
-
-		err = l.isMatchingNotify(notficaition.Payload)
-		switch {
-		case errors.Is(err, errNotificationNoMatch):
-			continue
-		case err != nil:
-			return err
-		default:
-			return nil
-		}
-	}
+	_, err := l.pgxConn.WaitForNotification(ctx)
+	return err
 }
 
 func (l *Listener) Release(ctx context.Context) error {
@@ -107,37 +82,17 @@ func ListenForNotify(ctx context.Context, db *DB, descriptors ...ListenChannelDe
 			}
 			return nil, err
 		}
-
-		// FIXME: this won't work now that we support multiple channels
-		if matcher, ok := descriptor.(interface {
-			Match(payload string) error
-		}); ok {
-			listener.isMatchingNotify = matcher.Match
-		}
 	}
 	return listener, nil
 }
 
 type ListenChannelGrantsByDestination struct {
-	OrgID       uid.ID
-	Destination string
+	OrgID         uid.ID
+	DestinationID uid.ID
 }
 
 func (l ListenChannelGrantsByDestination) Channel() string {
-	return fmt.Sprintf("grants_%d", l.OrgID)
-}
-
-func (l ListenChannelGrantsByDestination) Match(payload string) error {
-	var grant grantJSON
-	err := json.Unmarshal([]byte(payload), &grant)
-	if err != nil {
-		return err
-	}
-	destination, _, _ := strings.Cut(grant.Resource, ".")
-	if destination != l.Destination {
-		return errNotificationNoMatch
-	}
-	return nil
+	return fmt.Sprintf("grantsByDest.%v.%v", l.OrgID, l.DestinationID)
 }
 
 type ListenChannelDestinationCredentialsByDestinationID struct {
