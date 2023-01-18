@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/uid"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 const ResourceInfraAPI = "infra"
@@ -80,7 +80,7 @@ func IsAuthorized(rCtx RequestContext, requiredRole ...string) error {
 
 	grants, err := data.ListGrants(rCtx.DBTxn, data.ListGrantsOptions{
 		Pagination:                 &data.Pagination{Limit: 1},
-		BySubject:                  uid.NewIdentityPolymorphicID(user.ID),
+		BySubject:                  models.NewSubjectForUser(user.ID),
 		ByPrivileges:               requiredRole,
 		ByResource:                 ResourceInfraAPI,
 		IncludeInheritedFromGroups: true,

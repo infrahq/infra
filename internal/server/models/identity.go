@@ -54,11 +54,6 @@ func (i *Identity) ToAPI() *api.User {
 	return u
 }
 
-// PolyID is a polymorphic name that points to both a model type and an ID
-func (i *Identity) PolyID() uid.PolymorphicID {
-	return uid.NewIdentityPolymorphicID(i.ID)
-}
-
 type UserPublicKey struct {
 	Model
 	UserID    uid.ID

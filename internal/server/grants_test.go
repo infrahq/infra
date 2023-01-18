@@ -606,12 +606,12 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	err := data.CreateGrant(srv.DB(), &models.Grant{
 		Resource:  "infra",
 		Privilege: "view",
-		Subject:   uid.NewIdentityPolymorphicID(idInGroup),
+		Subject:   models.NewSubjectForUser(idInGroup),
 	})
 	assert.NilError(t, err)
 
 	err = data.CreateGrant(srv.DB(), &models.Grant{
-		Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+		Subject:   models.NewSubjectForGroup(zoologistsID),
 		Privilege: "examine",
 		Resource:  "butterflies",
 	})
@@ -832,7 +832,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 
 	// unrelated grant
 	err := data.CreateGrant(srv.db, &models.Grant{
-		Subject:   "i:abcd",
+		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "somethingelse",
 	})
@@ -841,7 +841,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 
 	// matching grant
 	err = data.CreateGrant(srv.db, &models.Grant{
-		Subject:   "i:abcd",
+		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "infra",
 	})
@@ -904,7 +904,7 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 
 	// unrelated grant
 	err := data.CreateGrant(srv.db, &models.Grant{
-		Subject:   "i:abcd",
+		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "somethingelse",
 	})
@@ -913,7 +913,7 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 
 	// matching grant
 	err = data.CreateGrant(srv.db, &models.Grant{
-		Subject:   "i:abcd",
+		Subject:   models.NewSubjectForUser(222242),
 		Privilege: "view",
 		Resource:  "deferred.ns1",
 	})
@@ -961,7 +961,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	supportAdminGrant := models.Grant{
-		Subject:   supportAdmin.PolyID(),
+		Subject:   models.NewSubjectForUser(supportAdmin.ID),
 		Privilege: models.InfraSupportAdminRole,
 		Resource:  "infra",
 	}
@@ -1290,7 +1290,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 	})
 	t.Run("admin for wrong organization", func(t *testing.T) {
 		grant := &models.Grant{
-			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Subject:   models.NewSubjectForUser(user.ID),
 			Privilege: models.InfraViewRole,
 			Resource:  "something",
 		}
@@ -1309,7 +1309,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	t.Run("not last infra admin is deleted", func(t *testing.T) {
 		grant2 := &models.Grant{
-			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Subject:   models.NewSubjectForUser(user.ID),
 			Privilege: models.InfraAdminRole,
 			Resource:  "infra",
 		}
@@ -1329,7 +1329,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	t.Run("last infra non-admin is deleted", func(t *testing.T) {
 		grant2 := &models.Grant{
-			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Subject:   models.NewSubjectForUser(user.ID),
 			Privilege: models.InfraViewRole,
 			Resource:  "infra",
 		}
@@ -1349,7 +1349,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	t.Run("last non-infra admin is deleted", func(t *testing.T) {
 		grant2 := &models.Grant{
-			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Subject:   models.NewSubjectForUser(user.ID),
 			Privilege: "admin",
 			Resource:  "example",
 		}
@@ -1557,7 +1557,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 				grantToAdd := models.Grant{
-					Subject:   uid.NewIdentityPolymorphicID(user.ID),
+					Subject:   models.NewSubjectForUser(user.ID),
 					Privilege: models.InfraAdminRole,
 					Resource:  "another-cluster",
 				}
@@ -1590,7 +1590,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 				grantToAdd := models.Grant{
-					Subject:   uid.NewIdentityPolymorphicID(user.ID),
+					Subject:   models.NewSubjectForUser(user.ID),
 					Privilege: models.InfraAdminRole,
 					Resource:  "another-cluster2",
 				}
@@ -1623,7 +1623,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 				grantToAdd := models.Grant{
-					Subject:   uid.NewGroupPolymorphicID(group.ID),
+					Subject:   models.NewSubjectForGroup(group.ID),
 					Privilege: models.InfraAdminRole,
 					Resource:  "another-cluster3",
 				}

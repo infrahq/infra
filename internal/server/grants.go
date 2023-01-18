@@ -23,12 +23,12 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		event.Int64("lastUpdateIndex", r.LastUpdateIndex)
 	})
 
-	var subject uid.PolymorphicID
+	var subject models.Subject
 	switch {
 	case r.User != 0:
-		subject = uid.NewIdentityPolymorphicID(r.User)
+		subject = models.NewSubjectForUser(r.User)
 	case r.Group != 0:
-		subject = uid.NewGroupPolymorphicID(r.Group)
+		subject = models.NewSubjectForGroup(r.Group)
 	}
 
 	var p data.Pagination
@@ -158,7 +158,7 @@ func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.Emp
 }
 
 func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant, error) {
-	var subject uid.PolymorphicID
+	var subject models.Subject
 
 	switch {
 	case r.UserName != "":
@@ -170,7 +170,7 @@ func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant
 			}
 			return nil, err
 		}
-		subject = uid.NewIdentityPolymorphicID(identity.ID)
+		subject = models.NewSubjectForUser(identity.ID)
 	case r.GroupName != "":
 		group, err := access.GetGroup(c, data.GetGroupOptions{ByName: r.GroupName})
 		if err != nil {
@@ -179,15 +179,15 @@ func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant
 			}
 			return nil, err
 		}
-		subject = uid.NewGroupPolymorphicID(group.ID)
+		subject = models.NewSubjectForGroup(group.ID)
 	case r.User != 0:
-		subject = uid.NewIdentityPolymorphicID(r.User)
+		subject = models.NewSubjectForUser(r.User)
 	case r.Group != 0:
-		subject = uid.NewGroupPolymorphicID(r.Group)
+		subject = models.NewSubjectForGroup(r.Group)
 	}
 
 	switch {
-	case subject == "":
+	case subject.ID == 0 || subject.Kind == 0:
 		return nil, fmt.Errorf("%w: must specify userName, user, or group", internal.ErrBadRequest)
 	case r.Resource == "":
 		return nil, fmt.Errorf("%w: must specify resource", internal.ErrBadRequest)

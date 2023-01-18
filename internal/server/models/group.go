@@ -25,7 +25,3 @@ func (g *Group) ToAPI() *api.Group {
 		TotalUsers: g.TotalUsers,
 	}
 }
-
-func (g *Group) PolyID() uid.PolymorphicID {
-	return uid.NewGroupPolymorphicID(g.ID)
-}

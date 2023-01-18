@@ -239,7 +239,7 @@ func TestDeleteGroup(t *testing.T) {
 		createIdentities(t, tx, someone)
 
 		groupGrant := &models.Grant{
-			Subject:   uid.NewGroupPolymorphicID(everyone.ID),
+			Subject:   models.NewSubjectForGroup(everyone.ID),
 			Privilege: "admin",
 			Resource:  "any",
 		}

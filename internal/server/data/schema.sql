@@ -193,12 +193,13 @@ CREATE TABLE grants (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
-    subject text,
     privilege text,
     resource text,
     created_by bigint,
     organization_id bigint,
-    update_index bigint
+    update_index bigint,
+    subject_id bigint NOT NULL,
+    subject_kind smallint NOT NULL
 );
 
 CREATE TABLE groups (
@@ -383,7 +384,7 @@ CREATE UNIQUE INDEX idx_emails_providers_identities ON provider_users USING btre
 
 CREATE UNIQUE INDEX idx_encryption_keys_key_id ON encryption_keys USING btree (key_id);
 
-CREATE UNIQUE INDEX idx_grant_srp ON grants USING btree (organization_id, subject, privilege, resource) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_grants_subject_privilege_resource ON grants USING btree (organization_id, subject_id, privilege, resource) WHERE (deleted_at IS NULL);
 
 CREATE INDEX idx_grants_update_index ON grants USING btree (organization_id, update_index);
 

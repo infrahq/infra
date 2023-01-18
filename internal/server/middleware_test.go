@@ -341,7 +341,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	assert.NilError(t, err)
 
 	grant := models.Grant{
-		Subject:   uid.NewIdentityPolymorphicID(connector.ID),
+		Subject:   models.NewSubjectForUser(connector.ID),
 		Privilege: models.InfraConnectorRole,
 		Resource:  "infra",
 	}

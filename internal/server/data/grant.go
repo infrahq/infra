@@ -20,25 +20,20 @@ func (g grantsTable) Table() string {
 }
 
 func (g grantsTable) Columns() []string {
-	return []string{"created_at", "created_by", "deleted_at", "id", "organization_id", "privilege", "resource", "subject", "updated_at"}
+	return []string{"created_at", "created_by", "deleted_at", "id", "organization_id", "privilege", "resource", "subject_id", "subject_kind", "updated_at"}
 }
 
 func (g grantsTable) Values() []any {
-	return []any{g.CreatedAt, g.CreatedBy, g.DeletedAt, g.ID, g.OrganizationID, g.Privilege, g.Resource, g.Subject, g.UpdatedAt}
+	return []any{g.CreatedAt, g.CreatedBy, g.DeletedAt, g.ID, g.OrganizationID, g.Privilege, g.Resource, g.Subject.ID, g.Subject.Kind, g.UpdatedAt}
 }
 
 func (g *grantsTable) ScanFields() []any {
-	return []any{&g.CreatedAt, &g.CreatedBy, &g.DeletedAt, &g.ID, &g.OrganizationID, &g.Privilege, &g.Resource, &g.Subject, &g.UpdatedAt}
+	return []any{&g.CreatedAt, &g.CreatedBy, &g.DeletedAt, &g.ID, &g.OrganizationID, &g.Privilege, &g.Resource, &g.Subject.ID, &g.Subject.Kind, &g.UpdatedAt}
 }
 
 func CreateGrant(tx WriteTxn, grant *models.Grant) error {
-	switch {
-	case grant.Subject == "":
-		return fmt.Errorf("subject is required")
-	case grant.Privilege == "":
-		return fmt.Errorf("privilege is required")
-	case grant.Resource == "":
-		return fmt.Errorf("resource is required")
+	if err := validateGrant(grant); err != nil {
+		return err
 	}
 
 	if err := grant.OnInsert(); err != nil {
@@ -83,7 +78,7 @@ type GetGrantOptions struct {
 
 	// BySubject instructs GetGrant to return the grant with this subject. Must
 	// be used with ByPrivilege, and ByResource.
-	BySubject uid.PolymorphicID
+	BySubject models.Subject
 	// ByPrivilege instructs GetGrant to return the grant with this privilege. Must
 	// be used with BySubject, and ByResource.
 	ByPrivilege string
@@ -104,8 +99,12 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 	switch {
 	case opts.ByID != 0:
 		query.B("AND id = ?", opts.ByID)
-	case opts.BySubject != "":
-		query.B("AND subject = ?", opts.BySubject)
+	case opts.BySubject.ID != 0:
+		if opts.BySubject.Kind == 0 {
+			return nil, fmt.Errorf("subject kind is required for GetGrant BySubject")
+		}
+		query.B("AND subject_id = ? AND subject_kind = ?",
+			opts.BySubject.ID, opts.BySubject.Kind)
 		query.B("AND privilege = ?", opts.ByPrivilege)
 		query.B("AND resource = ?", opts.ByResource)
 	default:
@@ -121,7 +120,7 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 }
 
 type ListGrantsOptions struct {
-	BySubject     uid.PolymorphicID
+	BySubject     models.Subject
 	ByPrivileges  []string
 	ByResource    string
 	ByDestination string
@@ -150,26 +149,27 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	query.B("WHERE deleted_at is null")
 	query.B("AND organization_id = ?", tx.OrganizationID())
 
-	if opts.BySubject != "" {
-		if !opts.IncludeInheritedFromGroups {
-			query.B("AND subject = ?", opts.BySubject)
-		} else {
-			subjects := []string{opts.BySubject.String()}
+	if opts.BySubject.ID != 0 {
+		if opts.BySubject.Kind == 0 {
+			return nil, fmt.Errorf("subject kind is required for ListGrant BySubject")
+		}
 
-			userID, err := opts.BySubject.ID()
-			if err != nil || !opts.BySubject.IsIdentity() {
+		if !opts.IncludeInheritedFromGroups {
+			query.B("AND subject_id = ? AND subject_kind = ?",
+				opts.BySubject.ID, opts.BySubject.Kind)
+		} else {
+			subjects := []uid.ID{opts.BySubject.ID}
+
+			if opts.BySubject.Kind != models.SubjectKindUser {
 				return nil, fmt.Errorf("IncludeInheritedFromGroups requires a userId subject")
 			}
-			// FIXME: store userID and groupID as a field on the grants table so
-			// that we can replace this with a sub-select or join.
-			groupIDs, err := ListGroupIDsForUser(tx, userID)
+			// TODO: replace this with a sub-select or join.
+			groupIDs, err := ListGroupIDsForUser(tx, opts.BySubject.ID)
 			if err != nil {
 				return nil, err
 			}
-			for _, id := range groupIDs {
-				subjects = append(subjects, uid.NewGroupPolymorphicID(id).String())
-			}
-			query.B(`AND subject IN`)
+			subjects = append(subjects, groupIDs...)
+			query.B(`AND subject_id IN`)
 			queryInClause(query, subjects)
 		}
 	}
@@ -249,7 +249,7 @@ type DeleteGrantsOptions struct {
 	ByID uid.ID
 	// BySubject instructs DeleteGrants to delete all grants that match this
 	// subject. When set other fields below this on this struct are ignored.
-	BySubject uid.PolymorphicID
+	BySubject models.Subject
 	// ByDestination instructs DeleteGrants to delete all grants that match
 	// this destination in their resource, including namespaces.
 	ByDestination string
@@ -265,8 +265,12 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 	switch {
 	case opts.ByID != 0:
 		query.B("AND id = ?", opts.ByID)
-	case opts.BySubject != "":
-		query.B("AND subject = ?", opts.BySubject)
+	case opts.BySubject.ID != 0:
+		if opts.BySubject.Kind == 0 {
+			return fmt.Errorf("subject kind is required for DeleteGrant BySubject")
+		}
+		query.B("AND subject_id = ? AND subject_kind = ?",
+			opts.BySubject.ID, opts.BySubject.Kind)
 	case opts.ByDestination != "":
 		grantsByDestination(query, opts.ByDestination)
 	default:
@@ -302,7 +306,7 @@ func UpdateGrants(tx WriteTxn, addGrants, rmGrants []*models.Grant) error {
 
 func validateGrant(grant *models.Grant) error {
 	switch {
-	case grant.Subject == "":
+	case grant.Subject.Kind == 0 || grant.Subject.ID == 0:
 		return fmt.Errorf("subject is required")
 	case grant.Privilege == "":
 		return fmt.Errorf("privilege is required")
@@ -372,10 +376,10 @@ func deleteGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
 	query.B("id in (")
 
 	for i, g := range grants {
-		query.B("SELECT id FROM grants WHERE ")
-		query.B("subject = ? AND", g.Subject)
-		query.B("resource = ? AND", g.Resource)
-		query.B("privilege = ?", g.Privilege)
+		query.B("SELECT id FROM grants")
+		query.B("WHERE subject_id = ? AND subject_kind = ?", g.Subject.ID, g.Subject.Kind)
+		query.B("AND resource = ?", g.Resource)
+		query.B("AND privilege = ?", g.Privilege)
 		if i+1 != len(grants) {
 			query.B("UNION")
 		}

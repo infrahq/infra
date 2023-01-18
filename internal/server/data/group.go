@@ -153,7 +153,7 @@ func ListGroupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
 }
 
 func DeleteGroup(tx WriteTxn, id uid.ID) error {
-	err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: uid.NewGroupPolymorphicID(id)})
+	err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: models.NewSubjectForGroup(id)})
 	if err != nil {
 		return fmt.Errorf("remove grants: %w", err)
 	}

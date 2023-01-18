@@ -39,13 +39,12 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 	err = HandleAuthErr(err, "grants", "list", roles...)
 	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own grants
-		subjectID, _ := subject.ID() // zero value will never match a user
 		switch {
 		case rCtx.Authenticated.User == nil:
 			return ListGrantsResponse{}, err
-		case subject.IsIdentity() && rCtx.Authenticated.User.ID == subjectID:
+		case subject.Kind == models.SubjectKindUser && rCtx.Authenticated.User.ID == subject.ID:
 			// authorized because the request is for their own grants
-		case subject.IsGroup() && userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, subjectID):
+		case subject.Kind == models.SubjectKindGroup && userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, subject.ID):
 			// authorized because the request is for grants of a group they belong to
 		default:
 			return ListGrantsResponse{}, err

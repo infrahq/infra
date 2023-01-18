@@ -61,7 +61,7 @@ func CreateOrganization(tx WriteTxn, org *models.Organization) error {
 	}
 
 	err := CreateGrant(tx, &models.Grant{
-		Subject:            uid.NewIdentityPolymorphicID(connector.ID),
+		Subject:            models.NewSubjectForUser(connector.ID),
 		Privilege:          models.InfraConnectorRole,
 		Resource:           "infra",
 		CreatedBy:          models.CreatedBySystem,

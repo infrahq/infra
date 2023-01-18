@@ -70,7 +70,7 @@ func TestCreateOrganization(t *testing.T) {
 		assert.DeepEqual(t, connector, expectedConnector, anyValidToken)
 
 		connectorGrant, err := GetGrant(tx, GetGrantOptions{
-			BySubject:   connector.PolyID(),
+			BySubject:   models.NewSubjectForUser(connector.ID),
 			ByPrivilege: models.InfraConnectorRole,
 			ByResource:  "infra",
 		})
@@ -78,7 +78,7 @@ func TestCreateOrganization(t *testing.T) {
 		expectedConnectorGrant := &models.Grant{
 			Model:              connectorGrant.Model,
 			OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-			Subject:            connector.PolyID(),
+			Subject:            models.NewSubjectForUser(connector.ID),
 			Privilege:          models.InfraConnectorRole,
 			Resource:           "infra",
 			CreatedBy:          models.CreatedBySystem,

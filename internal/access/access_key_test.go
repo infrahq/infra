@@ -84,7 +84,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 		err = data.CreateIdentity(db, user)
 		assert.NilError(t, err)
 
-		err = data.CreateGrant(db, &models.Grant{Subject: user.PolyID(), Privilege: "admin", Resource: "infra", OrganizationMember: orgMember})
+		err = data.CreateGrant(db, &models.Grant{Subject: models.NewSubjectForUser(user.ID), Privilege: "admin", Resource: "infra", OrganizationMember: orgMember})
 		assert.NilError(t, err)
 
 		key := &models.AccessKey{Name: "admin key", IssuedFor: user.ID, ExpiresAt: time.Now().Add(1 * time.Minute), OrganizationMember: orgMember}
