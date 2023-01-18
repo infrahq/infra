@@ -238,9 +238,21 @@ func TestUpdateGrants(t *testing.T) {
 		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
 		assert.NilError(t, CreateOrganization(db, otherOrg))
 
+		ctx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+
 		var startUpdateIndex int64 = 10001
 
 		t.Run("success add", func(t *testing.T) {
+			listener, err := ListenForNotify(ctx, db, ListenChannelGrantsByDestination{
+				OrgID:       db.DefaultOrg.ID,
+				Destination: "foo",
+			})
+			assert.NilError(t, err)
+			t.Cleanup(func() {
+				assert.NilError(t, listener.Release(context.Background()))
+			})
+
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			addGrants := []*models.Grant{
@@ -249,7 +261,7 @@ func TestUpdateGrants(t *testing.T) {
 			}
 			rmGrants := []*models.Grant{}
 
-			err := UpdateGrants(tx, addGrants, rmGrants)
+			err = UpdateGrants(tx, addGrants, rmGrants)
 			assert.NilError(t, err)
 			assert.Assert(t, addGrants[0].ID != 0)
 
@@ -292,25 +304,40 @@ func TestUpdateGrants(t *testing.T) {
 			actual, err = ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, actual, expected, cmpModel)
+
+			assert.NilError(t, tx.Commit())
+
+			ctx, cancel = context.WithTimeout(ctx, time.Second)
+			err = listener.WaitForNotification(ctx)
+			assert.NilError(t, err)
 		})
 		t.Run("success delete", func(t *testing.T) {
+			listener, err := ListenForNotify(ctx, db, ListenChannelGrantsByDestination{
+				OrgID:       db.DefaultOrg.ID,
+				Destination: "foo2",
+			})
+			assert.NilError(t, err)
+			t.Cleanup(func() {
+				assert.NilError(t, listener.Release(context.Background()))
+			})
+
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-			grant1 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo"}
-			grant2 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "edit", Resource: "foo"}
-			toKeep := &models.Grant{Subject: models.NewSubjectForUser(6666), Privilege: "view", Resource: "foo"}
+			grant1 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo2"}
+			grant2 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "edit", Resource: "foo2"}
+			toKeep := &models.Grant{Subject: models.NewSubjectForUser(6666), Privilege: "view", Resource: "foo2"}
 			createGrants(t, tx, grant1, grant2, toKeep)
 
-			otherOrgGrant := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo"}
+			otherOrgGrant := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo2"}
 			createGrants(t, tx.WithOrgID(otherOrg.ID), otherOrgGrant)
 
 			addGrants := []*models.Grant{}
 			rmGrants := []*models.Grant{grant1, grant2}
 
-			err := UpdateGrants(tx, addGrants, rmGrants)
+			err = UpdateGrants(tx, addGrants, rmGrants)
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo2"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
@@ -321,32 +348,38 @@ func TestUpdateGrants(t *testing.T) {
 			err = UpdateGrants(tx, addGrants, rmGrants)
 			assert.NilError(t, err)
 
-			actual, err = ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			actual, err = ListGrants(tx, ListGrantsOptions{ByDestination: "foo2"})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 
 			// other org still has the grant
-			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestination: "foo"})
+			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestination: "foo2"})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
+
+			assert.NilError(t, tx.Commit())
+
+			ctx, cancel = context.WithTimeout(ctx, time.Second)
+			err = listener.WaitForNotification(ctx)
+			assert.NilError(t, err)
 		})
 		t.Run("success create and delete", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			addGrants := []*models.Grant{
-				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
-				{Subject: models.NewSubjectForUser(1234567), Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", Resource: "foo3", CreatedBy: uid.ID(1091)},
+				{Subject: models.NewSubjectForUser(1234567), Privilege: "admin", Resource: "foo3", CreatedBy: uid.ID(1091)},
 			}
 			rmGrants := []*models.Grant{
-				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
-				{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo"},
-				{Subject: models.NewSubjectForUser(5555), Privilege: "edit", Resource: "foo"},
+				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", Resource: "foo3", CreatedBy: uid.ID(1091)},
+				{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo3"},
+				{Subject: models.NewSubjectForUser(5555), Privilege: "edit", Resource: "foo3"},
 			}
 
 			err := UpdateGrants(tx, addGrants, rmGrants)
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo3"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{
@@ -358,7 +391,7 @@ func TestUpdateGrants(t *testing.T) {
 					OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
 					Subject:            models.NewSubjectForUser(1234567),
 					Privilege:          "admin",
-					Resource:           "foo",
+					Resource:           "foo3",
 					CreatedBy:          uid.ID(1091),
 					UpdateIndex:        startUpdateIndex + 12,
 				},
