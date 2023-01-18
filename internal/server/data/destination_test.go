@@ -500,3 +500,154 @@ func TestListDestinationAccess(t *testing.T) {
 		assert.DeepEqual(t, actual, expected)
 	})
 }
+
+func TestDestinationAccessMaxUpdateIndex(t *testing.T) {
+	type testStep struct {
+		name     string
+		setup    func(t *testing.T)
+		expected int64
+	}
+
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		otherOrg := &models.Organization{Name: "other", Domain: "other.example.com"}
+		assert.NilError(t, CreateOrganization(tx, otherOrg))
+		createDestinations(t, tx.WithOrgID(otherOrg.ID),
+			&models.Destination{Name: "one", Kind: "kubernetes"})
+
+		dest := &models.Destination{Name: "one", Kind: "kubernetes"}
+		createDestinations(t, tx, dest)
+
+		group1 := &models.Group{Name: "Some"}
+		otherGroup := &models.Group{Name: "Others"}
+		createGroups(t, tx, group1, otherGroup)
+
+		run := func(t *testing.T, tc testStep) {
+			tc.setup(t)
+
+			actual, err := DestinationAccessMaxUpdateIndex(tx, dest.Name)
+			assert.NilError(t, err)
+			assert.Equal(t, actual, tc.expected)
+		}
+
+		var startIndex int64 = 10001
+
+		// these steps are run sequentially
+		testSteps := []testStep{
+			{
+				name:     "no grants exist",
+				setup:    func(t *testing.T) {},
+				expected: 1,
+			},
+			{
+				name: "create user grant",
+				setup: func(t *testing.T) {
+					err := CreateGrant(tx, &models.Grant{
+						Subject:   models.NewSubjectForUser(5252),
+						Privilege: "everything",
+						Resource:  "one.two",
+					})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 1,
+			},
+			{
+				name: "delete user grant",
+				setup: func(t *testing.T) {
+					err := DeleteGrants(tx, DeleteGrantsOptions{
+						BySubject: models.NewSubjectForUser(5252),
+					})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 2,
+			},
+			{
+				name: "create group grant",
+				setup: func(t *testing.T) {
+					err := CreateGrant(tx, &models.Grant{
+						Subject:   models.NewSubjectForGroup(group1.ID),
+						Privilege: "somethings",
+						Resource:  "one",
+					})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 3,
+			},
+			{
+				name: "add user to group",
+				setup: func(t *testing.T) {
+					err := AddUsersToGroup(tx, group1.ID, []uid.ID{6262})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 4,
+			},
+			{
+				name: "remove user from group",
+				setup: func(t *testing.T) {
+					err := RemoveUsersFromGroup(tx, group1.ID, []uid.ID{6262})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 5,
+			},
+			{
+				name: "add user to different group",
+				setup: func(t *testing.T) {
+					err := AddUsersToGroup(tx, otherGroup.ID, []uid.ID{6262})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 5,
+			},
+			{
+				name: "create grant for different destination",
+				setup: func(t *testing.T) {
+					err := CreateGrant(tx, &models.Grant{
+						Subject:   models.NewSubjectForUser(5252),
+						Privilege: "everything",
+						Resource:  "other",
+					})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 5,
+			},
+			{
+				name: "create grant for different org",
+				setup: func(t *testing.T) {
+					err := CreateGrant(tx.WithOrgID(otherOrg.ID), &models.Grant{
+						Subject:   models.NewSubjectForUser(71717),
+						Privilege: "everything",
+						Resource:  "one",
+					})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 5,
+			},
+			{
+				name: "delete group (causes delete grants)",
+				setup: func(t *testing.T) {
+					err := DeleteGroup(tx, group1.ID)
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 10,
+			},
+			{
+				name: "create user grant again",
+				setup: func(t *testing.T) {
+					err := CreateGrant(tx, &models.Grant{
+						Subject:   models.NewSubjectForUser(5252),
+						Privilege: "everything",
+						Resource:  "one.two",
+					})
+					assert.NilError(t, err)
+				},
+				expected: startIndex + 11,
+			},
+		}
+
+		for _, tc := range testSteps {
+			runStep(t, tc.name, func(t *testing.T) {
+				run(t, tc)
+			})
+		}
+	})
+}

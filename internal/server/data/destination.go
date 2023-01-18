@@ -231,6 +231,7 @@ type DestinationAccess struct {
 }
 
 func ListDestinationAccess(tx ReadTxn, destination string) ([]DestinationAccess, error) {
+	// IMPORTANT: changes to this query likely also need to be applied to DestinationAccessMaxUpdateIndex
 	query := querybuilder.New("SELECT")
 	query.B("identities.id, identities.ssh_login_name, grants.privilege, grants.resource")
 	query.B("FROM grants")
@@ -269,4 +270,36 @@ func ListDestinationAccess(tx ReadTxn, destination string) ([]DestinationAccess,
 		return userAccess[i].UserID < userAccess[j].UserID
 	})
 	return userAccess, nil
+}
+
+// DestinationAccessMaxUpdateIndex returns the maximum update_index from all
+// the grants and groups that match the query.
+// This MUST include soft-deleted rows as well, so that deleted rows increase
+// the update index.
+//
+// Returns 1 if no records match the query, so that the caller can block until
+// a record exists.
+//
+// TODO: any way to assert this tx has the right isolation level?
+func DestinationAccessMaxUpdateIndex(tx ReadTxn, destination string) (int64, error) {
+	// IMPORTANT: changes to this query likely also need to be applied to ListDestinationAccess
+	query := querybuilder.New("SELECT max(idx) FROM (")
+	query.B("SELECT max(grants.update_index) as idx FROM grants")
+	query.B("WHERE grants.organization_id = ?", tx.OrganizationID())
+	grantsByDestination(query, destination)
+	query.B("UNION ALL SELECT")
+	query.B("max(groups.membership_update_index) as idx")
+	query.B("FROM grants")
+	query.B("JOIN groups ON grants.subject_id = groups.id")
+	query.B("AND grants.subject_kind = ?", models.SubjectKindGroup)
+	query.B("AND grants.organization_id = ?", tx.OrganizationID())
+	grantsByDestination(query, destination)
+	query.B(") as subq")
+
+	var result *int64
+	err := tx.QueryRow(query.String(), query.Args...).Scan(&result)
+	if err != nil || result == nil {
+		return 1, err
+	}
+	return *result, err
 }
