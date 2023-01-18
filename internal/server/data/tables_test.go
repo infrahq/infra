@@ -25,7 +25,6 @@ var tables = []tabler{
 	passwordResetToken{},
 	providersTable{},
 	providerUserTable{},
-	settingsTable{},
 	userPublicKeysTable{},
 }
 

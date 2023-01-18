@@ -80,7 +80,7 @@ func TestAPI_GetProviderUser(t *testing.T) {
 				user = *(users[1]).ToAPI()
 
 				key := &models.AccessKey{
-					OrganizationMember: s.db.DefaultOrgSettings.OrganizationMember,
+					OrganizationMember: models.OrganizationMember{OrganizationID: s.db.DefaultOrg.ID},
 					IssuedFor:          users[1].IdentityID,
 					IssuedForName:      user.UserName,
 					Name:               fmt.Sprintf("%s-123", user.UserName),
@@ -155,7 +155,7 @@ func TestAPI_ListProviderUsers(t *testing.T) {
 				// setup the users and permissions as needed
 				_, users, routes := createTestSCIMProvider(t, s, "another")
 				key := &models.AccessKey{
-					OrganizationMember: s.db.DefaultOrgSettings.OrganizationMember,
+					OrganizationMember: models.OrganizationMember{OrganizationID: s.db.DefaultOrg.ID},
 					IssuedFor:          users[0].IdentityID,
 					IssuedForName:      "another",
 					Name:               fmt.Sprintf("%s-123", "another"),
@@ -430,7 +430,7 @@ func TestAPI_CreateProviderUser(t *testing.T) {
 				_, users, routes := createTestSCIMProvider(t, s, "some-user-name")
 				user := *(users[1]).ToAPI()
 				key := &models.AccessKey{
-					OrganizationMember: s.db.DefaultOrgSettings.OrganizationMember,
+					OrganizationMember: models.OrganizationMember{OrganizationID: s.db.DefaultOrg.ID},
 					IssuedFor:          users[1].IdentityID,
 					IssuedForName:      user.UserName,
 					Name:               fmt.Sprintf("%s-123", user.UserName),
@@ -633,7 +633,7 @@ func TestAPI_UpdateProviderUser(t *testing.T) {
 				user := users[0]
 
 				key := &models.AccessKey{
-					OrganizationMember: s.db.DefaultOrgSettings.OrganizationMember,
+					OrganizationMember: models.OrganizationMember{OrganizationID: s.db.DefaultOrg.ID},
 					IssuedFor:          user.IdentityID,
 					IssuedForName:      user.Email,
 					Name:               fmt.Sprintf("%s-123", user.Email),
@@ -743,7 +743,7 @@ func TestAPI_PatchProviderUser(t *testing.T) {
 				_, users, routes := createTestSCIMProvider(t, s, "david@example.com")
 				user := users[0]
 				key := &models.AccessKey{
-					OrganizationMember: s.db.DefaultOrgSettings.OrganizationMember,
+					OrganizationMember: models.OrganizationMember{OrganizationID: s.db.DefaultOrg.ID},
 					IssuedFor:          user.IdentityID,
 					IssuedForName:      user.Email,
 					Name:               fmt.Sprintf("%s-123", user.Email),
@@ -813,7 +813,7 @@ func TestAPI_DeleteProviderUser(t *testing.T) {
 				_, users, routes := createTestSCIMProvider(t, s, "david@example.com")
 				user := users[0]
 				key := &models.AccessKey{
-					OrganizationMember: s.db.DefaultOrgSettings.OrganizationMember,
+					OrganizationMember: models.OrganizationMember{OrganizationID: s.db.DefaultOrg.ID},
 					IssuedFor:          user.IdentityID,
 					IssuedForName:      user.Email,
 					Name:               fmt.Sprintf("%s-123", user.Email),
@@ -871,7 +871,7 @@ func createTestSCIMProvider(t *testing.T, s *Server, extraUserNames ...string) (
 	})
 
 	key := &models.AccessKey{
-		OrganizationMember: s.db.DefaultOrgSettings.OrganizationMember,
+		OrganizationMember: models.OrganizationMember{OrganizationID: s.db.DefaultOrg.ID},
 		IssuedFor:          testProvider.ID,
 		IssuedForName:      testProvider.Name,
 		Name:               fmt.Sprintf("%s-123", testProvider.Name),

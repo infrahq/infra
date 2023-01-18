@@ -78,8 +78,6 @@ type DB struct {
 	DB *sql.DB
 
 	DefaultOrg *models.Organization
-	// DefaultOrgSettings are the settings for DefaultOrg
-	DefaultOrgSettings *models.Settings
 }
 
 func (d *DB) Close() error {
@@ -278,10 +276,6 @@ func initialize(db *DB) error {
 	}
 
 	db.DefaultOrg = org
-	db.DefaultOrgSettings, err = getSettingsForOrg(tx, org.ID)
-	if err != nil {
-		return fmt.Errorf("getting settings: %w", err)
-	}
 	return tx.Commit()
 }
 

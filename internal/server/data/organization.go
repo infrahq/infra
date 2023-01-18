@@ -1,8 +1,14 @@
 package data
 
 import (
+	"crypto"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"time"
+
+	"gopkg.in/square/go-jose.v2"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
@@ -16,15 +22,15 @@ func (organizationsTable) Table() string {
 }
 
 func (o organizationsTable) Columns() []string {
-	return []string{"created_at", "created_by", "deleted_at", "domain", "id", "name", "updated_at", "allowed_domains"}
+	return []string{"created_at", "created_by", "deleted_at", "domain", "id", "name", "updated_at", "allowed_domains", "private_jwk", "public_jwk"}
 }
 
 func (o organizationsTable) Values() []any {
-	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID, o.Name, o.UpdatedAt, o.AllowedDomains}
+	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID, o.Name, o.UpdatedAt, o.AllowedDomains, o.PrivateJWK, o.PublicJWK}
 }
 
 func (o *organizationsTable) ScanFields() []any {
-	return []any{&o.CreatedAt, &o.CreatedBy, &o.DeletedAt, &o.Domain, &o.ID, &o.Name, &o.UpdatedAt, &o.AllowedDomains}
+	return []any{&o.CreatedAt, &o.CreatedBy, &o.DeletedAt, &o.Domain, &o.ID, &o.Name, &o.UpdatedAt, &o.AllowedDomains, &o.PrivateJWK, &o.PublicJWK}
 }
 
 // CreateOrganization creates a new organization, and initializes it with
@@ -33,11 +39,38 @@ func CreateOrganization(tx WriteTxn, org *models.Organization) error {
 	if org.Name == "" {
 		return fmt.Errorf("Organization.Name is required")
 	}
+
+	pubkey, seckey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return err
+	}
+
+	sec := jose.JSONWebKey{Key: seckey, KeyID: "", Algorithm: string(jose.ED25519), Use: "sig"}
+
+	thumb, err := sec.Thumbprint(crypto.SHA256)
+	if err != nil {
+		return err
+	}
+
+	sec.KeyID = base64.URLEncoding.EncodeToString(thumb)
+
+	pub := jose.JSONWebKey{Key: pubkey, KeyID: sec.KeyID, Algorithm: string(jose.ED25519), Use: "sig"}
+
+	secs, err := sec.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	pubs, err := pub.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	org.PrivateJWK = models.EncryptedAtRest(secs)
+	org.PublicJWK = pubs
+
 	if err := insert(tx, (*organizationsTable)(org)); err != nil {
 		return fmt.Errorf("creating org: %w", err)
-	}
-	if err := createSettings(tx, org.ID); err != nil {
-		return fmt.Errorf("initializing org settings: %w", err)
 	}
 
 	infraProvider := &models.Provider{
@@ -60,7 +93,7 @@ func CreateOrganization(tx WriteTxn, org *models.Organization) error {
 		return fmt.Errorf("failed to create connector identity while creating org: %w", err)
 	}
 
-	err := CreateGrant(tx, &models.Grant{
+	err = CreateGrant(tx, &models.Grant{
 		Subject:            models.NewSubjectForUser(connector.ID),
 		Privilege:          models.InfraConnectorRole,
 		Resource:           "infra",

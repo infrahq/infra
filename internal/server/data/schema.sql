@@ -240,7 +240,9 @@ CREATE TABLE organizations (
     name text,
     created_by bigint,
     domain text,
-    allowed_domains text DEFAULT ''::text
+    allowed_domains text DEFAULT ''::text,
+    private_jwk bytea,
+    public_jwk bytea
 );
 
 CREATE TABLE password_reset_tokens (
@@ -292,16 +294,6 @@ CREATE SEQUENCE seq_update_index
     NO MAXVALUE
     CACHE 1;
 
-CREATE TABLE settings (
-    id bigint NOT NULL,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    deleted_at timestamp with time zone,
-    private_jwk bytea,
-    public_jwk bytea,
-    organization_id bigint
-);
-
 CREATE TABLE user_public_keys (
     id bigint NOT NULL,
     user_id bigint NOT NULL,
@@ -351,9 +343,6 @@ ALTER TABLE ONLY provider_users
 ALTER TABLE ONLY providers
     ADD CONSTRAINT providers_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY settings
-    ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
-
 ALTER TABLE ONLY user_public_keys
     ADD CONSTRAINT user_public_keys_pkey PRIMARY KEY (id);
 
@@ -402,8 +391,6 @@ CREATE UNIQUE INDEX idx_user_public_keys_user_fingerprint ON user_public_keys US
 CREATE INDEX idx_user_public_keys_user_id ON user_public_keys USING btree (user_id) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_user_ssh_login_name ON identities USING btree (organization_id, ssh_login_name) WHERE (deleted_at IS NULL);
-
-CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);
 
 CREATE TRIGGER credreq_notify_insert_trigger AFTER INSERT ON destination_credentials FOR EACH ROW EXECUTE FUNCTION destination_credential_insert_notify();
 

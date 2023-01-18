@@ -13,6 +13,9 @@ type Organization struct {
 	AllowedDomains CommaSeparatedStrings // the email domains that are allowed to login to this org
 
 	CreatedBy uid.ID
+
+	PrivateJWK EncryptedAtRest
+	PublicJWK  []byte
 }
 
 func (o *Organization) ToAPI() *api.Organization {

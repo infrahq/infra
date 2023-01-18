@@ -64,25 +64,25 @@ func TestEncryptedAtRest_WithBytes(t *testing.T) {
 	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, "_models").DSN})
 	assert.NilError(t, err)
 
-	settings, err := data.GetSettings(db)
+	organization, err := data.GetOrganization(db, data.GetOrganizationOptions{ByID: db.DefaultOrg.ID})
 	assert.NilError(t, err)
 
 	t.Run("Scan", func(t *testing.T) {
 		var newEncrypted models.EncryptedAtRest
-		err := db.QueryRow(`SELECT private_jwk FROM settings WHERE id = ?`, settings.ID).Scan(&newEncrypted)
+		err := db.QueryRow(`SELECT private_jwk FROM organizations WHERE id = ?`, organization.ID).Scan(&newEncrypted)
 		assert.NilError(t, err)
 
-		assert.Equal(t, string(settings.PrivateJWK), string(newEncrypted))
+		assert.Equal(t, string(organization.PrivateJWK), string(newEncrypted))
 	})
 	t.Run("Value", func(t *testing.T) {
-		newEncrypted := settings.PrivateJWK
+		newEncrypted := organization.PrivateJWK
 
-		_, err := db.Exec(`UPDATE settings SET private_jwk = ? WHERE id = ?`, newEncrypted, settings.ID)
+		_, err := db.Exec(`UPDATE organizations SET private_jwk = ? WHERE id = ?`, newEncrypted, organization.ID)
 		assert.NilError(t, err)
 
-		updated, err := data.GetSettings(db)
+		updated, err := data.GetOrganization(db, data.GetOrganizationOptions{ByID: db.DefaultOrg.ID})
 		assert.NilError(t, err)
 
-		assert.Equal(t, string(updated.PrivateJWK), string(settings.PrivateJWK))
+		assert.Equal(t, string(updated.PrivateJWK), string(organization.PrivateJWK))
 	})
 }
