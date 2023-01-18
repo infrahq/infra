@@ -30,7 +30,7 @@ func (pprofRequest) IsBlockingRequest() bool {
 
 func pprofHandler(c *gin.Context, _ *pprofRequest) (*api.EmptyResponse, error) {
 	rCtx := getRequestContext(c)
-	if _, err := access.RequireInfraRole(c, models.InfraSupportAdminRole); err != nil {
+	if err := access.IsAuthorized(rCtx, models.InfraSupportAdminRole); err != nil {
 		return nil, access.HandleAuthErr(err, "debug", "run", models.InfraSupportAdminRole)
 	}
 	// end the transaction before blocking

@@ -13,8 +13,9 @@ import (
 )
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
+	rCtx := getRequestContext(c)
 	p := PaginationFromRequest(r.PaginationRequest)
-	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name, r.ShowExpired, &p)
+	accessKeys, err := access.ListAccessKeys(rCtx, r.UserID, r.Name, r.ShowExpired, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +38,7 @@ func (a *API) DeleteAccessKeys(c *gin.Context, r *api.DeleteAccessKeyRequest) (*
 }
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
+	rCtx := getRequestContext(c)
 	accessKey := &models.AccessKey{
 		IssuedFor:           r.UserID,
 		Name:                r.Name,
@@ -45,7 +47,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		InactivityTimeout:   time.Now().UTC().Add(time.Duration(r.InactivityTimeout)),
 	}
 
-	raw, err := access.CreateAccessKey(c, accessKey)
+	raw, err := access.CreateAccessKey(rCtx, accessKey)
 	if err != nil {
 		return nil, err
 	}

@@ -11,8 +11,9 @@ import (
 )
 
 func (a *API) ListOrganizations(c *gin.Context, r *api.ListOrganizationsRequest) (*api.ListResponse[api.Organization], error) {
+	rCtx := getRequestContext(c)
 	p := PaginationFromRequest(r.PaginationRequest)
-	orgs, err := access.ListOrganizations(c, r.Name, &p)
+	orgs, err := access.ListOrganizations(rCtx, r.Name, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -25,14 +26,15 @@ func (a *API) ListOrganizations(c *gin.Context, r *api.ListOrganizationsRequest)
 }
 
 func (a *API) GetOrganization(c *gin.Context, r *api.GetOrganizationRequest) (*api.Organization, error) {
+	rCtx := getRequestContext(c)
 	if r.ID.IsSelf {
-		iden := access.GetRequestContext(c).Authenticated.Organization
+		iden := rCtx.Authenticated.Organization
 		if iden == nil {
 			return nil, fmt.Errorf("no authenticated user")
 		}
 		r.ID.ID = iden.ID
 	}
-	org, err := access.GetOrganization(c, r.ID.ID)
+	org, err := access.GetOrganization(rCtx, r.ID.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -41,18 +43,18 @@ func (a *API) GetOrganization(c *gin.Context, r *api.GetOrganizationRequest) (*a
 }
 
 func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationRequest) (*api.Organization, error) {
+	rCtx := getRequestContext(c)
 	org := &models.Organization{
 		Name:   r.Name,
 		Domain: r.Domain,
 	}
 
-	// TODO: This should be removed in the future in favour of setting CreatedBy automatically
-	authIdent := getRequestContext(c).Authenticated.User
+	authIdent := rCtx.Authenticated.User
 	if authIdent != nil {
 		org.CreatedBy = authIdent.ID
 	}
 
-	err := access.CreateOrganization(c, org)
+	err := access.CreateOrganization(rCtx, org)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +65,12 @@ func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationReques
 }
 
 func (a *API) DeleteOrganization(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteOrganization(c, r.ID)
+	return nil, access.DeleteOrganization(getRequestContext(c), r.ID)
 }
 
 func (a *API) UpdateOrganization(c *gin.Context, r *api.UpdateOrganizationRequest) (*api.Organization, error) {
-	org, err := access.GetOrganization(c, r.ID)
+	rCtx := getRequestContext(c)
+	org, err := access.GetOrganization(rCtx, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +86,7 @@ func (a *API) UpdateOrganization(c *gin.Context, r *api.UpdateOrganizationReques
 		domains[d] = true
 	}
 
-	err = access.UpdateOrganization(c, org)
+	err = access.UpdateOrganization(rCtx, org)
 	if err != nil {
 		return nil, err
 	}

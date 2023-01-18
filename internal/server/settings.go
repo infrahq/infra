@@ -6,11 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/server/data"
 )
 
 func (a *API) GetSettings(c *gin.Context, r *api.EmptyRequest) (*api.Settings, error) {
-	settings, err := access.GetSettings(c)
+	// No authorization required
+	rCtx := getRequestContext(c)
+	settings, err := data.GetSettings(rCtx.DBTxn)
 	if err != nil {
 		return nil, fmt.Errorf("get settings: %w", err)
 	}

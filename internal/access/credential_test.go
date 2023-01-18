@@ -15,13 +15,14 @@ import (
 )
 
 func TestCreateCredential(t *testing.T) {
-	c, db, _ := setupAccessTestContext(t)
+	rCtx := setupAccessTestContext(t)
+	db := rCtx.DBTxn
 
 	user := &models.Identity{Name: "bruce@example.com"}
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
-	password, err := CreateCredential(c, user)
+	password, err := CreateCredential(rCtx, user)
 	assert.NilError(t, err)
 	assert.Assert(t, password != "")
 
@@ -34,36 +35,35 @@ func TestCreateCredential(t *testing.T) {
 }
 
 func TestUpdateCredentials(t *testing.T) {
-	c, db, _ := setupAccessTestContext(t)
+	rCtx := setupAccessTestContext(t)
 
 	user := &models.Identity{Name: "bruce@example.com"}
 
-	err := data.CreateIdentity(db, user)
+	err := data.CreateIdentity(rCtx.DBTxn, user)
 	assert.NilError(t, err)
 
-	oldPassword, err := CreateCredential(c, user)
+	oldPassword, err := CreateCredential(rCtx, user)
 	assert.NilError(t, err)
 
-	rCtx := GetRequestContext(c)
 	rCtx.Authenticated.User = user
-	c.Set(RequestContextKey, rCtx)
 
-	err = UpdateCredential(c, user, oldPassword, "supersecret")
+	err = UpdateCredential(rCtx, user, oldPassword, "supersecret")
 	assert.NilError(t, err)
 
-	credential, err := data.GetCredentialByUserID(db, user.ID)
+	credential, err := data.GetCredentialByUserID(rCtx.DBTxn, user.ID)
 	assert.NilError(t, err)
 	assert.Assert(t, !credential.OneTimePassword)
 }
 
 func TestResetCredentials(t *testing.T) {
-	c, db, _ := setupAccessTestContext(t)
+	rCtx := setupAccessTestContext(t)
+	db := rCtx.DBTxn
 
 	user := &models.Identity{Name: "bruce@example.com"}
 	err := data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
-	oldPassword, err := CreateCredential(c, user)
+	oldPassword, err := CreateCredential(rCtx, user)
 	assert.NilError(t, err)
 	assert.Assert(t, oldPassword != "")
 
@@ -71,7 +71,7 @@ func TestResetCredentials(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, credential.OneTimePassword)
 
-	err = UpdateCredential(c, user, oldPassword, "supersecret")
+	err = UpdateCredential(rCtx, user, oldPassword, "supersecret")
 	assert.NilError(t, err)
 
 	credential, err = data.GetCredentialByUserID(db, user.ID)
@@ -79,7 +79,7 @@ func TestResetCredentials(t *testing.T) {
 	assert.Assert(t, !credential.OneTimePassword)
 
 	t.Run("reset to random value", func(t *testing.T) {
-		newPassword, err := ResetCredential(c, user, "")
+		newPassword, err := ResetCredential(rCtx, user, "")
 		assert.NilError(t, err)
 		assert.Assert(t, newPassword != "supersecret")
 		assert.Assert(t, newPassword != oldPassword)
@@ -90,7 +90,7 @@ func TestResetCredentials(t *testing.T) {
 	})
 
 	t.Run("reset to passed in value", func(t *testing.T) {
-		newPassword, err := ResetCredential(c, user, "mypassword")
+		newPassword, err := ResetCredential(rCtx, user, "mypassword")
 		assert.NilError(t, err)
 		assert.Equal(t, newPassword, "mypassword")
 
@@ -125,20 +125,21 @@ func TestIsSymbol(t *testing.T) {
 }
 
 func TestCheckPasswordRequirements(t *testing.T) {
-	_, db, _ := setupAccessTestContext(t)
+	rCtx := setupAccessTestContext(t)
+	db := rCtx.DBTxn
 
 	t.Run("default password requirements", func(t *testing.T) {
-		err := checkPasswordRequirements(db, "password")
+		err := checkPasswordRequirements(rCtx.DBTxn, "password")
 		assert.NilError(t, err)
 
-		err = checkPasswordRequirements(db, "passwor")
+		err = checkPasswordRequirements(rCtx.DBTxn, "passwor")
 		assert.DeepEqual(t, err, validate.Error{
 			"password": []string{"8 characters"},
 		})
 	})
 
 	t.Run("uppercase letter", func(t *testing.T) {
-		settings, err := data.GetSettings(db)
+		settings, err := data.GetSettings(rCtx.DBTxn)
 		assert.NilError(t, err)
 
 		settings.UppercaseMin = 1

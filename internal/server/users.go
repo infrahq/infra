@@ -21,6 +21,7 @@ import (
 )
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
+	rCtx := getRequestContext(c)
 	p := PaginationFromRequest(r.PaginationRequest)
 
 	opts := data.ListIdentityOptions{
@@ -36,7 +37,7 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListRespo
 		opts.ByNotName = models.InternalInfraConnectorIdentityName
 	}
 
-	users, err := access.ListIdentities(c, opts)
+	users, err := access.ListIdentities(rCtx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -59,14 +60,15 @@ var getUserRoute = route[api.GetUserRequest, *api.User]{
 }
 
 func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
+	rCtx := getRequestContext(c)
 	if r.ID.IsSelf {
-		iden := access.GetRequestContext(c).Authenticated.User
+		iden := rCtx.Authenticated.User
 		if iden == nil {
 			return nil, fmt.Errorf("no authenticated user")
 		}
 		r.ID.ID = iden.ID
 	}
-	identity, err := access.GetIdentity(c, data.GetIdentityOptions{
+	identity, err := access.GetIdentity(rCtx, data.GetIdentityOptions{
 		ByID:           r.ID.ID,
 		LoadProviders:  true,
 		LoadPublicKeys: true,
@@ -80,17 +82,18 @@ func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
 
 // CreateUser creates a user with the Infra provider
 func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
+	rCtx := getRequestContext(c)
 	user := &models.Identity{Name: r.Name}
 
 	// infra identity creation should be attempted even if an identity is already known
-	identities, err := access.ListIdentities(c, data.ListIdentityOptions{ByName: r.Name})
+	identities, err := access.ListIdentities(rCtx, data.ListIdentityOptions{ByName: r.Name})
 	if err != nil {
 		return nil, fmt.Errorf("list identities: %w", err)
 	}
 
 	switch len(identities) {
 	case 0:
-		if err := access.CreateIdentity(c, user); err != nil {
+		if err := access.CreateIdentity(rCtx, user); err != nil {
 			return nil, fmt.Errorf("create identity: %w", err)
 		}
 	case 1:
@@ -106,7 +109,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	}
 
 	if email.IsConfigured() {
-		rCtx := access.GetRequestContext(c)
 		org := rCtx.Authenticated.Organization
 		currentUser := rCtx.Authenticated.User
 
@@ -130,7 +132,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		return resp, nil
 	}
 
-	tmpPassword, err := access.CreateCredential(c, user)
+	tmpPassword, err := access.CreateCredential(rCtx, user)
 	if err != nil {
 		return nil, fmt.Errorf("create credential: %w", err)
 	}
@@ -141,10 +143,10 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 }
 
 func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.UpdateUserResponse, error) {
-	rCtx := access.GetRequestContext(c)
+	rCtx := getRequestContext(c)
 
 	if rCtx.Authenticated.User.ID == r.ID {
-		if err := access.UpdateCredential(c, rCtx.Authenticated.User, r.OldPassword, r.Password); err != nil {
+		if err := access.UpdateCredential(rCtx, rCtx.Authenticated.User, r.OldPassword, r.Password); err != nil {
 			return nil, err
 		}
 
@@ -153,12 +155,12 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.UpdateU
 		}, nil
 	}
 
-	user, err := access.GetIdentity(c, data.GetIdentityOptions{ByID: r.ID, LoadProviders: true})
+	user, err := access.GetIdentity(rCtx, data.GetIdentityOptions{ByID: r.ID, LoadProviders: true})
 	if err != nil {
 		return nil, err
 	}
 
-	password, err := access.ResetCredential(c, user, r.Password)
+	password, err := access.ResetCredential(rCtx, user, r.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +172,7 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.UpdateU
 }
 
 func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	rCtx := access.GetRequestContext(c)
+	rCtx := getRequestContext(c)
 	if rCtx.Authenticated.User.ID == r.ID {
 		return nil, fmt.Errorf("%w: cannot delete own user", internal.ErrBadRequest)
 	}
@@ -179,7 +181,7 @@ func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, e
 		return nil, fmt.Errorf("%w: cannot delete connector user", internal.ErrBadRequest)
 	}
 
-	return nil, access.DeleteIdentity(c, r.ID)
+	return nil, access.DeleteIdentity(rCtx, r.ID)
 }
 
 func AddUserPublicKey(c *gin.Context, r *api.AddUserPublicKeyRequest) (*api.UserPublicKey, error) {

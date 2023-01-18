@@ -50,7 +50,8 @@ func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) 
 }
 
 func (a *API) VerifiedPasswordReset(c *gin.Context, r *api.VerifiedResetPasswordRequest) (*api.LoginResponse, error) {
-	user, err := access.VerifiedPasswordReset(c, r.Token, r.Password)
+	rCtx := getRequestContext(c)
+	user, err := access.VerifiedPasswordReset(rCtx, r.Token, r.Password)
 	if err != nil {
 		return nil, err
 	}

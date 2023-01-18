@@ -114,7 +114,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		return nil, err
 	}
 
-	if err := access.CreateProvider(c, provider); err != nil {
+	if err := access.CreateProvider(rCtx, provider); err != nil {
 		return nil, err
 	}
 
@@ -133,13 +133,14 @@ func (a *API) PatchProvider(c *gin.Context, r *api.PatchProviderRequest) (*api.P
 	if r.ClientSecret != "" {
 		provider.ClientSecret = models.EncryptedAtRest(r.ClientSecret)
 	}
-	if err = access.SaveProvider(c, provider); err != nil {
+	if err = access.SaveProvider(rCtx, provider); err != nil {
 		return nil, err
 	}
 	return provider.ToAPI(), nil
 }
 
 func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {
+	rCtx := getRequestContext(c)
 	provider := &models.Provider{
 		Model: models.Model{
 			ID: r.ID,
@@ -167,7 +168,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 		return nil, err
 	}
 
-	if err := access.SaveProvider(c, provider); err != nil {
+	if err := access.SaveProvider(rCtx, provider); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +176,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 }
 
 func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteProvider(c, r.ID)
+	return nil, access.DeleteProvider(getRequestContext(c), r.ID)
 }
 
 // setProviderInfoFromServer checks information provided by an OIDC server

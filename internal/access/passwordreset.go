@@ -4,16 +4,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func VerifiedPasswordReset(c *gin.Context, token, password string) (*models.Identity, error) {
+// TODO: remove
+func VerifiedPasswordReset(rCtx RequestContext, token, password string) (*models.Identity, error) {
 	// no auth required
-	tx := GetRequestContext(c).DBTxn
+	tx := rCtx.DBTxn
 
 	userID, err := data.ClaimPasswordResetToken(tx, token)
 	if err != nil {

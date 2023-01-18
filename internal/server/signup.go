@@ -32,6 +32,7 @@ func (a *API) SignupRoute() route[api.SignupRequest, *api.SignupResponse] {
 }
 
 func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse, error) {
+	rCtx := getRequestContext(c)
 	if !a.server.options.EnableSignup {
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
@@ -47,7 +48,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		}
 		// check if an org exists with their desired sub-domain
 		// this has to be done here since the auth code is single-use
-		if err := access.DomainAvailable(c, fmt.Sprintf("%s.%s", r.Subdomain, a.server.options.BaseDomain)); err != nil {
+		if err := access.DomainAvailable(rCtx, fmt.Sprintf("%s.%s", r.Subdomain, a.server.options.BaseDomain)); err != nil {
 			return nil, err
 		}
 		// perform OIDC authentication
@@ -198,7 +199,7 @@ func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomai
 		return nil, fmt.Errorf("sign-up requires social login details or user details")
 	}
 
-	rCtx := access.GetRequestContext(c)
+	rCtx := getRequestContext(c)
 	db := rCtx.DBTxn
 
 	details.Org.Domain = sanitizedDomain(details.SubDomain, baseDomain)

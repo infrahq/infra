@@ -68,7 +68,7 @@ var deleteProviderUserRoute = route[api.Resource, *api.EmptyResponse]{
 }
 
 func GetProviderUser(c *gin.Context, r *api.Resource) (*api.SCIMUser, error) {
-	user, err := access.GetProviderUser(c, r.ID)
+	user, err := access.GetProviderUser(getRequestContext(c), r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +76,7 @@ func GetProviderUser(c *gin.Context, r *api.Resource) (*api.SCIMUser, error) {
 }
 
 func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListProviderUsersResponse, error) {
+	rCtx := getRequestContext(c)
 	p := data.SCIMParameters{
 		StartIndex: r.StartIndex,
 		Count:      r.Count,
@@ -87,7 +88,7 @@ func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListP
 		}
 		p.Filter = exp
 	}
-	users, err := access.ListProviderUsers(c, &p)
+	users, err := access.ListProviderUsers(rCtx, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +105,7 @@ func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListP
 }
 
 func CreateProviderUser(c *gin.Context, r *api.SCIMUserCreateRequest) (*api.SCIMUser, error) {
+	rCtx := getRequestContext(c)
 	user := &models.ProviderUser{
 		GivenName:  r.Name.GivenName,
 		FamilyName: r.Name.FamilyName,
@@ -117,7 +119,7 @@ func CreateProviderUser(c *gin.Context, r *api.SCIMUserCreateRequest) (*api.SCIM
 	if user.Email == "" {
 		return nil, fmt.Errorf("%w: primary email is required", internal.ErrBadRequest)
 	}
-	err := access.CreateProviderUser(c, user)
+	err := access.CreateProviderUser(rCtx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +127,7 @@ func CreateProviderUser(c *gin.Context, r *api.SCIMUserCreateRequest) (*api.SCIM
 }
 
 func UpdateProviderUser(c *gin.Context, r *api.SCIMUserUpdateRequest) (*api.SCIMUser, error) {
+	rCtx := getRequestContext(c)
 	user := &models.ProviderUser{
 		IdentityID: r.ID,
 		GivenName:  r.Name.GivenName,
@@ -139,7 +142,7 @@ func UpdateProviderUser(c *gin.Context, r *api.SCIMUserUpdateRequest) (*api.SCIM
 	if user.Email == "" {
 		return nil, fmt.Errorf("%w: primary email is required", internal.ErrBadRequest)
 	}
-	err := access.UpdateProviderUser(c, user)
+	err := access.UpdateProviderUser(rCtx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +150,7 @@ func UpdateProviderUser(c *gin.Context, r *api.SCIMUserUpdateRequest) (*api.SCIM
 }
 
 func PatchProviderUser(c *gin.Context, r *api.SCIMUserPatchRequest) (*api.SCIMUser, error) {
+	rCtx := getRequestContext(c)
 	// we only support active status patching, so there can only be one operation
 	if len(r.Operations) != 1 || r.Operations[0].Op != "replace" {
 		return nil, internal.ErrBadRequest
@@ -156,7 +160,7 @@ func PatchProviderUser(c *gin.Context, r *api.SCIMUserPatchRequest) (*api.SCIMUs
 		IdentityID: r.ID,
 		Active:     r.Operations[0].Value.Active,
 	}
-	result, err := access.PatchProviderUser(c, user)
+	result, err := access.PatchProviderUser(rCtx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -164,5 +168,5 @@ func PatchProviderUser(c *gin.Context, r *api.SCIMUserPatchRequest) (*api.SCIMUs
 }
 
 func DeleteProviderUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteProviderUser(c, r.ID)
+	return nil, access.DeleteProviderUser(getRequestContext(c), r.ID)
 }

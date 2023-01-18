@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
@@ -16,13 +14,13 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+func GetGrant(rCtx RequestContext, id uid.ID) (*models.Grant, error) {
+	err := IsAuthorized(rCtx, models.InfraAdminRole)
 	if err != nil {
 		return nil, HandleAuthErr(err, "grant", "get", models.InfraAdminRole)
 	}
 
-	return data.GetGrant(db, data.GetGrantOptions{ByID: id})
+	return data.GetGrant(rCtx.DBTxn, data.GetGrantOptions{ByID: id})
 }
 
 type ListGrantsResponse struct {
@@ -30,12 +28,11 @@ type ListGrantsResponse struct {
 	MaxUpdateIndex int64
 }
 
-func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int64) (ListGrantsResponse, error) {
-	rCtx := GetRequestContext(c)
+func ListGrants(rCtx RequestContext, opts data.ListGrantsOptions, lastUpdateIndex int64) (ListGrantsResponse, error) {
 	subject := opts.BySubject
 
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
-	_, err := RequireInfraRole(c, roles...)
+	err := IsAuthorized(rCtx, roles...)
 	err = HandleAuthErr(err, "grants", "list", roles...)
 	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own grants
@@ -152,8 +149,7 @@ func userInGroup(db data.ReadTxn, authnUserID uid.ID, groupID uid.ID) bool {
 	return false
 }
 
-func CreateGrant(c *gin.Context, grant *models.Grant) error {
-	rCtx := GetRequestContext(c)
+func CreateGrant(rCtx RequestContext, grant *models.Grant) error {
 	role := requiredInfraRoleForGrantOperation(grant)
 	err := IsAuthorized(rCtx, role)
 	if err != nil {
@@ -166,27 +162,27 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 	return data.CreateGrant(rCtx.DBTxn, grant)
 }
 
-func DeleteGrant(c *gin.Context, id uid.ID) error {
+func DeleteGrant(rCtx RequestContext, id uid.ID) error {
 	// TODO: should support-admin role be required to delete support-admin grant?
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	err := IsAuthorized(rCtx, models.InfraAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "grant", "delete", models.InfraAdminRole)
 	}
 
-	return data.DeleteGrants(db, data.DeleteGrantsOptions{ByID: id})
+	return data.DeleteGrants(rCtx.DBTxn, data.DeleteGrantsOptions{ByID: id})
 }
 
-func UpdateGrants(c *gin.Context, addGrants, rmGrants []*models.Grant) error {
+func UpdateGrants(rCtx RequestContext, addGrants, rmGrants []*models.Grant) error {
 	all := make([]*models.Grant, 0, len(addGrants)+len(rmGrants))
 	all = append(all, addGrants...)
 	all = append(all, rmGrants...)
 	role := requiredInfraRoleForGrantOperation(all...)
-	db, err := RequireInfraRole(c, role)
+	err := IsAuthorized(rCtx, role)
 	if err != nil {
 		return HandleAuthErr(err, "grant", "update", role)
 	}
 
-	return data.UpdateGrants(db, addGrants, rmGrants)
+	return data.UpdateGrants(rCtx.DBTxn, addGrants, rmGrants)
 }
 
 func requiredInfraRoleForGrantOperation(grants ...*models.Grant) string {

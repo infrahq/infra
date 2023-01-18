@@ -3,7 +3,6 @@ package server
 import (
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"gopkg.in/segmentio/analytics-go.v3"
 
 	"github.com/infrahq/infra/internal"
@@ -98,17 +97,14 @@ func (t *Telemetry) EnqueueHeartbeat() {
 	})
 }
 
-func (t *Telemetry) RouteEvent(c *gin.Context, event string, properties ...map[string]interface{}) {
+func (t *Telemetry) RouteEvent(rCtx access.RequestContext, event string, properties ...map[string]interface{}) {
 	var uid, oid string
-	if c != nil {
-		a := access.GetRequestContext(c).Authenticated
-		if user := a.User; user != nil {
-			uid = user.ID.String()
-		}
-
-		if org := a.Organization; org != nil {
-			oid = org.ID.String()
-		}
+	a := rCtx.Authenticated
+	if user := a.User; user != nil {
+		uid = user.ID.String()
+	}
+	if org := a.Organization; org != nil {
+		oid = org.ID.String()
 	}
 
 	t.Event(event, uid, oid, properties...)

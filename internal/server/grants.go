@@ -47,7 +47,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		opts.Pagination = &p
 	}
 
-	grants, err := access.ListGrants(c, opts, r.LastUpdateIndex)
+	grants, err := access.ListGrants(rCtx, opts, r.LastUpdateIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,8 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
-	grant, err := access.GetGrant(c, r.ID)
+	rCtx := getRequestContext(c)
+	grant, err := access.GetGrant(rCtx, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,12 +75,13 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 }
 
 func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
-	grant, err := getGrantFromGrantRequest(c, *r)
+	rCtx := getRequestContext(c)
+	grant, err := getGrantFromGrantRequest(rCtx, *r)
 	if err != nil {
 		return nil, err
 	}
 
-	err = access.CreateGrant(c, grant)
+	err = access.CreateGrant(rCtx, grant)
 	var ucerr data.UniqueConstraintError
 
 	if errors.As(err, &ucerr) {
@@ -88,7 +90,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrant
 			BySubject:    grant.Subject,
 			ByPrivileges: []string{grant.Privilege},
 		}
-		grants, err := access.ListGrants(c, opts, 0)
+		grants, err := access.ListGrants(rCtx, opts, 0)
 
 		if err != nil {
 			return nil, err
@@ -110,7 +112,8 @@ func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrant
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	grant, err := access.GetGrant(c, r.ID)
+	rCtx := getRequestContext(c)
+	grant, err := access.GetGrant(rCtx, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +123,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 			ByResource:   access.ResourceInfraAPI,
 			ByPrivileges: []string{models.InfraAdminRole},
 		}
-		infraAdminGrants, err := access.ListGrants(c, opts, 0)
+		infraAdminGrants, err := access.ListGrants(rCtx, opts, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -130,14 +133,15 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 		}
 	}
 
-	return nil, access.DeleteGrant(c, r.ID)
+	return nil, access.DeleteGrant(rCtx, r.ID)
 }
 
 func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
-	iden := access.GetRequestContext(c).Authenticated.User
+	rCtx := getRequestContext(c)
+	iden := rCtx.Authenticated.User
 	var addGrants []*models.Grant
 	for _, g := range r.GrantsToAdd {
-		grant, err := getGrantFromGrantRequest(c, g)
+		grant, err := getGrantFromGrantRequest(rCtx, g)
 		if err != nil {
 			return nil, err
 		}
@@ -147,23 +151,23 @@ func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.Emp
 
 	var rmGrants []*models.Grant
 	for _, g := range r.GrantsToRemove {
-		grant, err := getGrantFromGrantRequest(c, g)
+		grant, err := getGrantFromGrantRequest(rCtx, g)
 		if err != nil {
 			return nil, err
 		}
 		rmGrants = append(rmGrants, grant)
 	}
 
-	return nil, access.UpdateGrants(c, addGrants, rmGrants)
+	return nil, access.UpdateGrants(rCtx, addGrants, rmGrants)
 }
 
-func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant, error) {
+func getGrantFromGrantRequest(rCtx access.RequestContext, r api.GrantRequest) (*models.Grant, error) {
 	var subject models.Subject
 
 	switch {
 	case r.UserName != "":
 		// lookup user name
-		identity, err := access.GetIdentity(c, data.GetIdentityOptions{ByName: r.UserName})
+		identity, err := access.GetIdentity(rCtx, data.GetIdentityOptions{ByName: r.UserName})
 		if err != nil {
 			if errors.Is(err, internal.ErrNotFound) {
 				return nil, fmt.Errorf("%w: couldn't find userName '%s'", internal.ErrBadRequest, r.UserName)
@@ -172,7 +176,7 @@ func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant
 		}
 		subject = models.NewSubjectForUser(identity.ID)
 	case r.GroupName != "":
-		group, err := access.GetGroup(c, data.GetGroupOptions{ByName: r.GroupName})
+		group, err := access.GetGroup(rCtx, data.GetGroupOptions{ByName: r.GroupName})
 		if err != nil {
 			if errors.Is(err, internal.ErrNotFound) {
 				return nil, fmt.Errorf("%w: couldn't find groupName '%s'", internal.ErrBadRequest, r.GroupName)

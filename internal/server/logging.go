@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -65,7 +64,7 @@ func loggingMiddleware(enableSampling bool) gin.HandlerFunc {
 			event = event.Int64("contentLength", c.Request.ContentLength)
 		}
 
-		rCtx := access.GetRequestContext(c)
+		rCtx := getRequestContext(c)
 		if user := rCtx.Authenticated.User; user != nil {
 			event = event.Str("userID", user.ID.String())
 		}

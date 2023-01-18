@@ -7,7 +7,6 @@ import (
 	"os"
 	"unicode"
 
-	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/infrahq/infra/internal"
@@ -17,9 +16,8 @@ import (
 	"github.com/infrahq/infra/internal/validate"
 )
 
-func CreateCredential(c *gin.Context, user *models.Identity) (string, error) {
-	tx, err := RequireInfraRole(c, models.InfraAdminRole)
-	if err != nil {
+func CreateCredential(rCtx RequestContext, user *models.Identity) (string, error) {
+	if err := IsAuthorized(rCtx, models.InfraAdminRole); err != nil {
 		return "", HandleAuthErr(err, "user", "create", models.InfraAdminRole)
 	}
 
@@ -32,7 +30,7 @@ func CreateCredential(c *gin.Context, user *models.Identity) (string, error) {
 		OneTimePassword: true,
 	}
 
-	if err := createCredential(tx, user, credential, password); err != nil {
+	if err := createCredential(rCtx.DBTxn, user, credential, password); err != nil {
 		return "", err
 	}
 
@@ -61,8 +59,8 @@ func createCredential(tx *data.Transaction, user *models.Identity, credential *m
 
 // ResetCredential resets a user's password to a specified value. If the input value is empty, a password
 // is randomly generated. No matter the input, the new password is one-time use and must be changed by the user.
-func ResetCredential(c *gin.Context, user *models.Identity, newPassword string) (string, error) {
-	tx, err := RequireInfraRole(c, models.InfraAdminRole)
+func ResetCredential(rCtx RequestContext, user *models.Identity, newPassword string) (string, error) {
+	err := IsAuthorized(rCtx, models.InfraAdminRole)
 	if err != nil {
 		return "", HandleAuthErr(err, "user", "update", models.InfraAdminRole)
 	}
@@ -76,6 +74,7 @@ func ResetCredential(c *gin.Context, user *models.Identity, newPassword string) 
 		newPassword = password
 	}
 
+	tx := rCtx.DBTxn
 	credential, err := data.GetCredentialByUserID(tx, user.ID)
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
@@ -102,9 +101,8 @@ func ResetCredential(c *gin.Context, user *models.Identity, newPassword string) 
 //
 // 1. The old password hash must match value stored in the database
 // 2. The new password must meet the password policy defined for the organization
-func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPassword string) error {
-	rCtx := GetRequestContext(c)
-	tx := GetRequestContext(c).DBTxn
+func UpdateCredential(rCtx RequestContext, user *models.Identity, oldPassword, newPassword string) error {
+	tx := rCtx.DBTxn
 
 	errs := make(validate.Error)
 
@@ -159,15 +157,6 @@ func updateCredential(tx *data.Transaction, credential *models.Credential, passw
 	}
 
 	return nil
-}
-
-func GetRequestContext(c *gin.Context) RequestContext {
-	if raw, ok := c.Get(RequestContextKey); ok {
-		if rCtx, ok := raw.(RequestContext); ok {
-			return rCtx
-		}
-	}
-	return RequestContext{}
 }
 
 // list of special charaters from OWASP:
