@@ -855,20 +855,12 @@ func TestAPI_DeleteUser(t *testing.T) {
 
 	type testCase struct {
 		name     string
-		urlPath  string
-		setup    func(t *testing.T, req *http.Request)
+		setup    func(t *testing.T) *http.Request
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		// nolint:noctx
-		req := httptest.NewRequest(http.MethodDelete, tc.urlPath, nil)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", apiVersionLatest)
-
-		if tc.setup != nil {
-			tc.setup(t, req)
-		}
+		req := tc.setup(t)
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 
@@ -876,30 +868,90 @@ func TestAPI_DeleteUser(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		// TODO: not authenticated
-		// TODO: not authorized
 		{
-			name:    "can not delete internal users",
-			urlPath: "/api/users/" + connector.ID.String(),
+			name: "can not delete internal users",
+			setup: func(t *testing.T) *http.Request {
+				// nolint:noctx
+				req := httptest.NewRequest(http.MethodDelete, "/api/users/"+connector.ID.String(), nil)
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Infra-Version", apiVersionLatest)
+				return req
+			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 			},
 		},
 		{
-			name:    "can not delete self",
-			urlPath: "/api/users/" + selfUser.ID.String(),
-			setup: func(t *testing.T, req *http.Request) {
+			name: "can not delete self",
+			setup: func(t *testing.T) *http.Request {
+				// nolint:noctx
+				req := httptest.NewRequest(http.MethodDelete, "/api/users/"+selfUser.ID.String(), nil)
 				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", selfKey))
+				req.Header.Set("Infra-Version", apiVersionLatest)
+				return req
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 			},
 		},
 		{
-			name:    "success",
-			urlPath: "/api/users/" + testUser.ID.String(),
+			name: "cannot delete users when not authenticated",
+			setup: func(t *testing.T) *http.Request {
+				// nolint:noctx
+				req := httptest.NewRequest(http.MethodDelete, "/api/users/"+testUser.ID.String(), nil)
+				req.Header.Set("Infra-Version", apiVersionLatest)
+				return req
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, resp.Code, resp.Body.String())
+			},
+		},
+		{
+			name: "cannot delete users when not authorized",
+			setup: func(t *testing.T) *http.Request {
+				// nolint:noctx
+				req := httptest.NewRequest(http.MethodDelete, "/api/users/"+testUser.ID.String(), nil)
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", selfKey))
+				req.Header.Set("Infra-Version", apiVersionLatest)
+				return req
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+			},
+		},
+		{
+			name: "success",
+			setup: func(t *testing.T) *http.Request {
+				// create associated resources which should also be deleted
+				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+				assert.NilError(t, err)
+				assert.NilError(t, data.CreateCredential(srv.DB(), &models.Credential{IdentityID: testUser.ID, PasswordHash: hash}))
+
+				group := &models.Group{
+					Name: "test group",
+				}
+				assert.NilError(t, data.CreateGroup(srv.DB(), group))
+				assert.NilError(t, data.AddUsersToGroup(srv.DB(), group.ID, []uid.ID{testUser.ID}))
+				assert.NilError(t, data.CreateGrant(srv.DB(), &models.Grant{Subject: testUser.PolyID(), Privilege: "admin", Resource: "infra"}))
+
+				// nolint:noctx
+				req := httptest.NewRequest(http.MethodDelete, "/api/users/"+testUser.ID.String(), nil)
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Infra-Version", apiVersionLatest)
+				return req
+			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
+
+				// associated resources are deleted
+				_, err := data.GetCredentialByUserID(srv.DB(), testUser.ID)
+				assert.ErrorIs(t, err, internal.ErrNotFound)
+				groups, err := data.ListGroups(srv.DB(), data.ListGroupsOptions{ByGroupMember: testUser.ID})
+				assert.NilError(t, err)
+				assert.Equal(t, len(groups), 0)
+				grants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{BySubject: testUser.PolyID()})
+				assert.NilError(t, err)
+				assert.Equal(t, len(grants), 0)
 			},
 		},
 	}

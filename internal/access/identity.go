@@ -55,12 +55,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
 	}
 
-	opts := data.DeleteIdentitiesOptions{
-		ByProviderID: data.InfraProvider(db).ID,
-		ByID:         id,
-	}
-
-	return data.DeleteIdentities(db, opts)
+	return data.DeleteIdentities(db, data.DeleteIdentitiesOptions{ByID: id})
 }
 
 func ListIdentities(c *gin.Context, opts data.ListIdentityOptions) ([]models.Identity, error) {

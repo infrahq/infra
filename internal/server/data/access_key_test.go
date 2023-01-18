@@ -232,13 +232,6 @@ func TestDeleteAccessKeys(t *testing.T) {
 			assert.DeepEqual(t, remaining, expected, cmpModelByID)
 		})
 
-		t.Run("by user id requires provider id", func(t *testing.T) {
-			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
-
-			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: uid.New()})
-			assert.ErrorContains(t, err, "DeleteAccessKeys by IssuedForID requires ProviderID")
-		})
-
 		t.Run("by provider id", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}

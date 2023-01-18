@@ -343,12 +343,8 @@ export default function Users() {
                 }
               )
 
-              // can only delete users that exist within Infra which are not the currently logged in user
-              if (
-                info.row.original.id === user?.id ||
-                (info.row.original.providerNames !== undefined &&
-                  !info.row.original.providerNames?.includes('infra'))
-              ) {
+              // cannot delete the currently logged in user
+              if (info.row.original.id === user?.id) {
                 return null
               }
 
@@ -387,7 +383,7 @@ export default function Users() {
                                     onClick={() => setOpen(true)}
                                   >
                                     <XMarkIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
-                                    Remove Infra user
+                                    Remove user
                                   </button>
                                 )}
                               </Menu.Item>

@@ -482,15 +482,6 @@ func TestDeleteIdentities(t *testing.T) {
 	}
 	testCases := []testCase{
 		{
-			name: "provider ID is required",
-			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
-				return DeleteIdentitiesOptions{}, models.Identity{}
-			},
-			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
-				assert.ErrorContains(t, err, "DeleteIdentities requires a provider ID")
-			},
-		},
-		{
 			name: "valid delete infra provider user",
 			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
 				var (
@@ -552,40 +543,6 @@ func TestDeleteIdentities(t *testing.T) {
 			},
 			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
 				assert.NilError(t, err)
-			},
-		},
-		{
-			name: "delete identity in provider outside infra does not delete credentials",
-			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
-				id := &models.Identity{Name: "jbond@infrahq.com"}
-				createIdentities(t, tx, id)
-
-				err := CreateCredential(tx, &models.Credential{IdentityID: id.ID, PasswordHash: []byte("abc")})
-				assert.NilError(t, err)
-
-				provider := &models.Provider{
-					Name: "other",
-					Kind: models.ProviderKindOIDC,
-				}
-				err = CreateProvider(tx, provider)
-				assert.NilError(t, err)
-
-				_, err = CreateProviderUser(tx, provider, id)
-				assert.NilError(t, err)
-
-				return DeleteIdentitiesOptions{
-					ByProviderID: provider.ID,
-					ByID:         id.ID,
-				}, *id
-			},
-			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
-				assert.NilError(t, err)
-
-				id, err := GetIdentity(tx, GetIdentityOptions{ByName: identity.Name})
-				assert.NilError(t, err) // still exists in infra provider
-
-				_, err = GetCredentialByUserID(tx, id.ID)
-				assert.NilError(t, err) // still exists in infra provider
 			},
 		},
 		{
