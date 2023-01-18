@@ -9,9 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -116,7 +116,7 @@ func (ts *testOIDCServer) run(t *testing.T, addHandlers func(*testing.T, *http.S
 }
 
 func loadTestSecretKey(t *testing.T) *rsa.PrivateKey {
-	sec, err := ioutil.ReadFile("./_testdata/test-server-sec.key")
+	sec, err := os.ReadFile("./_testdata/test-server-sec.key")
 	assert.NilError(t, err)
 
 	secBlock, _ := pem.Decode([]byte(sec))

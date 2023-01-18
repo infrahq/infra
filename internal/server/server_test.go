@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -151,7 +150,7 @@ func TestServer_Run(t *testing.T) {
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		assert.NilError(t, err)
 		// the infra http request metric
 		assert.Assert(t, is.Contains(string(body), "# HELP http_request_duration_seconds"))
@@ -236,7 +235,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		assert.NilError(t, err)
 		assert.Equal(t, message, string(body))
 	})

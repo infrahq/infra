@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -58,7 +57,7 @@ func TestMigrations(t *testing.T) {
 
 		if index == 0 {
 			filename := fmt.Sprintf("testdata/migrations/%v-postgres.sql", tc.label.Name)
-			raw, err := ioutil.ReadFile(filename)
+			raw, err := os.ReadFile(filename)
 			assert.NilError(t, err)
 
 			_, err = db.Exec(string(raw))

@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -276,7 +277,7 @@ func (k *Kubernetes) ec2ClusterName() (string, error) {
 		return "", errors.New("received non-OK code from metadata service")
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}
@@ -358,7 +359,7 @@ func (k *Kubernetes) gkeClusterName() (string, error) {
 		return "", errors.New("received non-OK code from metadata service")
 	}
 
-	name, err := ioutil.ReadAll(res.Body)
+	name, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}
@@ -384,7 +385,7 @@ func (k *Kubernetes) aksClusterName() (string, error) {
 		return "", errors.New("received non-OK code from metadata service")
 	}
 
-	all, err := ioutil.ReadAll(res.Body)
+	all, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", fmt.Errorf("error while reading response from azure metadata endpoint: %w", err)
 	}
@@ -492,7 +493,7 @@ func (k *Kubernetes) Name(chksm string) (string, error) {
 const podLabelsFilePath = "/etc/podinfo/labels"
 
 func PodLabels() ([]string, error) {
-	contents, err := ioutil.ReadFile(podLabelsFilePath)
+	contents, err := os.ReadFile(podLabelsFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -521,7 +522,7 @@ func InstancePodLabels() ([]string, error) {
 const namespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
 func readNamespaceFromInClusterFile() (string, error) {
-	contents, err := ioutil.ReadFile(namespaceFilePath)
+	contents, err := os.ReadFile(namespaceFilePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read namespace file: %w", err)
 	}
