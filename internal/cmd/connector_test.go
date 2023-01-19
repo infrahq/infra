@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -84,7 +85,7 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 	)
 
 	kubeconfig := path.Join(dir, "kubeconfig")
-	os.Setenv("KUBECONFIG", kubeconfig)
+	t.Setenv("KUBECONFIG", kubeconfig)
 	err = clientcmd.WriteToFile(k8sapi.Config{
 		Clusters:       map[string]*k8sapi.Cluster{"test": {Server: kubeSrv.URL, CertificateAuthorityData: certs.PEMEncodeCertificate(kubeSrv.Certificate().Raw)}},
 		Contexts:       map[string]*k8sapi.Context{"test": {Cluster: "test", AuthInfo: "test"}},
@@ -108,6 +109,7 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 			HTTPS:   "127.0.0.1:0",
 			Metrics: "127.0.0.1:0",
 		},
+		Addrs: &connector.Addrs{Available: make(chan struct{})},
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -198,7 +200,19 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 	})
 	assert.DeepEqual(t, fakeKube.writes, expectedWrites, cmpKubeRequest)
 
-	// TODO: check proxy is listening
+	<-opts.Addrs.Available
+	u := fmt.Sprintf("https://%v/api/v1/namespaces/default/pods/podok", opts.Addrs.HTTPS.String())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	assert.NilError(t, err)
+
+	client := http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+		},
+	}
+	resp, err := client.Do(req)
+	assert.NilError(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusUnauthorized)
 }
 
 func urlFromAddr(t *testing.T, addr net.Addr) types.URL {
