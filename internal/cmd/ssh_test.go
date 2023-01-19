@@ -503,6 +503,65 @@ func TestProvisionSSHKey(t *testing.T) {
 			},
 		},
 		{
+			name: "keys for wrong server, and delete from API",
+			user: func(t *testing.T) *api.User {
+				existingID, err := uid.Parse([]byte("existing"))
+				assert.NilError(t, err)
+				return &api.User{
+					PublicKeys: []api.UserPublicKey{{ID: existingID}},
+				}
+			},
+			setup: func(t *testing.T, infraSSHDir string) string {
+				keyCfg := &keysConfig{
+					Keys: []localPublicKey{
+						// wrong user
+						{
+							Server:         "infra.example.com",
+							OrganizationID: "if",
+							UserID:         "TTT",
+							PublicKeyID:    "existing",
+						},
+						// keys are deleted from API
+						{
+							Server:         "infra.example.com",
+							OrganizationID: "if",
+							UserID:         user.ID.String(),
+							PublicKeyID:    "something",
+						},
+						{
+							Server:         "infra.example.com",
+							OrganizationID: "if",
+							UserID:         user.ID.String(),
+							PublicKeyID:    "something2",
+						},
+					},
+				}
+				assert.NilError(t, writeKeysConfig(infraSSHDir, keyCfg))
+
+				fs.Apply(t, fs.DirFromPath(t, infraSSHDir),
+					fs.WithDir("keys",
+						fs.WithFile("existing", "private-key"),
+						fs.WithFile("existing.pub", "public-key"),
+						fs.WithFile("something", "private-key"),
+						fs.WithFile("something.pub", "public-key")),
+				)
+
+				return ""
+			},
+			expected: func(t *testing.T, infraSSHDir string, actual, keyFilename string) {
+				keyID := filepath.Base(actual)
+				assert.Assert(t, keyID != "existing")
+
+				user, err := client.GetUserSelf(ctx)
+				assert.NilError(t, err)
+				assert.Equal(t, len(user.PublicKeys), 1)
+
+				actualIDs := keyIDsFromKeysConfig(t, filepath.Join(infraSSHDir, "keys.json"))
+				expectedIDs := []string{"existing", keyID}
+				assert.DeepEqual(t, actualIDs, expectedIDs)
+			},
+		},
+		{
 			name: "local file is missing for key",
 			user: func(t *testing.T) *api.User {
 				existingID, err := uid.Parse([]byte("existing"))
