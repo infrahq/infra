@@ -241,11 +241,10 @@ export default function GroupDetails() {
         count={totalCount}
         data={users
           ?.map(u => {
-            if (!showRemoveGroupBtn) {
-              return { ...u, disabledDeleteCheckbox: u.id === user.id }
+            return {
+              ...u,
+              disabledCheckbox: !showRemoveGroupBtn && u.id === user.id,
             }
-
-            return u
           })
           ?.sort((a, b) => {
             if (a?.id === user.id) return -1

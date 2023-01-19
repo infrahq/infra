@@ -55,9 +55,7 @@ export default function Table({
     if (checkedAll || indeterminate) {
       setSelectedRowIds([])
     } else {
-      setSelectedRowIds(
-        data?.filter(d => !d.disabledDeleteCheckbox)?.map(d => d.id)
-      )
+      setSelectedRowIds(data?.filter(d => !d.disabledCheckbox)?.map(d => d.id))
     }
 
     setCheckedAll(!checkedAll && !indeterminate)
@@ -66,7 +64,7 @@ export default function Table({
 
   useLayoutEffect(() => {
     const isIndeterminate =
-      selectedRowIds.length > 0 && selectedRowIds.length < data.length
+      selectedRowIds.length > 0 && selectedRowIds.length < data?.length
 
     if (allowDelete && data?.length > 0) {
       setCheckedAll(selectedRowIds.length === data?.length)
@@ -103,26 +101,25 @@ export default function Table({
       <table className='w-full text-sm text-gray-600'>
         <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
           {table.getHeaderGroups().map(headerGroup => {
-            const disabledBulkDeleteCheckbox =
-              data?.length === 1 && data[0].disabledDeleteCheckbox
-
             return (
               <tr key={headerGroup.id}>
-                {allowDelete &&
-                  (data?.length > 0 || !disabledBulkDeleteCheckbox) && (
-                    <th
-                      scope='col'
-                      className='relative w-12 px-6 sm:w-16 sm:px-8'
-                    >
-                      <input
-                        type='checkbox'
-                        className='absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
-                        ref={el => (checkbox.current = el)}
-                        checked={checkedAll}
-                        onChange={toggleAll}
-                      />
-                    </th>
-                  )}
+                {allowDelete && data?.length > 0 && (
+                  <th
+                    scope='col'
+                    className='relative w-12 px-6 sm:w-16 sm:px-8'
+                  >
+                    <input
+                      type='checkbox'
+                      className='absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
+                      ref={el => (checkbox.current = el)}
+                      checked={checkedAll}
+                      onChange={toggleAll}
+                      disabled={
+                        data?.length === 1 && data?.[0]?.disabledCheckbox
+                      }
+                    />
+                  </th>
+                )}
                 {headerGroup.headers.map(header => (
                   <th
                     className='w-auto py-2 px-5 text-left font-medium first:max-w-[40%]'
@@ -143,11 +140,6 @@ export default function Table({
         <tbody className='divide-y divide-gray-100'>
           {data &&
             table.getRowModel().rows.map(row => {
-              const disabledDeleteCheckbox =
-                allowDelete &&
-                data?.length > 0 &&
-                row.original.disabledDeleteCheckbox
-
               return (
                 <tr
                   className={`group truncate ${
@@ -157,26 +149,26 @@ export default function Table({
                   }`}
                   key={row.id}
                 >
-                  {allowDelete &&
-                    (data?.length > 0 || !disabledDeleteCheckbox) && (
-                      <th scope='col'>
-                        <input
-                          type='checkbox'
-                          className='visible left-4 top-1/2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
-                          value={row.id}
-                          checked={selectedRowIds.includes(row.original.id)}
-                          onChange={e =>
-                            setSelectedRowIds(
-                              e.target.checked
-                                ? [...selectedRowIds, row.original.id]
-                                : selectedRowIds.filter(
-                                    p => p !== row.original.id
-                                  )
-                            )
-                          }
-                        />
-                      </th>
-                    )}
+                  {allowDelete && data?.length > 0 && (
+                    <th scope='col'>
+                      <input
+                        type='checkbox'
+                        className='visible left-4 top-1/2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
+                        value={row.id}
+                        checked={selectedRowIds.includes(row.original.id)}
+                        disabled={row.original.disabledCheckbox}
+                        onChange={e =>
+                          setSelectedRowIds(
+                            e.target.checked
+                              ? [...selectedRowIds, row.original.id]
+                              : selectedRowIds.filter(
+                                  p => p !== row.original.id
+                                )
+                          )
+                        }
+                      />
+                    </th>
+                  )}
                   {row.getVisibleCells().map(cell => (
                     <td
                       className={`border-gray-100 text-sm  ${
