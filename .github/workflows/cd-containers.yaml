@@ -83,6 +83,7 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=registry,ref=${{ env.IMAGE }}:edge
           cache-to: type=inline
+          provenance: false
 
   synchronize:
     runs-on: ubuntu-latest
