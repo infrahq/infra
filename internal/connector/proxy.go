@@ -27,10 +27,11 @@ func proxyMiddleware(
 		status := http.StatusOK
 		defer func() {
 			metrics.RequestDuration.With(prometheus.Labels{
-				"host":   req.Host,
-				"method": req.Method,
-				"path":   "proxy",
-				"status": strconv.Itoa(status),
+				"host":     req.Host,
+				"method":   req.Method,
+				"path":     "proxy",
+				"status":   strconv.Itoa(status),
+				"blocking": "false",
 			}).Observe(time.Since(start).Seconds())
 		}()
 
