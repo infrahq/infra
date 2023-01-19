@@ -65,7 +65,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 
 // See docs/dev/api-versioned-handlers.md for a guide to adding new version handlers.
 func (a *API) addPreviousVersionHandlersAccessKey() {
-	type listAccessKeysRequest_v0_16_1 struct {
+	type listAccessKeysRequestV0_16_1 struct {
 		UserID      uid.ID `form:"user_id"`
 		Name        string `form:"name"`
 		ShowExpired bool   `form:"show_expired"`
@@ -98,9 +98,9 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 
 	addVersionHandler(a,
 		http.MethodGet, "/api/access-keys", "0.16.1",
-		route[listAccessKeysRequest_v0_16_1, *api.ListResponse[accessKeyV0_18_0]]{
+		route[listAccessKeysRequestV0_16_1, *api.ListResponse[accessKeyV0_18_0]]{
 			routeSettings: defaultRouteSettingsGet,
-			handler: func(c *gin.Context, reqOld *listAccessKeysRequest_v0_16_1) (*api.ListResponse[accessKeyV0_18_0], error) {
+			handler: func(c *gin.Context, reqOld *listAccessKeysRequestV0_16_1) (*api.ListResponse[accessKeyV0_18_0], error) {
 				req := &api.ListAccessKeysRequest{
 					UserID:            reqOld.UserID,
 					Name:              reqOld.Name,

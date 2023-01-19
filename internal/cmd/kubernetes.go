@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -198,7 +197,7 @@ func safelyWriteConfigToFile(kubeConfig clientcmdapi.Config, fileToWrite string)
 		return err
 	}
 
-	temp, err := ioutil.TempFile(configDir, "infra-kube-config-")
+	temp, err := os.CreateTemp(configDir, "infra-kube-config-")
 	if err != nil {
 		return fmt.Errorf("failed to create temp kube config file: %w", err)
 	}

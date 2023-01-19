@@ -10,7 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -210,7 +210,7 @@ func (f fakeClient) Do(req *http.Request) (*http.Response, error) {
 	resp := &http.Response{
 		StatusCode: code,
 		Status:     http.StatusText(code),
-		Body:       ioutil.NopCloser(&buf),
+		Body:       io.NopCloser(&buf),
 	}
 	return resp, nil
 }

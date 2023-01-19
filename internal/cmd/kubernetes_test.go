@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -418,7 +417,7 @@ func TestSafelyWriteConfigToFile(t *testing.T) {
 	assert.Equal(t, actual.Contexts["infra:cluster:default"].Namespace, "default")
 
 	// check that the temp file is gone
-	files, err := ioutil.ReadDir(home)
+	files, err := os.ReadDir(home)
 	assert.NilError(t, err)
 
 	for _, file := range files {

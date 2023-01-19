@@ -2,7 +2,7 @@ package server
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -20,13 +20,13 @@ func TestMetrics(t *testing.T) {
 		patchProductVersion(t, "9.9.9")
 		registry := setupMetrics(db)
 
-		tempfile, err := ioutil.TempFile(t.TempDir(), t.Name())
+		tempfile, err := os.CreateTemp(t.TempDir(), t.Name())
 		assert.NilError(t, err)
 
 		err = prometheus.WriteToTextfile(tempfile.Name(), registry)
 		assert.NilError(t, err)
 
-		bts, err := ioutil.ReadFile(tempfile.Name())
+		bts, err := os.ReadFile(tempfile.Name())
 		assert.NilError(t, err)
 		assert.Assert(t, len(bts) > 0)
 

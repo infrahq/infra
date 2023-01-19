@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -108,7 +108,7 @@ func (j *authenticator) getJWK() (*jose.JSONWebKey, error) {
 		return nil, fmt.Errorf("unexpected response: %v ", res.Status)
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}

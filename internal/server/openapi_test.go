@@ -1,7 +1,7 @@
 package server
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -25,7 +25,7 @@ func TestWriteOpenAPIDocToFile(t *testing.T) {
 	err := WriteOpenAPIDocToFile(routes.OpenAPIDocument, "0.0.0", filename)
 	assert.NilError(t, err)
 
-	actual, err := ioutil.ReadFile(filename)
+	actual, err := os.ReadFile(filename)
 	assert.NilError(t, err)
 	golden.Assert(t, string(actual), "../../../docs/api/openapi3.json")
 }
