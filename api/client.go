@@ -441,10 +441,6 @@ func (c Client) GetServerVersion(ctx context.Context) (*Version, error) {
 	return get[Version](ctx, c, "/api/version", Query{})
 }
 
-func (c Client) GetSettings(ctx context.Context) (*Settings, error) {
-	return get[Settings](ctx, c, "/api/settings", Query{})
-}
-
 func partialText(body []byte, limit int) string {
 	if len(body) <= limit {
 		return string(body)

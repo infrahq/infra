@@ -127,7 +127,6 @@ func (s *Server) GenerateRoutes() Routes {
 
 	get(a, noAuthnWithOrg, "/api/providers/:id", a.GetProvider)
 	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
-	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
 	add(a, noAuthnWithOrg, http.MethodGet, "/link", verifyAndRedirectRoute)
 
 	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", wellKnownJWKsRoute)

@@ -19,7 +19,6 @@ func TestCreateSettings(t *testing.T) {
 		assert.Assert(t, settings.ID != 0)
 		assert.Assert(t, len(settings.PrivateJWK) != 0)
 		assert.Assert(t, len(settings.PublicJWK) != 0)
-		assert.Equal(t, settings.LengthMin, 8)
 	})
 }
 func TestGetSettings(t *testing.T) {
@@ -39,30 +38,5 @@ func TestGetSettings(t *testing.T) {
 			_, err := GetSettings(tx)
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
-	})
-}
-
-func TestUpdateSettings(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *DB) {
-		tx := txnForTestCase(t, db, 181)
-
-		err := createSettings(db, 181)
-		assert.NilError(t, err)
-		orig, err := GetSettings(tx)
-		assert.NilError(t, err)
-
-		updated := *orig // shallow copy
-		updated.PrivateJWK = "primary-key"
-		updated.LengthMin = 2
-		updated.SymbolMin = 3
-
-		err = UpdateSettings(tx, &updated)
-		assert.NilError(t, err)
-
-		actual, err := GetSettings(tx)
-		assert.NilError(t, err)
-
-		assert.Assert(t, orig.UpdatedAt != actual.UpdatedAt)
-		assert.DeepEqual(t, actual, &updated, cmpModel)
 	})
 }

@@ -299,11 +299,6 @@ CREATE TABLE settings (
     deleted_at timestamp with time zone,
     private_jwk bytea,
     public_jwk bytea,
-    lowercase_min bigint DEFAULT 0,
-    uppercase_min bigint DEFAULT 0,
-    number_min bigint DEFAULT 0,
-    symbol_min bigint DEFAULT 0,
-    length_min bigint DEFAULT 8,
     organization_id bigint
 );
 
