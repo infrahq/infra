@@ -1089,12 +1089,12 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.ErrorContains(t, err, "relation \"settings\" does not exist")
 			},
 			expected: func(t *testing.T, tx WriteTxn) {
-				rows, err := tx.Query(`SELECT id, name, domain, private_jwk, public_jwk FROM organizations WHERE id = 1001`)
+				rows, err := tx.Query(`SELECT id, name, domain, private_jwk, public_jwk, install_id FROM organizations WHERE id = 1001`)
 				assert.NilError(t, err)
 				defer rows.Close()
 
 				actual, err := scanRows(rows, func(o *models.Organization) []any {
-					return []any{&o.ID, &o.Name, &o.Domain, &o.PrivateJWK, &o.PublicJWK}
+					return []any{&o.ID, &o.Name, &o.Domain, &o.PrivateJWK, &o.PublicJWK, &o.InstallID}
 				})
 				assert.NilError(t, err)
 
@@ -1107,6 +1107,7 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 						Domain:     "202301181026.example.com",
 						PrivateJWK: models.EncryptedAtRest("supersecret"),
 						PublicJWK:  []byte("publicknowledge"),
+						InstallID:  1002,
 					},
 				}
 

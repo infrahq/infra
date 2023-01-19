@@ -200,7 +200,7 @@ func New(options Options) (*Server, error) {
 	}
 
 	if options.EnableTelemetry {
-		server.tel = NewTelemetry(server.db, db.DefaultOrg.ID)
+		server.tel = NewTelemetry(server.db, db.DefaultOrg.InstallID)
 	}
 
 	if options.GoogleClientID != "" {

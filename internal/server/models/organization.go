@@ -16,6 +16,7 @@ type Organization struct {
 
 	PrivateJWK EncryptedAtRest
 	PublicJWK  []byte
+	InstallID  uid.ID
 }
 
 func (o *Organization) ToAPI() *api.Organization {

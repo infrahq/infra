@@ -20,6 +20,7 @@ func TestCreateOrganization(t *testing.T) {
 			Domain:         "syndicate-123",
 			CreatedBy:      777,
 			AllowedDomains: models.CommaSeparatedStrings{"example.com", "infrahq.com"},
+			InstallID:      999,
 		}
 
 		err := CreateOrganization(db, org)
@@ -42,6 +43,7 @@ func TestCreateOrganization(t *testing.T) {
 			AllowedDomains: models.CommaSeparatedStrings{"example.com", "infrahq.com"},
 			PrivateJWK:     models.EncryptedAtRest("<any-value>"),
 			PublicJWK:      []byte("<any-value>"),
+			InstallID:      999,
 		}
 		assert.DeepEqual(t, expected, actual, cmpOrganizationModel)
 
@@ -164,6 +166,7 @@ func TestUpdateOrganization(t *testing.T) {
 			Name:           "second",
 			Domain:         "second.example.com",
 			AllowedDomains: []string{},
+			InstallID:      999,
 		}
 		err := CreateOrganization(db, org)
 		assert.NilError(t, err)
@@ -192,6 +195,7 @@ func TestUpdateOrganization(t *testing.T) {
 			AllowedDomains: []string{"example.com"},
 			PrivateJWK:     models.EncryptedAtRest("<any-value>"),
 			PublicJWK:      []byte("<any-value>"),
+			InstallID:      999,
 		}
 		assert.DeepEqual(t, expected, actual, cmpOrganizationModel)
 	})

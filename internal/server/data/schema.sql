@@ -242,7 +242,8 @@ CREATE TABLE organizations (
     domain text,
     allowed_domains text DEFAULT ''::text,
     private_jwk bytea,
-    public_jwk bytea
+    public_jwk bytea,
+    install_id bigint
 );
 
 CREATE TABLE password_reset_tokens (

@@ -1268,9 +1268,10 @@ func moveSettingsJWKOrganizations() *migrator.Migration {
 				_, err := tx.Exec(`
 					ALTER TABLE organizations
 						ADD COLUMN IF NOT EXISTS private_jwk bytea,
-						ADD COLUMN IF NOT EXISTS public_jwk bytea;
+						ADD COLUMN IF NOT EXISTS public_jwk bytea,
+						ADD COLUMN IF NOT EXISTS install_id bigint;
 					UPDATE organizations
-						SET private_jwk = settings.private_jwk, public_jwk = settings.public_jwk
+						SET private_jwk = settings.private_jwk, public_jwk = settings.public_jwk, install_id = settings.id
 						FROM settings
 						WHERE organizations.id = settings.organization_id;
 					DROP TABLE IF EXISTS settings;`)

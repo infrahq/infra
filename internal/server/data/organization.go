@@ -22,15 +22,15 @@ func (organizationsTable) Table() string {
 }
 
 func (o organizationsTable) Columns() []string {
-	return []string{"created_at", "created_by", "deleted_at", "domain", "id", "name", "updated_at", "allowed_domains", "private_jwk", "public_jwk"}
+	return []string{"created_at", "created_by", "deleted_at", "domain", "id", "name", "updated_at", "allowed_domains", "private_jwk", "public_jwk", "install_id"}
 }
 
 func (o organizationsTable) Values() []any {
-	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID, o.Name, o.UpdatedAt, o.AllowedDomains, o.PrivateJWK, o.PublicJWK}
+	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID, o.Name, o.UpdatedAt, o.AllowedDomains, o.PrivateJWK, o.PublicJWK, o.InstallID}
 }
 
 func (o *organizationsTable) ScanFields() []any {
-	return []any{&o.CreatedAt, &o.CreatedBy, &o.DeletedAt, &o.Domain, &o.ID, &o.Name, &o.UpdatedAt, &o.AllowedDomains, &o.PrivateJWK, &o.PublicJWK}
+	return []any{&o.CreatedAt, &o.CreatedBy, &o.DeletedAt, &o.Domain, &o.ID, &o.Name, &o.UpdatedAt, &o.AllowedDomains, &o.PrivateJWK, &o.PublicJWK, &o.InstallID}
 }
 
 // CreateOrganization creates a new organization, and initializes it with
@@ -69,6 +69,10 @@ func CreateOrganization(tx WriteTxn, org *models.Organization) error {
 
 		org.PrivateJWK = models.EncryptedAtRest(secs)
 		org.PublicJWK = pubs
+	}
+
+	if org.InstallID == 0 {
+		org.InstallID = uid.New()
 	}
 
 	if err := insert(tx, (*organizationsTable)(org)); err != nil {
