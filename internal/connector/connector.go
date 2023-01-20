@@ -104,6 +104,7 @@ type connector struct {
 
 type apiClient interface {
 	ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error)
+	ListDestinationAccess(ctx context.Context, req api.ListDestinationAccessRequest) (*api.ListDestinationAccessResponse, error)
 	ListDestinations(ctx context.Context, req api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error)
 	CreateDestination(ctx context.Context, req *api.CreateDestinationRequest) (*api.Destination, error)
 	UpdateDestination(ctx context.Context, req api.UpdateDestinationRequest) (*api.Destination, error)

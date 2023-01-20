@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,13 +62,71 @@ func runSSHConnector(ctx context.Context, opts Options) error {
 			Multiplier:          1.5,
 		}
 		waiter := repeat.NewWaiter(backOff)
-		fn := func(ctx context.Context, grants []api.Grant) error {
-			return updateLocalUsers(ctx, client, opts.SSH, grants)
+		fn := func(ctx context.Context, grants []api.DestinationAccess) error {
+			return updateLocalUsers(opts.SSH, grants)
 		}
-		return syncGrantsToDestination(ctx, con, waiter, fn)
+		return syncDestinationAccessToDestination(ctx, con, waiter, fn)
 	})
 
 	return group.Wait()
+}
+
+func syncDestinationAccessToDestination(
+	ctx context.Context,
+	con connector,
+	waiter waiter,
+	toDestination func(context.Context, []api.DestinationAccess) error,
+) error {
+	var latestIndex int64 = 1
+
+	sync := func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, 7*time.Minute)
+		defer cancel()
+
+		grants, err := con.client.ListDestinationAccess(ctx, api.ListDestinationAccessRequest{
+			Name:            con.options.Name,
+			BlockingRequest: api.BlockingRequest{LastUpdateIndex: latestIndex},
+		})
+		var apiError api.Error
+		switch {
+		case errors.As(err, &apiError) && apiError.Code == http.StatusNotModified:
+			// not modified is expected when there are no changes
+			logging.L.Info().
+				Int64("updateIndex", latestIndex).
+				Msg("no updated grants from server")
+			return nil
+		case err != nil:
+			return fmt.Errorf("list access: %w", err)
+		}
+		logging.L.Info().
+			Int64("updateIndex", grants.LastUpdateIndex.Index).
+			Int("grants", len(grants.Items)).
+			Msg("received grants from server")
+
+		err = toDestination(ctx, grants.Items)
+		if err != nil {
+			return fmt.Errorf("sync to destination: %w", err)
+		}
+
+		// Only update latestIndex once the entire operation was a success
+		latestIndex = grants.LastUpdateIndex.Index
+		return nil
+	}
+
+	for {
+		if err := sync(ctx); err != nil {
+			logging.L.Error().Err(err).Msg("sync grants to destination")
+		} else {
+			waiter.Reset()
+		}
+
+		// sleep for a short duration between updates to allow batches of
+		// updates to apply before querying again, and to prevent unnecessary
+		// load when part of the operation is failing.
+		if err := waiter.Wait(ctx); err != nil {
+			return err
+		}
+	}
 }
 
 // validateOptionsSSH validates that all settings required for the infra
@@ -184,7 +243,7 @@ func readHostKeyFile(filename string, out io.Writer) error {
 var etcPasswdFilename = "/etc/passwd"
 
 // TODO: grants for groups need to be resolved to a user somehow
-func updateLocalUsers(ctx context.Context, client apiClient, opts SSHOptions, grants []api.Grant) error {
+func updateLocalUsers(opts SSHOptions, grants []api.DestinationAccess) error {
 	byUserID := grantsByUserID(grants)
 
 	localUsers, err := linux.ReadLocalUsers(etcPasswdFilename)
@@ -225,21 +284,16 @@ func updateLocalUsers(ctx context.Context, client apiClient, opts SSHOptions, gr
 	}
 
 	for _, grant := range byUserID {
-		user, err := client.GetUser(ctx, grant.User)
-		if err != nil {
-			return fmt.Errorf("get user: %w", err)
-		}
-
-		if user.SSHLoginName == "" {
-			logging.L.Error().Str("user", user.Name).Msg("missing SSHLoginName")
+		if grant.UserSSHLoginName == "" {
+			logging.L.Error().Str("user", grant.UserID.String()).Msg("missing SSHLoginName")
 			continue
 		}
 
-		if err := linux.AddUser(user, opts.Group); err != nil {
-			errs = append(errs, fmt.Errorf("create user %v: %w", user.SSHLoginName, err))
+		if err := linux.AddUser(grant, opts.Group); err != nil {
+			errs = append(errs, fmt.Errorf("create user %v: %w", grant.UserSSHLoginName, err))
 			continue
 		}
-		logging.L.Info().Str("username", user.SSHLoginName).Msg("created user")
+		logging.L.Info().Str("username", grant.UserSSHLoginName).Msg("created user")
 	}
 
 	if len(errs) > 0 {
@@ -248,10 +302,10 @@ func updateLocalUsers(ctx context.Context, client apiClient, opts SSHOptions, gr
 	return nil
 }
 
-func grantsByUserID(grants []api.Grant) map[string]api.Grant {
-	result := make(map[string]api.Grant, len(grants))
+func grantsByUserID(grants []api.DestinationAccess) map[string]api.DestinationAccess {
+	result := make(map[string]api.DestinationAccess, len(grants))
 	for _, grant := range grants {
-		result[grant.User.String()] = grant
+		result[grant.UserID.String()] = grant
 	}
 	return result
 }

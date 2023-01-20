@@ -63,10 +63,10 @@ func isRuneComma(r rune) bool {
 	return r == ','
 }
 
-func AddUser(user *api.User, group string) error {
+func AddUser(user api.DestinationAccess, group string) error {
 	args := []string{
-		"--comment", fmt.Sprintf("%v,%v", user.ID, sentinelManagedByInfra),
-		"-m", "-p", "*", "-g", group, user.SSHLoginName,
+		"--comment", fmt.Sprintf("%v,%v", user.UserID, sentinelManagedByInfra),
+		"-m", "-p", "*", "-g", group, user.UserSSHLoginName,
 	}
 	cmd := exec.Command("useradd", args...)
 	cmd.Stdout = logging.L

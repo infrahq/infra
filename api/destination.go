@@ -109,3 +109,20 @@ func validateDestinationName(value string) validate.StringRule {
 	}
 	return rule
 }
+
+type ListDestinationAccessRequest struct {
+	Name string `uri:"id"` // TODO: change to ID when grants stores destinationID
+	BlockingRequest
+}
+
+type ListDestinationAccessResponse struct {
+	Items           []DestinationAccess `json:"items"`
+	LastUpdateIndex `json:"-"`
+}
+
+type DestinationAccess struct {
+	UserID           uid.ID `json:"userID"`
+	UserSSHLoginName string `json:"userSSHLoginName"`
+	Privilege        string `json:"privilege"`
+	Resource         string `json:"resource"`
+}

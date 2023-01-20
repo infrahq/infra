@@ -387,6 +387,13 @@ func (c Client) ListDestinations(ctx context.Context, req ListDestinationsReques
 	})
 }
 
+func (c Client) ListDestinationAccess(ctx context.Context, req ListDestinationAccessRequest) (*ListDestinationAccessResponse, error) {
+	path := fmt.Sprintf("/api/destinations/%s/user-access", req.Name)
+	return get[ListDestinationAccessResponse](ctx, c, path, Query{
+		"lastUpdateIndex": {strconv.FormatInt(req.LastUpdateIndex, 10)},
+	})
+}
+
 func (c Client) CreateDestination(ctx context.Context, req *CreateDestinationRequest) (*Destination, error) {
 	return post[Destination](ctx, c, "/api/destinations", req)
 }

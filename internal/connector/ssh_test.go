@@ -1,7 +1,6 @@
 package connector
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/infrahq/infra/api"
 	data "github.com/infrahq/infra/internal/linux"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestUpdateLocalUsers(t *testing.T) {
@@ -27,20 +25,13 @@ func TestUpdateLocalUsers(t *testing.T) {
 		etcPasswdFilename = "/etc/passwd"
 	})
 
-	ctx := context.Background()
-	fakeClient := &fakeAPIClient{
-		users: map[uid.ID]api.User{
-			1111: {ID: 1111, Name: "one@example.com", SSHLoginName: "one111"},
-			2222: {ID: 2222, Name: "two@example.com", SSHLoginName: "two222"},
-		},
-	}
-	grants := []api.Grant{
-		{ID: 123, User: 1111, Privilege: "connect"},
-		{ID: 124, User: 2222, Privilege: "connect"},
+	grants := []api.DestinationAccess{
+		{UserID: 1111, UserSSHLoginName: "one111", Privilege: "connect"},
+		{UserID: 2222, UserSSHLoginName: "two222", Privilege: "connect"},
 	}
 
 	opts := SSHOptions{Group: "infra-users"}
-	err := updateLocalUsers(ctx, fakeClient, opts, grants)
+	err := updateLocalUsers(opts, grants)
 	assert.NilError(t, err)
 
 	actual, err := os.ReadFile(logFile)
@@ -68,20 +59,13 @@ func TestUpdateLocalUsers_RemoveFailed(t *testing.T) {
 		etcPasswdFilename = "/etc/passwd"
 	})
 
-	ctx := context.Background()
-	fakeClient := &fakeAPIClient{
-		users: map[uid.ID]api.User{
-			1111: {ID: 1111, Name: "one@example.com", SSHLoginName: "one111"},
-			2222: {ID: 2222, Name: "two@example.com", SSHLoginName: "two222"},
-		},
-	}
-	grants := []api.Grant{
-		{ID: 123, User: 1111, Privilege: "connect"},
-		{ID: 124, User: 2222, Privilege: "connect"},
+	grants := []api.DestinationAccess{
+		{UserID: 1111, UserSSHLoginName: "one111", Privilege: "connect"},
+		{UserID: 2222, UserSSHLoginName: "two222", Privilege: "connect"},
 	}
 
 	opts := SSHOptions{Group: "infra-users"}
-	err := updateLocalUsers(ctx, fakeClient, opts, grants)
+	err := updateLocalUsers(opts, grants)
 	assert.ErrorContains(t, err, "remove user failremove: userdel: exit status 8")
 
 	actual, err := os.ReadFile(logFile)
