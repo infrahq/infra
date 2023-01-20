@@ -497,7 +497,7 @@ export default function AccessControl() {
   const { data: { items: allGrants, totalCount, totalPages } = {}, mutate } =
     useSWR(() =>
       isAdmin
-        ? `/api/grants?page=${page}&limit=${limit}&showSystem=false`
+        ? `/api/grants?page=${page}&limit=${limit}`
         : `/api/grants?user=${user.id}&page=${page}&limit=${limit}`
     )
   const { data: { items: destinations } = {} } = useSWR(
@@ -513,7 +513,6 @@ export default function AccessControl() {
   useEffect(() => {
     setGrants(
       allGrants
-        // ?.filter(g => g.resource !== 'infra')
         ?.map(g => {
           if (newCreatedGrants.length > 0) {
             const result = newCreatedGrants.filter(
