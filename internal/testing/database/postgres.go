@@ -43,8 +43,12 @@ func PostgresDriver(t TestingT, schemaSuffix string) *Driver {
 	suffix := strings.NewReplacer("--", "", ";", "", "/", "").Replace(schemaSuffix)
 	name := "testing"
 	if schemaSuffix != "" {
-		name = fmt.Sprintf("testing_%v_%v", suffix, generate.MathRandom(5, generate.CharsetNumbers))
+		name = fmt.Sprintf("test_%v_%v", suffix, generate.MathRandom(3, generate.CharsetNumbers))
 	}
+	if len(schemaSuffix) >= 24 {
+		t.Fatal("schema suffix", schemaSuffix, "must be less than 24 characters")
+	}
+
 	db, err := sql.Open("pgx", pgConn)
 	assert.NilError(t, err, "connect to postgresql")
 	t.Cleanup(func() {

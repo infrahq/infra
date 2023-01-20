@@ -355,7 +355,7 @@ func migrationCount(t *testing.T, db DB) (count int64) {
 func runDBTests(t *testing.T, fn func(t *testing.T, db DB)) {
 	databases := []dbDriver{}
 
-	if pg := database.PostgresDriver(t, "_migrator"); pg != nil {
+	if pg := database.PostgresDriver(t, "migrator"); pg != nil {
 		databases = append(databases, dbDriver{dialect: "postgres", dsn: pg.DSN})
 	}
 
