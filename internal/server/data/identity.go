@@ -69,8 +69,8 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 	}
 
 	newGroups = deduplicate(newGroups)
-
 	oldGroups := user.Groups
+
 	groupsToBeRemoved := diff(oldGroups, newGroups)
 	groupsToBeAdded := diff(newGroups, oldGroups)
 
@@ -80,15 +80,18 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 		return nil, fmt.Errorf("save: %w", err)
 	}
 
+	toRemoveMap, err := listGroupIDsFromNames(tx, groupsToBeRemoved)
+	if err != nil {
+		return nil, err
+	}
+	idsToRemove := maps.Values(toRemoveMap)
+
 	// remove user from groups
 	if len(groupsToBeRemoved) > 0 {
 		query := querybuilder.New(`DELETE FROM identities_groups`)
 		query.B(`WHERE identity_id = ?`, user.IdentityID)
-		query.B(`AND group_id in (`)
-		query.B(`SELECT id FROM groups WHERE organization_id = ?`, tx.OrganizationID())
-		query.B(`AND name IN`)
-		queryInClause(query, groupsToBeRemoved)
-		query.B(`)`)
+		query.B(`AND group_id IN`)
+		queryInClause(query, idsToRemove)
 		if _, err := tx.Exec(query.String(), query.Args...); err != nil {
 			return nil, err
 		}
@@ -102,38 +105,14 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 		}
 	}
 
-	type idNamePair struct {
-		ID   uid.ID
-		Name string
-	}
-
-	query := querybuilder.New(`SELECT id, name FROM groups`)
-	query.B(`WHERE deleted_at is null`)
-	query.B(`AND organization_id = ?`, tx.OrganizationID())
-	query.B(`AND name IN`)
-	queryInClause(query, groupsToBeAdded)
-	rows, err := tx.Query(query.String(), query.Args...)
-	if err != nil {
-		return nil, err
-	}
-	addIDs, err := scanRows(rows, func(item *idNamePair) []any {
-		return []any{&item.ID, &item.Name}
-	})
+	addIDs, err := listGroupIDsFromNames(tx, groupsToBeAdded)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, name := range groupsToBeAdded {
 		// find or create group
-		var groupID uid.ID
-		found := false
-		for _, obj := range addIDs {
-			if obj.Name == name {
-				found = true
-				groupID = obj.ID
-				break
-			}
-		}
+		groupID, found := addIDs[name]
 		if !found {
 			group := &models.Group{
 				Name:              name,
@@ -144,6 +123,8 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 				return nil, fmt.Errorf("create group: %w", err)
 			}
 			groupID = group.ID
+			// add to the map so we can use the IDs below
+			addIDs[name] = groupID
 		}
 
 		rows, err := tx.Query("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.IdentityID, groupID)
@@ -175,6 +156,34 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.ProviderUser, newGroups []
 	}
 
 	return identity.Groups, nil
+}
+
+func listGroupIDsFromNames(tx ReadTxn, names []string) (map[string]uid.ID, error) {
+	type idNamePair struct {
+		ID   uid.ID
+		Name string
+	}
+
+	query := querybuilder.New(`SELECT id, name FROM groups`)
+	query.B(`WHERE deleted_at is null`)
+	query.B(`AND organization_id = ?`, tx.OrganizationID())
+	query.B(`AND name IN`)
+	queryInClause(query, names)
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	pairs, err := scanRows(rows, func(item *idNamePair) []any {
+		return []any{&item.ID, &item.Name}
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]uid.ID, len(pairs))
+	for _, item := range pairs {
+		result[item.Name] = item.ID
+	}
+	return result, nil
 }
 
 func CreateIdentity(tx WriteTxn, identity *models.Identity) error {
