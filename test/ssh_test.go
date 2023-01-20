@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -105,6 +106,11 @@ func testSSHDestination(t *testing.T, tc testCase) {
 		res.Assert(t, icmd.Success)
 	})
 
+	users, err := adminClient.ListUsers(ctx, api.ListUsersRequest{Name: "anyuser@example.com"})
+	assert.NilError(t, err)
+	assert.Equal(t, len(users.Items), 1)
+	user := users.Items[0]
+
 	sshArgs := func(args ...string) []string {
 		return append([]string{
 			"-p", tc.port,
@@ -124,10 +130,10 @@ func testSSHDestination(t *testing.T, tc testCase) {
 		res.Assert(t, expected)
 	})
 
-	var grantID uid.ID
+	var grantIDs []uid.ID
 	t.Cleanup(func() {
-		if grantID != 0 {
-			_ = adminClient.DeleteGrant(ctx, grantID)
+		for _, id := range grantIDs {
+			_ = adminClient.DeleteGrant(ctx, id)
 		}
 	})
 
@@ -138,7 +144,7 @@ func testSSHDestination(t *testing.T, tc testCase) {
 			Privilege: "connect",
 		})
 		assert.NilError(t, err)
-		grantID = resp.ID
+		grantIDs = append(grantIDs, resp.ID)
 
 		res := icmd.RunCommand("ssh", sshArgs("echo", "ok")...)
 		expected := icmd.Expected{Out: "ok"}
@@ -146,7 +152,53 @@ func testSSHDestination(t *testing.T, tc testCase) {
 	})
 
 	runStep(t, "fails when grant is removed", func(t *testing.T) {
-		err := adminClient.DeleteGrant(ctx, grantID)
+		err := adminClient.DeleteGrant(ctx, grantIDs[0])
+		assert.NilError(t, err)
+
+		res := icmd.RunCommand("ssh", sshArgs("echo", "not ok")...)
+		expected := icmd.Expected{
+			ExitCode: 255,
+			Err:      "Permission denied",
+		}
+		res.Assert(t, expected)
+	})
+
+	group := &api.Group{Name: tc.destination + "-users"}
+	t.Cleanup(func() {
+		err := adminClient.DeleteGroup(ctx, group.ID)
+		var apiError api.Error
+		if errors.As(err, &apiError) && apiError.Code == http.StatusNotFound {
+			return
+		}
+		assert.NilError(t, err)
+	})
+
+	runStep(t, "succeeds with group grant", func(t *testing.T) {
+		groupResp, err := adminClient.CreateGroup(ctx, &api.CreateGroupRequest{Name: group.Name})
+		assert.NilError(t, err)
+		group.ID = groupResp.ID
+
+		err = adminClient.UpdateUsersInGroup(ctx, &api.UpdateUsersInGroupRequest{
+			GroupID:      group.ID,
+			UserIDsToAdd: []uid.ID{user.ID},
+		})
+		assert.NilError(t, err)
+
+		grantResp, err := adminClient.CreateGrant(ctx, &api.GrantRequest{
+			GroupName: group.Name,
+			Resource:  tc.destination,
+			Privilege: "connect",
+		})
+		assert.NilError(t, err)
+		grantIDs = append(grantIDs, grantResp.ID)
+
+		res := icmd.RunCommand("ssh", sshArgs("echo", "ok")...)
+		expected := icmd.Expected{Out: "ok"}
+		res.Assert(t, expected)
+	})
+
+	runStep(t, "fails when group grant is removed", func(t *testing.T) {
+		err := adminClient.DeleteGrant(ctx, grantIDs[1])
 		assert.NilError(t, err)
 
 		res := icmd.RunCommand("ssh", sshArgs("echo", "not ok")...)
