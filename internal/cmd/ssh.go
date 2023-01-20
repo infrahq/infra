@@ -253,8 +253,14 @@ func provisionSSHKey(ctx context.Context, opts provisionSSHKeyOptions) (string, 
 	}
 
 	keysDir := filepath.Join(opts.infraSSHDir, "keys")
-	existingKeys := matchingPublicKeys(keysCfg, opts.hostConfig, org.ID)
-	for i, existing := range existingKeys {
+	// the loop variable i is only incremented when we skip a key
+	for i := 0; i < len(keysCfg.Keys); {
+		existing := keysCfg.Keys[i]
+		// skip any keys that are for different servers, orgs, or users
+		if !publicKeyMatches(existing, opts.hostConfig, org.ID) {
+			i++
+			continue
+		}
 		filename := filepath.Join(keysDir, existing.PublicKeyID)
 		if !fileExists(filename) || !fileExists(filename+".pub") {
 			// key doesn't exist locally

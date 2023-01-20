@@ -54,20 +54,12 @@ func writeKeysConfig(infraSSHDir string, cfg *keysConfig) error {
 	return fh.Close()
 }
 
-// matchingPublicKeys looks for any keys in cfg that match the hostCfg and OrgID,
-// and returns the list of matching keys. Returns nil if none match.
-func matchingPublicKeys(cfg *keysConfig, hostCfg *ClientHostConfig, orgID uid.ID) []localPublicKey {
-	var result []localPublicKey
-	for _, publicKey := range cfg.Keys {
-		if publicKey.Server != hostCfg.Host || publicKey.UserID != hostCfg.UserID.String() {
-			continue
-		}
-		if publicKey.OrganizationID != orgID.String() {
-			continue
-		}
-		result = append(result, publicKey)
-	}
-	return result
+// publicKeyMatches matches localKey against hostCfg and OrgID. Returns true
+// when the localKey matches the host, user and org.
+func publicKeyMatches(localKey localPublicKey, hostCfg *ClientHostConfig, orgID uid.ID) bool {
+	return localKey.Server == hostCfg.Host &&
+		localKey.UserID == hostCfg.UserID.String() &&
+		localKey.OrganizationID == orgID.String()
 }
 
 func userPublicKeyContains(keys []api.UserPublicKey, id string) bool {
