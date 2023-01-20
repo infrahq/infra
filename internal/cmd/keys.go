@@ -215,9 +215,15 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			}
 
 			if len(keys) == 0 {
-				errMsg := fmt.Sprintf("No access key named '%s' for the current user, another user can be specified with the '--user' flag", keyName)
-				if options.UserName != "" {
-					errMsg = fmt.Sprintf("No access key named '%s' for the user '%s'", keyName, options.UserName)
+				// the username for the user this is being run against is used in the error
+				username := options.UserName
+				if username == "" {
+					username = config.Name
+				}
+				errMsg := fmt.Sprintf("Access key %q for user %q does not exist", keyName, username)
+				if username == config.Name {
+					// give a suggestion on how to use a different key if running the command on yourself
+					errMsg = fmt.Sprintf("%s\nUse the '--user' flag to remove an access key for a different user", errMsg)
 				}
 				return Error{
 					Message: errMsg,
