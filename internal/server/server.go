@@ -16,6 +16,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/infrahq/infra/internal"
@@ -319,7 +320,7 @@ func (s *Server) listen() error {
 	ginutil.SetMode()
 	router := s.GenerateRoutes()
 
-	httpErrorLog := log.New(logging.L, "", 0)
+	httpErrorLog := logging.HTTPErrorLog(zerolog.WarnLevel)
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,
