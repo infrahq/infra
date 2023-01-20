@@ -9,6 +9,7 @@ import {
   ChevronDownIcon,
   CheckIcon,
   PlusIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { Menu } from '@headlessui/react'
 
@@ -695,10 +696,10 @@ function Authentication() {
   const [newDomain, setNewDomain] = useState('')
   const [error, setError] = useState('')
 
-  async function removeDomain(e) {
+  async function removeDomain(e, domain) {
+    console.log('removedomain')
     e.preventDefault()
-    let toRemove = e.target.value
-    const newAllowedDomains = allowedDomains.filter(d => d !== toRemove)
+    const newAllowedDomains = allowedDomains.filter(d => d !== domain)
     updateAllowedDomains(newAllowedDomains)
   }
 
@@ -730,13 +731,16 @@ function Authentication() {
   }
 
   function onKeyDown(e) {
-    const { key } = e
+    const { key, keyCode } = e
 
     if (key === 'Backspace' && newDomain === '' && allowedDomains.length > 0) {
       e.preventDefault()
       const newAllowedDomains = [...allowedDomains]
       newAllowedDomains.pop()
       updateAllowedDomains(newAllowedDomains)
+    }
+    if (keyCode === 32) {
+      addDomain(e)
     }
   }
 
@@ -774,26 +778,25 @@ function Authentication() {
             className='group form-input flex w-full flex-wrap rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
             onSubmit={addDomain}
           >
-            {allowedDomains.map(d => (
+            {allowedDomains.map(domain => (
               <span
-                className='my-1 mr-1 inline-block rounded-md bg-gray-200 py-1 pl-2.5 pr-1 text-xs font-medium'
-                key={d}
+                className='bg-transparents group mr-1 flex items-center rounded-md border-[1.5px] border-gray-400/50 bg-transparent py-1 pl-2.5 pr-1 text-xs font-medium text-gray-600 hover:border-2 hover:bg-gray-100 hover:text-gray-900'
+                key={domain}
               >
-                {d}
+                {domain}
                 <button
-                  className='px-1.5 font-normal hover:text-gray-600'
+                  className='items-center px-1.5 font-normal group-hover:text-gray-600'
                   type='button'
-                  value={d}
-                  onClick={removeDomain}
+                  onClick={e => removeDomain(e, domain)}
                 >
-                  ✕
+                  <XMarkIcon className='h-4 w-4' />
                 </button>
               </span>
             ))}
             <input
-              className='peer mt-1 grow bg-transparent py-1 text-sm focus:outline-none'
+              className='peer grow bg-transparent py-1 text-sm focus:outline-none'
               value={newDomain}
-              placeholder={'enter a domain...'}
+              placeholder={allowedDomains.length === 0 ? ' Enter domains' : ''}
               onChange={e => {
                 setNewDomain(e.target.value)
               }}
@@ -818,7 +821,7 @@ function Authentication() {
           href='/settings/providers/add'
           className='inline-flex items-center self-end whitespace-nowrap rounded-md border border-transparent bg-black px-3 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
         >
-          <PlusIcon className='mr-1 h-3 w-3' /> Connect provider
+          <PlusIcon className='mr-1 h-3 w-3' /> Connect Provider
         </Link>
       </header>
       <div className='mt-3 flex min-h-0 flex-1 flex-col'>

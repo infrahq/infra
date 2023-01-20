@@ -5,7 +5,7 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 
 import { useUser } from '../../lib/hooks'
-import { CommandLineIcon, TrashIcon } from '@heroicons/react/24/solid'
+import { CommandLineIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/solid'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
@@ -43,7 +43,7 @@ export default function Destinations() {
             href='/destinations/add'
             className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
           >
-            Connect cluster
+            <PlusIcon className='mr-1 h-3 w-3' /> Connect Cluster
           </Link>
         )}
       </header>
