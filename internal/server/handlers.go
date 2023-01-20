@@ -46,7 +46,7 @@ func addVersionHandler[Req, Res any](a *API, method, path, version string, route
 		handler: func(c *gin.Context) {
 			wrapped := wrapRoute(a, key, routeDef)
 			if err := wrapped(c); err != nil {
-				sendAPIError(c, err)
+				sendAPIError(c.Writer, c.Request, err)
 			}
 		},
 	})
@@ -206,7 +206,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		Domain:  rCtx.Request.Host,
 		Expires: result.AccessKey.ExpiresAt,
 	}
-	setCookie(rCtx.Request, c.Writer, cookie)
+	setCookie(rCtx.Request, rCtx.Response.HTTPWriter, cookie)
 
 	key := result.AccessKey
 	a.t.User(key.IssuedFor.String(), result.User.Name)
@@ -218,7 +218,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	// Update the request context so that logging middleware can include the userID
 	rCtx.Authenticated.User = result.User
-	c.Set(access.RequestContextKey, rCtx)
+	rCtx.Response.LoginUserID = result.User.ID
 
 	return &api.LoginResponse{
 		UserID:                 key.IssuedFor,
@@ -239,7 +239,7 @@ func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, e
 		return nil, err
 	}
 
-	deleteCookie(c.Request, c.Writer, cookieAuthorizationName, c.Request.Host)
+	deleteCookie(c.Request, rCtx.Response.HTTPWriter, cookieAuthorizationName, c.Request.Host)
 	return nil, nil
 }
 

@@ -194,7 +194,7 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 	handler := func(c *gin.Context) {
 		reqVer, err := requestVersion(c.Request)
 		if err != nil && !route.infraVersionHeaderOptional {
-			sendAPIError(c, err)
+			sendAPIError(c.Writer, c.Request, err)
 			return
 		}
 
@@ -205,7 +205,8 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 		}
 
 		if err := wrapRoute(a, routeID, route)(c); err != nil {
-			sendAPIError(c, err)
+			sendAPIError(c.Writer, c.Request, err)
+			return
 		}
 	}
 	group.RouterGroup.Handle(routeID.method, routeID.path, handler)
@@ -256,7 +257,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			DBTxn:         tx,
 			Authenticated: authned,
 			DataDB:        a.server.db,
-			Response:      &access.ResponseMetadata{},
+			Response:      &access.Response{HTTPWriter: c.Writer},
 		}
 		c.Set(access.RequestContextKey, rCtx)
 
@@ -280,7 +281,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 
 		// TODO: extract all response header/status/body writing to another function
 		if respHeaders, ok := any(resp).(hasResponseHeaders); ok {
-			respHeaders.SetHeaders(c.Writer.Header())
+			respHeaders.SetHeaders(rCtx.Response.HTTPWriter.Header())
 		}
 		if r, ok := any(resp).(isRedirect); ok {
 			c.Redirect(http.StatusPermanentRedirect, r.RedirectURL())
@@ -437,7 +438,7 @@ func healthHandler(c *gin.Context) {
 func (a *API) notFoundHandler(c *gin.Context) {
 	accept := c.Request.Header.Get("Accept")
 	if strings.HasPrefix(accept, "application/json") {
-		sendAPIError(c, internal.ErrNotFound)
+		sendAPIError(c.Writer, c.Request, internal.ErrNotFound)
 		return
 	}
 

@@ -122,7 +122,7 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 
 	// Update the request context so that logging middleware can include the userID
 	rctx.Authenticated.User = user
-	c.Set(access.RequestContextKey, rctx)
+	rctx.Response.LoginUserID = user.ID
 
 	org, err := data.GetOrganization(rctx.DBTxn, data.GetOrganizationOptions{ByID: accessKey.OrganizationID})
 	if err != nil {

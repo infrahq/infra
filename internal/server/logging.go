@@ -67,10 +67,16 @@ func loggingMiddleware(enableSampling bool) gin.HandlerFunc {
 		rCtx := getRequestContext(c)
 		if user := rCtx.Authenticated.User; user != nil {
 			event = event.Str("userID", user.ID.String())
+		} else if rCtx.Response != nil && rCtx.Response.LoginUserID != 0 {
+			event = event.Str("userID", rCtx.Response.LoginUserID.String())
 		}
+
 		if org := rCtx.Authenticated.Organization; org != nil {
 			event = event.Str("orgID", org.ID.String())
+		} else if rCtx.Response != nil && rCtx.Response.SignupOrgID != 0 {
+			event = event.Str("orgID", rCtx.Response.SignupOrgID.String())
 		}
+
 		rCtx.Response.ApplyLogFields(event)
 
 		event.Dur("elapsed", time.Since(begin)).
