@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -161,8 +162,9 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 }
 
 type keyRemoveOptions struct {
-	Force    bool
-	UserName string
+	Force     bool
+	UserName  string
+	Connector bool
 }
 
 func newKeysRemoveCmd(cli *CLI) *cobra.Command {
@@ -188,6 +190,11 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			keyName := args[0]
 			userID := config.UserID
 
+			// override the user setting if the user wants to delete a connector access key
+			if options.Connector {
+				options.UserName = "connector"
+			}
+
 			if options.UserName != "" {
 				user, err := getUserByNameOrID(client, options.UserName)
 				if err != nil {
@@ -208,8 +215,18 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			}
 
 			if len(keys) == 0 {
+				// the username for the user this is being run against is used in the error
+				username := options.UserName
+				if username == "" {
+					username = config.Name
+				}
+				errMsg := fmt.Sprintf("Access key %q for user %q does not exist", keyName, username)
+				if username == config.Name {
+					// give a suggestion on how to use a different key if running the command on yourself
+					errMsg = fmt.Sprintf("%s\nUse the '--user' flag to remove an access key for a different user", errMsg)
+				}
 				return Error{
-					Message: "No access key named: " + keyName,
+					Message: errMsg,
 				}
 			}
 
@@ -232,6 +249,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 
 	cmd.Flags().BoolVar(&options.Force, "force", false, "Exit successfully even if access key does not exist")
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of the user who owns the key")
+	cmd.Flags().BoolVar(&options.Connector, "connector", false, "Remove a key for the connector")
 
 	return cmd
 }
