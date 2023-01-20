@@ -95,6 +95,7 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, authn, "/api/destinations", a.CreateDestination)
 	put(a, authn, "/api/destinations/:id", a.UpdateDestination)
 	del(a, authn, "/api/destinations/:id", a.DeleteDestination)
+	get(a, authn, "/api/destinations/:id/user-access", ListDestinationAccess)
 
 	add(a, authn, http.MethodPost, "/api/tokens", createTokenRoute)
 	post(a, authn, "/api/logout", a.Logout)

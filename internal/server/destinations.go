@@ -112,20 +112,20 @@ func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) (*api.EmptyResp
 
 // TODO: move types to api package
 type ListDestinationAccessRequest struct {
-	Name string `uri:"name"` // TODO: change to ID when grants stores destinationID
+	Name string `uri:"id"` // TODO: change to ID when grants stores destinationID
 	api.BlockingRequest
 }
 
 type ListDestinationAccessResponse struct {
-	Items               []DestinationAccess
+	Items               []DestinationAccess `json:"items"`
 	api.LastUpdateIndex `json:"-"`
 }
 
 type DestinationAccess struct {
-	UserID           uid.ID
-	UserSSHLoginName string
-	Privilege        string
-	Resource         string
+	UserID           uid.ID `json:"userID"`
+	UserSSHLoginName string `json:"userSSHLoginName"`
+	Privilege        string `json:"privilege"`
+	Resource         string `json:"resource"`
 }
 
 func ListDestinationAccess(c *gin.Context, r *ListDestinationAccessRequest) (*ListDestinationAccessResponse, error) {
