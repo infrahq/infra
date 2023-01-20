@@ -44,8 +44,6 @@ func (s *Server) GenerateRoutes() Routes {
 
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)
-
-	router.Use(gin.Recovery())
 	router.GET("/healthz", healthHandler)
 
 	// This group of middleware will apply to everything, including the UI
