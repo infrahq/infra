@@ -1,19 +1,16 @@
 import { Fragment, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { usePopper } from 'react-popper'
-import * as ReactDOM from 'react-dom'
 
 import useSWR from 'swr'
 import dayjs from 'dayjs'
 import copy from 'copy-to-clipboard'
 import Tippy from '@tippyjs/react'
-import { Menu, Transition, Dialog } from '@headlessui/react'
+import { Transition, Dialog } from '@headlessui/react'
 import {
   CheckIcon,
   DocumentDuplicateIcon,
-  XMarkIcon,
-  EllipsisVerticalIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
@@ -324,24 +321,9 @@ export default function Users() {
             accessorKey: 'providerNames',
           },
           {
-            id: 'actions',
+            id: 'delete',
             cell: function Cell(info) {
               const [open, setOpen] = useState(false)
-              const [referenceElement, setReferenceElement] = useState(null)
-              const [popperElement, setPopperElement] = useState(null)
-              let { styles, attributes } = usePopper(
-                referenceElement,
-                popperElement,
-                {
-                  placement: 'bottom-end',
-                  modifiers: [
-                    {
-                      name: 'flip',
-                      enabled: false,
-                    },
-                  ],
-                }
-              )
 
               // cannot delete the currently logged in user
               if (info.row.original.id === user?.id) {
@@ -350,50 +332,20 @@ export default function Users() {
 
               return (
                 <div className='flex justify-end'>
-                  <Menu as='div' className='relative inline-block text-left'>
-                    <Menu.Button
-                      ref={setReferenceElement}
-                      className='cursor-pointer rounded-md border border-transparent py-0.5 px-px text-gray-400 hover:bg-gray-50 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20'
+                  <div className='group invisible rounded-md bg-white group-hover:visible'>
+                    <button
+                      onClick={() => {
+                        setOpen(true)
+                      }}
+                      className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
                     >
-                      <EllipsisVerticalIcon className='z-0 h-[18px]' />
-                    </Menu.Button>
-                    {ReactDOM.createPortal(
-                      <div
-                        ref={setPopperElement}
-                        style={styles.popper}
-                        {...attributes.popper}
-                      >
-                        <Transition
-                          as={Fragment}
-                          enter='transition ease-out duration-100'
-                          enterFrom='transform opacity-0 scale-95'
-                          enterTo='transform opacity-100 scale-100'
-                          leave='transition ease-in duration-75'
-                          leaveFrom='transform opacity-100 scale-100'
-                          leaveTo='transform opacity-0 scale-95'
-                        >
-                          <Menu.Items className='absolute right-0 z-30 mt-2 w-40 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
-                            <div className='px-1 py-1'>
-                              <Menu.Item>
-                                {({ active }) => (
-                                  <button
-                                    className={`${
-                                      active ? 'bg-gray-50' : 'bg-white'
-                                    } group flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-red-500`}
-                                    onClick={() => setOpen(true)}
-                                  >
-                                    <XMarkIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
-                                    Remove user
-                                  </button>
-                                )}
-                              </Menu.Item>
-                            </div>
-                          </Menu.Items>
-                        </Transition>
-                      </div>,
-                      document.querySelector('body')
-                    )}
-                  </Menu>
+                      <div className='flex flex-row items-center'>
+                        <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                        Remove Infra user
+                      </div>
+                      <span className='sr-only'>{info.row.original.name}</span>
+                    </button>
+                  </div>
                   <DeleteModal
                     open={open}
                     setOpen={setOpen}
@@ -406,7 +358,7 @@ export default function Users() {
 
                       mutate()
                     }}
-                    title='Remove User'
+                    title='Remove user'
                     message={
                       <div>
                         Are you sure you want to remove{' '}

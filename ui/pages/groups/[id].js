@@ -5,7 +5,7 @@ import Head from 'next/head'
 
 import useSWR from 'swr'
 import dayjs from 'dayjs'
-import { CheckIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { CheckIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Combobox as HeadlessUIComboBox } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
@@ -26,67 +26,67 @@ function ComboBox({ options = [], selected, setSelected }) {
   return (
     <HeadlessUIComboBox
       as='div'
-      className='w-full'
+      className='relative w-full'
       value={selected}
       onChange={user => {
         setSelected(user)
       }}
+      onClick={() => {
+        button.current?.click()
+      }}
     >
-      <div className='relative'>
-        <HeadlessUIComboBox.Input
-          onFocus={() => {
-            if (!selected) {
-              button.current?.click()
-            }
-          }}
-          className='w-full rounded-md border border-gray-300 bg-white py-[7px] pl-2.5 pr-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 md:text-xs'
-          value={query}
-          placeholder='Enter user'
-          type='search'
-          onChange={event => setQuery(event.target.value)}
-        />
-        <HeadlessUIComboBox.Button className='hidden' ref={button} />
+      <HeadlessUIComboBox.Input
+        className='w-full rounded-md border border-gray-300 bg-white py-[7px] pl-2.5 pr-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 md:text-xs'
+        placeholder='Enter user'
+        type='search'
+        onChange={event => setQuery(event.target.value)}
+        onFocus={() => {
+          if (!selected) {
+            button.current?.click()
+          }
+        }}
+      />
+      <HeadlessUIComboBox.Button className='hidden' ref={button} />
 
-        {filtered?.length > 0 && (
-          <HeadlessUIComboBox.Options className='absolute z-30 mt-2 max-h-64 min-w-[16rem] max-w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
-            {filtered.map(o => (
-              <HeadlessUIComboBox.Option
-                key={o}
-                value={o}
-                className={({ active }) =>
-                  `relative cursor-default select-none py-2 pl-3 pr-9
+      {filtered?.length > 0 && (
+        <HeadlessUIComboBox.Options className='absolute z-30 mt-2 max-h-64 min-w-[16rem] max-w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
+          {filtered.map(o => (
+            <HeadlessUIComboBox.Option
+              key={o}
+              value={o}
+              className={({ active }) =>
+                `relative cursor-default select-none py-2 pl-3 pr-9
                   ${active ? 'bg-gray-100' : 'bg-transparent'}`
-                }
-              >
-                {({ active, selected }) => (
-                  <>
-                    <span
-                      className={`
+              }
+            >
+              {({ active, selected }) => (
+                <>
+                  <span
+                    className={`
                           block truncate
                           ${selected ? 'font-medium' : ''}`}
-                    >
-                      {o}
-                    </span>
+                  >
+                    {o}
+                  </span>
 
-                    {selected && (
-                      <span
-                        className={`
+                  {selected && (
+                    <span
+                      className={`
                             absolute inset-y-0 right-0 flex items-center pr-4
                             ${active ? 'bg-gray-100' : 'bg-transparent'}`}
-                      >
-                        <CheckIcon
-                          className='h-4 w-4 text-gray-600'
-                          aria-hidden='true'
-                        />
-                      </span>
-                    )}
-                  </>
-                )}
-              </HeadlessUIComboBox.Option>
-            ))}
-          </HeadlessUIComboBox.Options>
-        )}
-      </div>
+                    >
+                      <CheckIcon
+                        className='h-4 w-4 text-gray-600'
+                        aria-hidden='true'
+                      />
+                    </span>
+                  )}
+                </>
+              )}
+            </HeadlessUIComboBox.Option>
+          ))}
+        </HeadlessUIComboBox.Options>
+      )}
     </HeadlessUIComboBox>
   )
 }
@@ -95,18 +95,20 @@ export default function GroupDetails() {
   const router = useRouter()
   const id = router.query.id
   const page = Math.max(parseInt(router.query.p) || 1, 1)
-  const limit = 999
-  const { isAdmin } = useUser()
-  const { data: group, mutate: mutate } = useSWR(`/api/groups/${id}`)
+  const limit = 10
+  const { user, isAdmin } = useUser()
+  const { data: group, mutate } = useSWR(`/api/groups/${id}`)
   const {
     data: { items: users, totalCount, totalPages } = {},
     mutate: mutateUsers,
   } = useSWR(`/api/users?group=${group?.id}&limit=${limit}&p=${page}`)
-  const { data: { items: allUsers } = {} } = useSWR(`/api/users?limit=999`)
+  const { data: { items: allUsers } = {} } = useSWR(`/api/users?limit=1000`)
   const { data: { items: infraAdmins } = {} } = useSWR(
-    '/api/grants?resource=infra&privilege=admin&limit=999'
+    '/api/grants?resource=infra&privilege=admin&limit=1000'
   )
   const [addUser, setAddUser] = useState('')
+  const [selectedDeleteIds, setSelectedDeleteIds] = useState([])
+  const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
 
   const adminGroups = infraAdmins?.map(admin => admin.group)
 
@@ -120,8 +122,9 @@ export default function GroupDetails() {
   ]
 
   // Don't allow deleting the last group
-  const hideRemoveGroupBtn =
-    !isAdmin || (infraAdmins?.length === 1 && adminGroups.includes(group?.id))
+  const isLastAdmin =
+    infraAdmins?.length === 1 && adminGroups.includes(group?.id)
+  const showRemoveGroupBtn = isAdmin && !isLastAdmin
 
   return (
     <div className='mb-10'>
@@ -143,7 +146,7 @@ export default function GroupDetails() {
             {group?.name}
           </h1>
 
-          {!hideRemoveGroupBtn && (
+          {showRemoveGroupBtn && (
             <div className='my-3 flex space-x-2 md:my-0'>
               <RemoveButton
                 onRemove={async () => {
@@ -151,6 +154,7 @@ export default function GroupDetails() {
                     method: 'DELETE',
                   })
 
+                  mutate()
                   router.replace('/groups')
                 }}
                 modalTitle='Remove group'
@@ -191,7 +195,27 @@ export default function GroupDetails() {
       <div className='my-2.5 flex'>
         <div className='flex w-full flex-col rounded-lg border border-gray-200/75 px-4 pt-3 pb-4'>
           <h3 className='mb-2 text-sm font-medium'>Add user to group</h3>
-          <div className='flex w-full space-x-2 '>
+          <form
+            className='flex w-full space-x-2 '
+            onSubmit={async e => {
+              e.preventDefault()
+
+              const user = allUsers?.find(au => au.name === addUser)
+
+              if (!user) {
+                return false
+              }
+
+              await fetch(`/api/groups/${group?.id}/users`, {
+                method: 'PATCH',
+                body: JSON.stringify({ usersToAdd: [user.id] }),
+              })
+
+              // TODO: show optimistic results
+              mutateUsers()
+              setAddUser('')
+            }}
+          >
             <ComboBox
               options={allUsers
                 ?.filter(au => !users?.find(u => au.name === u.name))
@@ -201,43 +225,44 @@ export default function GroupDetails() {
             />
             <button
               disabled={!addUser}
-              onClick={async () => {
-                const user = allUsers?.find(au => au.name === addUser)
-
-                if (!user) {
-                  return false
-                }
-
-                await fetch(`/api/groups/${group?.id}/users`, {
-                  method: 'PATCH',
-                  body: JSON.stringify({ usersToAdd: [user.id] }),
-                })
-
-                // TODO: show optimistic results
-                mutateUsers()
-                mutate()
-                setAddUser('')
-              }}
+              type='submit'
               className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
             >
               <PlusIcon className='mr-1 h-3 w-3' />
               Add
             </button>
-          </div>
+          </form>
         </div>
       </div>
       <Table
-        pageIndex={page - 1}
+        pageIndex={parseInt(page) - 1}
         pageSize={limit}
         pageCount={totalPages}
         count={totalCount}
-        data={users}
+        data={users
+          ?.map(u => {
+            return {
+              ...u,
+              disabledCheckbox: !showRemoveGroupBtn && u.id === user.id,
+            }
+          })
+          ?.sort((a, b) => {
+            if (a?.id === user.id) return -1
+            if (b?.id === user.id) return 1
+            return 0
+          })}
         empty='No users'
         onPageChange={({ pageIndex }) => {
           router.push({
             pathname: router.pathname,
             query: { ...router.query, p: pageIndex + 1 },
           })
+        }}
+        allowDelete={users?.length > 0}
+        selectedRowIds={selectedDeleteIds}
+        setSelectedRowIds={setSelectedDeleteIds}
+        onDelete={() => {
+          setOpenSelectedDeleteModal(true)
         }}
         columns={[
           {
@@ -251,50 +276,82 @@ export default function GroupDetails() {
           },
           {
             cell: function Cell(info) {
+              const { id, name } = info.row.original
               const [open, setOpen] = useState(false)
 
-              return (
-                <div className='text-right'>
-                  <button
-                    onClick={() => {
-                      setOpen(true)
-                    }}
-                    className='p-1 text-2xs text-gray-500/75 hover:text-gray-600'
-                  >
-                    Remove
-                    <span className='sr-only'>{info.row.original.name}</span>
-                  </button>
-                  <DeleteModal
-                    open={open}
-                    setOpen={setOpen}
-                    onSubmit={async () => {
-                      await fetch(`/api/groups/${group?.id}/users`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                          usersToRemove: [info.row.original.id],
-                        }),
-                      })
+              const showRemoveUserBtn = showRemoveGroupBtn || user.id !== id
 
-                      // TODO: show optimistic result
-                      mutateUsers()
-                    }}
-                    title='Remove user from this group?'
-                    message={
-                      <div>
-                        Are you sure you want to remove{' '}
-                        <span className='font-bold'>
-                          {info.row.original.name}
-                        </span>{' '}
-                        from the group ?
-                      </div>
-                    }
-                  />
-                </div>
+              return (
+                showRemoveUserBtn && (
+                  <div className='text-right'>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        onClick={() => {
+                          setOpen(true)
+                        }}
+                        className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <div className='flex flex-row items-center'>
+                          <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                          Remove
+                        </div>
+                        <span className='sr-only'>{name}</span>
+                      </button>
+                    </div>
+                    <DeleteModal
+                      open={open}
+                      setOpen={setOpen}
+                      onSubmit={async () => {
+                        await fetch(`/api/groups/${group?.id}/users`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({
+                            usersToRemove: [id],
+                          }),
+                        })
+
+                        // TODO: show optimistic result
+                        mutateUsers()
+                        setSelectedDeleteIds([])
+                        setOpen(false)
+                      }}
+                      title='Remove user from this group?'
+                      message={
+                        <div>
+                          Are you sure you want to remove{' '}
+                          <span className='font-bold'>{name}</span> from the
+                          group ?
+                        </div>
+                      }
+                    />
+                  </div>
+                )
               )
             },
             id: 'delete',
           },
         ]}
+      />
+      {/* bulk delete modal */}
+      <DeleteModal
+        open={openSelectedDeleteModal}
+        setOpen={setOpenSelectedDeleteModal}
+        onCancel={() => {
+          setSelectedDeleteIds([])
+        }}
+        onSubmit={async () => {
+          await fetch(`/api/groups/${group?.id}/users`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              usersToRemove: selectedDeleteIds,
+            }),
+          })
+
+          mutateUsers()
+          setSelectedDeleteIds([])
+          setOpenSelectedDeleteModal(false)
+        }}
+        title='Remove users'
+        message='Are you sure you want to remove the selected users from the group?'
       />
     </div>
   )

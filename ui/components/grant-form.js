@@ -72,7 +72,7 @@ export default function GrantForm({
         <Combobox
           as='div'
           className='relative flex-1'
-          value={selected?.name}
+          value={selected?.name || ''}
           onChange={setSelected}
           onFocus={() => {
             mutateUsers()
@@ -93,6 +93,7 @@ export default function GrantForm({
                 button.current?.click()
               }
             }}
+            type='search'
           />
           {options?.length > 0 && (
             <Combobox.Options className='absolute z-10 mt-2 max-h-60 w-56 origin-top-right divide-y divide-gray-100 overflow-auto rounded-md bg-white text-xs shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
