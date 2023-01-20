@@ -20,7 +20,7 @@ func setupDB(t *testing.T) *DB {
 	t.Helper()
 	patch.ModelsSymmetricKey(t)
 
-	db, err := NewDB(NewDBOptions{DSN: database.PostgresDriver(t, "_data").DSN})
+	db, err := NewDB(NewDBOptions{DSN: database.PostgresDriver(t, "data").DSN})
 	assert.NilError(t, err)
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))

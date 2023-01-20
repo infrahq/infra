@@ -117,7 +117,7 @@ func TestServer_Run(t *testing.T) {
 		API: APIOptions{RequestTimeout: time.Minute},
 	}
 
-	driver := database.PostgresDriver(t, "_server_run")
+	driver := database.PostgresDriver(t, "server")
 	opts.DBConnectionString = driver.DSN
 
 	srv, err := New(opts)
@@ -216,7 +216,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	}
 	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
 
-	driver := database.PostgresDriver(t, "_server_run")
+	driver := database.PostgresDriver(t, "server")
 	opts.DBConnectionString = driver.DSN
 
 	srv, err := New(opts)

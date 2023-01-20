@@ -220,7 +220,7 @@ func setupServerOptions(t *testing.T, opts *server.Options) {
 	assert.NilError(t, err)
 	opts.TLS.Certificate = types.StringOrFile(cert)
 
-	pgDriver := database.PostgresDriver(t, "_cmd")
+	pgDriver := database.PostgresDriver(t, "cmd")
 	opts.DBConnectionString = pgDriver.DSN
 }
 
