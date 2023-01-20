@@ -1072,24 +1072,31 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 			label: testCaseLine("2023-01-18T10:26"),
 			setup: func(t *testing.T, tx WriteTxn) {
 				_, err := tx.Exec(`
-					INSERT INTO organizations(id, created_at, updated_at, deleted_at, name, created_by, domain, allowed_domains)
-					VALUES (1001, '2023-01-18 11:29:42.875+00', '2023-01-18 11:29:42.875+00', null, '202301181026', 1, '202301181026.example.com', '')`)
+					INSERT INTO
+						organizations(id, created_at, updated_at, deleted_at, name, created_by, domain, allowed_domains)
+					VALUES
+						(1001, '2023-01-18 11:29:42.875+00', '2023-01-18 11:29:42.875+00', null, '202301181129', 1, '202301181129.example.com', ''),
+						(2001, '2023-01-18 11:30:42.875+00', '2023-01-18 11:30:42.875+00', null, '202301181130', 1, '202301181130.example.com', '')`)
 				assert.NilError(t, err)
 
 				_, err = tx.Exec(`
-					INSERT INTO settings(id, created_at, updated_at, deleted_at, private_jwk, public_jwk, organization_id)
-					VALUES (1002, '2023-01-18 11:29:42.875+00', '2023-01-18 11:29:42.875+00', null, ?, ?, 1001)`,
-					models.EncryptedAtRest("supersecret"), []byte("publicknowledge"))
+					INSERT INTO
+						settings(id, created_at, updated_at, deleted_at, private_jwk, public_jwk, organization_id)
+					VALUES
+						(1002, '2023-01-18 11:29:42.875+00', '2023-01-18 11:29:42.875+00', null, ?, ?, 1001),
+						(2002, '2023-01-18 11:30:42.875+00', '2023-01-18 11:30:42.875+00', null, ?, ?, 2001)`,
+					models.EncryptedAtRest("superman"), []byte("clark-kent"),
+					models.EncryptedAtRest("batman"), []byte("bruce-wayne"))
 				assert.NilError(t, err)
 			},
 			cleanup: func(t *testing.T, tx WriteTxn) {
-				_, err := tx.Exec(`DELETE FROM organizations WHERE id = 1001`)
+				_, err := tx.Exec(`DELETE FROM organizations WHERE id IN (1001, 2001)`)
 				assert.NilError(t, err)
-				_, err = tx.Exec(`DELETE FROM settings WHERE id = 1002`)
+				_, err = tx.Exec(`DELETE FROM settings WHERE id IN (1002, 2002)`)
 				assert.ErrorContains(t, err, "relation \"settings\" does not exist")
 			},
 			expected: func(t *testing.T, tx WriteTxn) {
-				rows, err := tx.Query(`SELECT id, name, domain, private_jwk, public_jwk, install_id FROM organizations WHERE id = 1001`)
+				rows, err := tx.Query(`SELECT id, name, domain, private_jwk, public_jwk, install_id FROM organizations WHERE id IN (1001, 2001)`)
 				assert.NilError(t, err)
 				defer rows.Close()
 
@@ -1103,11 +1110,21 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 						Model: models.Model{
 							ID: 1001,
 						},
-						Name:       "202301181026",
-						Domain:     "202301181026.example.com",
-						PrivateJWK: models.EncryptedAtRest("supersecret"),
-						PublicJWK:  []byte("publicknowledge"),
+						Name:       "202301181129",
+						Domain:     "202301181129.example.com",
+						PrivateJWK: models.EncryptedAtRest("superman"),
+						PublicJWK:  []byte("clark-kent"),
 						InstallID:  1002,
+					},
+					{
+						Model: models.Model{
+							ID: 2001,
+						},
+						Name:       "202301181130",
+						Domain:     "202301181130.example.com",
+						PrivateJWK: models.EncryptedAtRest("batman"),
+						PublicJWK:  []byte("bruce-wayne"),
+						InstallID:  2002,
 					},
 				}
 
