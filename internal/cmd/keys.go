@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -208,8 +209,12 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			}
 
 			if len(keys) == 0 {
+				errMsg := fmt.Sprintf("No access key named '%s' for the current user, another user can be specified with the '--user' flag", keyName)
+				if options.UserName != "" {
+					errMsg = fmt.Sprintf("No access key named '%s' for the user '%s'", keyName, options.UserName)
+				}
 				return Error{
-					Message: "No access key named: " + keyName,
+					Message: errMsg,
 				}
 			}
 
