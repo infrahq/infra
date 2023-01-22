@@ -852,7 +852,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 	g := errgroup.Group{}
 	respCh := make(chan *httptest.ResponseRecorder)
 	g.Go(func() error {
-		urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+		urlPath := "/api/grants?showSystem=true&destination=infra&lastUpdateIndex=10001"
 		req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", apiVersionLatest)
