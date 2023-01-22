@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -18,8 +16,8 @@ import (
 )
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
-func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
-	rCtx := getRequestContext(c)
+func (a *API) ListProviders(rCtx access.RequestContext, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
+	
 	p := PaginationFromRequest(r.PaginationRequest)
 	opts := data.ListProvidersOptions{
 		ByName:               r.Name,
@@ -44,8 +42,8 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.L
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
-func (a *API) GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error) {
-	rCtx := getRequestContext(c)
+func (a *API) GetProvider(rCtx access.RequestContext, r *api.Resource) (*api.Provider, error) {
+	
 	provider, err := data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
@@ -67,8 +65,8 @@ func cleanupURL(url string) string {
 	return url
 }
 
-func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api.Provider, error) {
-	rCtx := getRequestContext(c)
+func (a *API) CreateProvider(rCtx access.RequestContext, r *api.CreateProviderRequest) (*api.Provider, error) {
+	
 	provider := &models.Provider{
 		Name:         r.Name,
 		URL:          cleanupURL(r.URL),
@@ -121,8 +119,8 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 	return provider.ToAPI(), nil
 }
 
-func (a *API) PatchProvider(c *gin.Context, r *api.PatchProviderRequest) (*api.Provider, error) {
-	rCtx := getRequestContext(c)
+func (a *API) PatchProvider(rCtx access.RequestContext, r *api.PatchProviderRequest) (*api.Provider, error) {
+	
 	provider, err := data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
@@ -139,8 +137,8 @@ func (a *API) PatchProvider(c *gin.Context, r *api.PatchProviderRequest) (*api.P
 	return provider.ToAPI(), nil
 }
 
-func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {
-	rCtx := getRequestContext(c)
+func (a *API) UpdateProvider(rCtx access.RequestContext, r *api.UpdateProviderRequest) (*api.Provider, error) {
+	
 	provider := &models.Provider{
 		Model: models.Model{
 			ID: r.ID,
@@ -175,7 +173,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 	return provider.ToAPI(), nil
 }
 
-func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+func (a *API) DeleteProvider(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
 	return nil, access.DeleteProvider(getRequestContext(c), r.ID)
 }
 

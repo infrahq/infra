@@ -148,7 +148,7 @@ func (s *Server) GenerateRoutes() Routes {
 	return Routes{Handler: router, OpenAPIDocument: a.openAPIDoc, api: a}
 }
 
-type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
+type HandlerFunc[Req, Res any] func(rCtx access.RequestContext, req *Req) (Res, error)
 
 type route[Req, Res any] struct {
 	routeSettings
@@ -394,7 +394,7 @@ func del[Req any, Res any](a *API, r *routeGroup, path string, handler HandlerFu
 	add(a, r, http.MethodDelete, path, route[Req, Res]{handler: handler})
 }
 
-func readRequest(c *gin.Context, req interface{}) error {
+func readRequest(rCtx access.RequestContext, req interface{}) error {
 	if len(c.Params) > 0 {
 		params := make(map[string][]string)
 		for _, v := range c.Params {
@@ -457,7 +457,7 @@ func (a *API) deprecatedRoutes(noAuthnNoOrg *routeGroup) {
 	}
 
 	add(a, noAuthnNoOrg, http.MethodGet, "/api/signup", route[api.EmptyRequest, *SignupEnabledResponse]{
-		handler: func(c *gin.Context, _ *api.EmptyRequest) (*SignupEnabledResponse, error) {
+		handler: func(rCtx access.RequestContext, _ *api.EmptyRequest) (*SignupEnabledResponse, error) {
 			return &SignupEnabledResponse{Enabled: false}, nil
 		},
 		routeSettings: routeSettings{

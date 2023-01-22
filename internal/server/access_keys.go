@@ -5,8 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/models"
@@ -14,8 +12,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
-	rCtx := getRequestContext(c)
+func (a *API) ListAccessKeys(rCtx access.RequestContext, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
+	
 	p := PaginationFromRequest(r.PaginationRequest)
 	accessKeys, err := access.ListAccessKeys(rCtx, r.UserID, r.Name, r.ShowExpired, &p)
 	if err != nil {
@@ -30,17 +28,17 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api
 }
 
 // DeleteAccessKey deletes an access key by id
-func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+func (a *API) DeleteAccessKey(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
 	return nil, access.DeleteAccessKey(getRequestContext(c), r.ID, "")
 }
 
 // DeleteAccessKeys deletes 0 or more access keys by any attribute
-func (a *API) DeleteAccessKeys(c *gin.Context, r *api.DeleteAccessKeyRequest) (*api.EmptyResponse, error) {
+func (a *API) DeleteAccessKeys(rCtx access.RequestContext, r *api.DeleteAccessKeyRequest) (*api.EmptyResponse, error) {
 	return nil, access.DeleteAccessKey(getRequestContext(c), 0, r.Name)
 }
 
-func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) CreateAccessKey(rCtx access.RequestContext, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
+	
 	accessKey := &models.AccessKey{
 		IssuedForID:         r.IssuedForID,
 		IssuedForKind:       models.IssuedKind(r.IssuedForKind),
@@ -103,7 +101,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 	addVersionHandler(a, http.MethodGet, "/api/access-keys", "0.16.1",
 		route[listAccessKeysRequestV0_16_1, *api.ListResponse[accessKeyV0_18_0]]{
 			routeSettings: defaultRouteSettingsGet,
-			handler: func(c *gin.Context, reqOld *listAccessKeysRequestV0_16_1) (*api.ListResponse[accessKeyV0_18_0], error) {
+			handler: func(rCtx access.RequestContext, reqOld *listAccessKeysRequestV0_16_1) (*api.ListResponse[accessKeyV0_18_0], error) {
 				req := &api.ListAccessKeysRequest{
 					UserID:            reqOld.UserID,
 					Name:              reqOld.Name,
@@ -136,7 +134,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 	}
 	addVersionHandler(a, http.MethodPost, "/api/access-keys", "0.18.0",
 		route[createAccessKeysRequestV0_18_0, *createAccessKeyResponseV0_18_0]{
-			handler: func(c *gin.Context, reqOld *createAccessKeysRequestV0_18_0) (*createAccessKeyResponseV0_18_0, error) {
+			handler: func(rCtx access.RequestContext, reqOld *createAccessKeysRequestV0_18_0) (*createAccessKeyResponseV0_18_0, error) {
 				req := &api.CreateAccessKeyRequest{
 					IssuedForID:       reqOld.UserID,
 					IssuedForKind:     models.IssuedForKindUser.String(),
@@ -170,7 +168,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 
 	addVersionHandler(a, http.MethodGet, "/api/access-keys", "0.18.0",
 		route[api.ListAccessKeysRequest, *api.ListResponse[accessKeyV0_18_0]]{
-			handler: func(c *gin.Context, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_18_0], error) {
+			handler: func(rCtx access.RequestContext, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_18_0], error) {
 				resp, err := a.ListAccessKeys(c, req)
 				return api.CopyListResponse(resp, newAccessKeyV0_18_0FromLatest), err
 			},

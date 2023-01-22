@@ -64,7 +64,6 @@ func loggingMiddleware(enableSampling bool) gin.HandlerFunc {
 			event = event.Int64("contentLength", c.Request.ContentLength)
 		}
 
-		rCtx := getRequestContext(c)
 		if user := rCtx.Authenticated.User; user != nil {
 			event = event.Str("userID", user.ID.String())
 		} else if rCtx.Response != nil && rCtx.Response.LoginUserID != 0 {

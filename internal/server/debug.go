@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/models"
@@ -28,8 +26,8 @@ func (pprofRequest) IsBlockingRequest() bool {
 	return true
 }
 
-func pprofHandler(c *gin.Context, _ *pprofRequest) (*api.EmptyResponse, error) {
-	rCtx := getRequestContext(c)
+func pprofHandler(rCtx access.RequestContext, _ *pprofRequest) (*api.EmptyResponse, error) {
+	
 	if err := access.IsAuthorized(rCtx, models.InfraSupportAdminRole); err != nil {
 		return nil, access.HandleAuthErr(err, "debug", "run", models.InfraSupportAdminRole)
 	}

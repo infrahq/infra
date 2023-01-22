@@ -3,15 +3,13 @@ package server
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func (a *API) ListOrganizations(c *gin.Context, r *api.ListOrganizationsRequest) (*api.ListResponse[api.Organization], error) {
-	rCtx := getRequestContext(c)
+func (a *API) ListOrganizations(rCtx access.RequestContext, r *api.ListOrganizationsRequest) (*api.ListResponse[api.Organization], error) {
+	
 	p := PaginationFromRequest(r.PaginationRequest)
 	orgs, err := access.ListOrganizations(rCtx, r.Name, &p)
 	if err != nil {
@@ -25,8 +23,8 @@ func (a *API) ListOrganizations(c *gin.Context, r *api.ListOrganizationsRequest)
 	return result, nil
 }
 
-func (a *API) GetOrganization(c *gin.Context, r *api.GetOrganizationRequest) (*api.Organization, error) {
-	rCtx := getRequestContext(c)
+func (a *API) GetOrganization(rCtx access.RequestContext, r *api.GetOrganizationRequest) (*api.Organization, error) {
+	
 	if r.ID.IsSelf {
 		iden := rCtx.Authenticated.Organization
 		if iden == nil {
@@ -42,8 +40,8 @@ func (a *API) GetOrganization(c *gin.Context, r *api.GetOrganizationRequest) (*a
 	return org.ToAPI(), nil
 }
 
-func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationRequest) (*api.Organization, error) {
-	rCtx := getRequestContext(c)
+func (a *API) CreateOrganization(rCtx access.RequestContext, r *api.CreateOrganizationRequest) (*api.Organization, error) {
+	
 	org := &models.Organization{
 		Name:      r.Name,
 		Domain:    r.Domain,
@@ -65,12 +63,12 @@ func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationReques
 	return org.ToAPI(), nil
 }
 
-func (a *API) DeleteOrganization(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+func (a *API) DeleteOrganization(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
 	return nil, access.DeleteOrganization(getRequestContext(c), r.ID)
 }
 
-func (a *API) UpdateOrganization(c *gin.Context, r *api.UpdateOrganizationRequest) (*api.Organization, error) {
-	rCtx := getRequestContext(c)
+func (a *API) UpdateOrganization(rCtx access.RequestContext, r *api.UpdateOrganizationRequest) (*api.Organization, error) {
+	
 	org, err := access.GetOrganization(rCtx, r.ID)
 	if err != nil {
 		return nil, err

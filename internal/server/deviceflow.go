@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -20,8 +18,8 @@ const DeviceCodeExpirySeconds = 600
 
 const CharsetDeviceFlowUserCode = "BCDFGHJKLMNPQRSTVWXZ" // no vowels to avoid spelling words
 
-func (a *API) StartDeviceFlow(c *gin.Context, req *api.EmptyRequest) (*api.DeviceFlowResponse, error) {
-	rctx := getRequestContext(c)
+func (a *API) StartDeviceFlow(rCtx access.RequestContext, req *api.EmptyRequest) (*api.DeviceFlowResponse, error) {
+
 	tries := 0
 retry:
 	tries++
@@ -67,8 +65,7 @@ retry:
 
 // GetDeviceFlowStatus is an API handler for checking the status of a device
 // flow login. The response status can be pending, expired, or confirmed.
-func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusRequest) (*api.DeviceFlowStatusResponse, error) {
-	rctx := getRequestContext(c)
+func (a *API) GetDeviceFlowStatus(rCtx access.RequestContext, req *api.DeviceFlowStatusRequest) (*api.DeviceFlowStatusResponse, error) {
 
 	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByDeviceCode: req.DeviceCode})
 	if err != nil {
@@ -149,8 +146,7 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 	}, nil
 }
 
-func (a *API) ApproveDeviceFlow(c *gin.Context, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
-	rctx := getRequestContext(c)
+func (a *API) ApproveDeviceFlow(rCtx access.RequestContext, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
 
 	if !rctx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
 		return nil, fmt.Errorf("%w: access key missing scope '%s'", access.ErrNotAuthorized, models.ScopeAllowCreateAccessKey)

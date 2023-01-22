@@ -188,8 +188,8 @@ func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
 	router := gin.New()
 
 	r := route[api.EmptyRequest, *api.EmptyResponse]{
-		handler: func(c *gin.Context, request *api.EmptyRequest) (*api.EmptyResponse, error) {
-			rCtx := getRequestContext(c)
+		handler: func(rCtx access.RequestContext, request *api.EmptyRequest) (*api.EmptyResponse, error) {
+			
 
 			user := &models.Identity{
 				Model:              models.Model{ID: 1555},
@@ -228,8 +228,8 @@ func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
 	router := gin.New()
 
 	r := route[api.EmptyRequest, *api.EmptyResponse]{
-		handler: func(c *gin.Context, request *api.EmptyRequest) (*api.EmptyResponse, error) {
-			rCtx := getRequestContext(c)
+		handler: func(rCtx access.RequestContext, request *api.EmptyRequest) (*api.EmptyResponse, error) {
+			
 
 			// Commit the transaction so that the call in wrapRoute returns an error
 			err := rCtx.DBTxn.Commit()
@@ -292,7 +292,7 @@ func TestRequestTimeout(t *testing.T) {
 
 	group := &routeGroup{RouterGroup: router.Group("/"), authenticationOptional: true, organizationOptional: true}
 	add(a, group, http.MethodGet, "/sleep", route[api.EmptyRequest, *api.EmptyResponse]{
-		handler: func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
+		handler: func(rCtx access.RequestContext, req *api.EmptyRequest) (*api.EmptyResponse, error) {
 			ctx := getRequestContext(c)
 
 			_, exist := ctx.Request.Context().Deadline()

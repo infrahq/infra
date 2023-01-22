@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -15,8 +13,8 @@ import (
 	"github.com/infrahq/infra/internal/server/redis"
 )
 
-func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) (*api.EmptyResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) RequestPasswordReset(rCtx access.RequestContext, r *api.PasswordResetRequest) (*api.EmptyResponse, error) {
+	
 	// no authorization required
 	if err := redis.NewLimiter(a.server.redis).RateOK(r.Email, 10); err != nil {
 		return nil, err
@@ -49,8 +47,8 @@ func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) 
 	return nil, err
 }
 
-func (a *API) VerifiedPasswordReset(c *gin.Context, r *api.VerifiedResetPasswordRequest) (*api.LoginResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) VerifiedPasswordReset(rCtx access.RequestContext, r *api.VerifiedResetPasswordRequest) (*api.LoginResponse, error) {
+	
 	user, err := access.VerifiedPasswordReset(rCtx, r.Token, r.Password)
 	if err != nil {
 		return nil, err
