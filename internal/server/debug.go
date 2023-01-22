@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/pprof"
+	"path"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
@@ -27,7 +28,6 @@ func (pprofRequest) IsBlockingRequest() bool {
 }
 
 func pprofHandler(rCtx access.RequestContext, _ *pprofRequest) (*api.EmptyResponse, error) {
-	
 	if err := access.IsAuthorized(rCtx, models.InfraSupportAdminRole); err != nil {
 		return nil, access.HandleAuthErr(err, "debug", "run", models.InfraSupportAdminRole)
 	}
@@ -36,14 +36,15 @@ func pprofHandler(rCtx access.RequestContext, _ *pprofRequest) (*api.EmptyRespon
 		return nil, err
 	}
 
-	switch c.Param("profile") {
-	case "/trace":
-		pprof.Trace(rCtx.Response.HTTPWriter, c.Request)
-	case "/profile":
-		pprof.Profile(rCtx.Response.HTTPWriter, c.Request)
+	_, profile := path.Split(rCtx.Request.URL.Path)
+	switch profile {
+	case "trace":
+		pprof.Trace(rCtx.Response.HTTPWriter, rCtx.Request)
+	case "profile":
+		pprof.Profile(rCtx.Response.HTTPWriter, rCtx.Request)
 	default:
 		// All other types of profiles are served from Index
-		http.StripPrefix("/api", http.HandlerFunc(pprof.Index)).ServeHTTP(rCtx.Response.HTTPWriter, c.Request)
+		http.StripPrefix("/api", http.HandlerFunc(pprof.Index)).ServeHTTP(rCtx.Response.HTTPWriter, rCtx.Request)
 	}
 	return nil, nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 )
@@ -20,7 +21,6 @@ var verifyAndRedirectRoute = route[api.VerifyAndRedirectRequest, *api.RedirectRe
 
 func VerifyAndRedirect(rCtx access.RequestContext, r *api.VerifyAndRedirectRequest) (*api.RedirectResponse, error) {
 	// No authorization required
-	
 	if err := data.SetIdentityVerified(rCtx.DBTxn, r.VerificationToken); err != nil {
 		logging.L.Error().Msg("VerifyUserByToken: " + err.Error())
 	}

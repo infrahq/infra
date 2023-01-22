@@ -8,7 +8,7 @@ import (
 	"github.com/infrahq/infra/internal/server/email"
 )
 
-func (a *API) GetServerConfiguration(rCtx access.RequestContext, _ *api.EmptyRequest) (*api.ServerConfiguration, error) {
+func (a *API) GetServerConfiguration(_ access.RequestContext, _ *api.EmptyRequest) (*api.ServerConfiguration, error) {
 	config := &api.ServerConfiguration{
 		IsEmailConfigured: email.IsConfigured(),
 		BaseDomain:        a.server.options.BaseDomain,

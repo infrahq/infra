@@ -11,7 +11,6 @@ import (
 )
 
 func (a *API) ListDestinations(rCtx access.RequestContext, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
-	
 	p := PaginationFromRequest(r.PaginationRequest)
 
 	opts := data.ListDestinationsOptions{
@@ -34,7 +33,6 @@ func (a *API) ListDestinations(rCtx access.RequestContext, r *api.ListDestinatio
 
 func (a *API) GetDestination(rCtx access.RequestContext, r *api.Resource) (*api.Destination, error) {
 	// No authorization required to view a destination
-	
 	destination, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
@@ -44,7 +42,6 @@ func (a *API) GetDestination(rCtx access.RequestContext, r *api.Resource) (*api.
 }
 
 func (a *API) CreateDestination(rCtx access.RequestContext, r *api.CreateDestinationRequest) (*api.Destination, error) {
-	
 	destination := &models.Destination{
 		Name:          r.Name,
 		UniqueID:      r.UniqueID,
@@ -78,8 +75,6 @@ func (a *API) CreateDestination(rCtx access.RequestContext, r *api.CreateDestina
 }
 
 func (a *API) UpdateDestination(rCtx access.RequestContext, r *api.UpdateDestinationRequest) (*api.Destination, error) {
-	
-
 	// Start with the existing value, so that non-update fields are not set to zero.
 	destination, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByID: r.ID})
 	if err != nil {
@@ -102,5 +97,5 @@ func (a *API) UpdateDestination(rCtx access.RequestContext, r *api.UpdateDestina
 }
 
 func (a *API) DeleteDestination(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteDestination(getRequestContext(c), r.ID)
+	return nil, access.DeleteDestination(rCtx, r.ID)
 }

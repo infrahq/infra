@@ -19,7 +19,6 @@ const DeviceCodeExpirySeconds = 600
 const CharsetDeviceFlowUserCode = "BCDFGHJKLMNPQRSTVWXZ" // no vowels to avoid spelling words
 
 func (a *API) StartDeviceFlow(rCtx access.RequestContext, req *api.EmptyRequest) (*api.DeviceFlowResponse, error) {
-
 	tries := 0
 retry:
 	tries++
@@ -33,7 +32,7 @@ retry:
 		return nil, err
 	}
 
-	err = data.CreateDeviceFlowAuthRequest(rctx.DBTxn, &models.DeviceFlowAuthRequest{
+	err = data.CreateDeviceFlowAuthRequest(rCtx.DBTxn, &models.DeviceFlowAuthRequest{
 		UserCode:   userCode,
 		DeviceCode: deviceCode,
 		ExpiresAt:  time.Now().Add(DeviceCodeExpirySeconds * time.Second),
@@ -46,12 +45,12 @@ retry:
 	}
 
 	var host string
-	if rctx.Authenticated.Organization != nil {
-		host = rctx.Authenticated.Organization.Domain
+	if rCtx.Authenticated.Organization != nil {
+		host = rCtx.Authenticated.Organization.Domain
 	}
 
 	if host == "" {
-		host = rctx.Request.Host
+		host = rCtx.Request.Host
 	}
 
 	return &api.DeviceFlowResponse{
@@ -66,8 +65,7 @@ retry:
 // GetDeviceFlowStatus is an API handler for checking the status of a device
 // flow login. The response status can be pending, expired, or confirmed.
 func (a *API) GetDeviceFlowStatus(rCtx access.RequestContext, req *api.DeviceFlowStatusRequest) (*api.DeviceFlowStatusResponse, error) {
-
-	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByDeviceCode: req.DeviceCode})
+	dfar, err := data.GetDeviceFlowAuthRequest(rCtx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByDeviceCode: req.DeviceCode})
 	if err != nil {
 		return nil, fmt.Errorf("%w: error retrieving device flow auth request: %v", internal.ErrUnauthorized, err)
 	}
@@ -86,7 +84,7 @@ func (a *API) GetDeviceFlowStatus(rCtx access.RequestContext, req *api.DeviceFlo
 		}, nil
 	}
 
-	user, err := data.GetIdentity(rctx.DBTxn, data.GetIdentityOptions{ByID: dfar.UserID})
+	user, err := data.GetIdentity(rCtx.DBTxn, data.GetIdentityOptions{ByID: dfar.UserID})
 	if err != nil {
 		return nil, fmt.Errorf("%w: retrieving approval user: %v", internal.ErrUnauthorized, err)
 	}
@@ -104,13 +102,13 @@ func (a *API) GetDeviceFlowStatus(rCtx access.RequestContext, req *api.DeviceFlo
 		Scopes:              models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
 
-	bearer, err := data.CreateAccessKey(rctx.DBTxn, accessKey)
+	bearer, err := data.CreateAccessKey(rCtx.DBTxn, accessKey)
 	if err != nil {
 		return nil, fmt.Errorf("%w: creating new access key: %v", internal.ErrUnauthorized, err)
 	}
 
 	user.LastSeenAt = time.Now().UTC()
-	if err := data.UpdateIdentity(rctx.DBTxn, user); err != nil {
+	if err := data.UpdateIdentity(rCtx.DBTxn, user); err != nil {
 		return nil, fmt.Errorf("%w: update user last seen: %v", internal.ErrUnauthorized, err)
 	}
 
@@ -119,16 +117,16 @@ func (a *API) GetDeviceFlowStatus(rCtx access.RequestContext, req *api.DeviceFlo
 	a.t.Event("login", accessKey.IssuedForID.String(), accessKey.OrganizationID.String(), Properties{"method": "deviceflow"})
 
 	// Update the request context so that logging middleware can include the userID
-	rctx.Authenticated.User = user
-	rctx.Response.LoginUserID = user.ID
+	rCtx.Authenticated.User = user
+	rCtx.Response.LoginUserID = user.ID
 
-	org, err := data.GetOrganization(rctx.DBTxn, data.GetOrganizationOptions{ByID: accessKey.OrganizationID})
+	org, err := data.GetOrganization(rCtx.DBTxn, data.GetOrganizationOptions{ByID: accessKey.OrganizationID})
 	if err != nil {
 		return nil, fmt.Errorf("%w: device flow get organization for user: %v", internal.ErrUnauthorized, err)
 	}
 
 	// Delete the request so it can't be claimed twice
-	err = data.DeleteDeviceFlowAuthRequest(rctx.DBTxn, dfar.ID)
+	err = data.DeleteDeviceFlowAuthRequest(rCtx.DBTxn, dfar.ID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: device flow delete auth request: %v", internal.ErrUnauthorized, err)
 	}
@@ -147,12 +145,11 @@ func (a *API) GetDeviceFlowStatus(rCtx access.RequestContext, req *api.DeviceFlo
 }
 
 func (a *API) ApproveDeviceFlow(rCtx access.RequestContext, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
-
-	if !rctx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
+	if !rCtx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
 		return nil, fmt.Errorf("%w: access key missing scope '%s'", access.ErrNotAuthorized, models.ScopeAllowCreateAccessKey)
 	}
 
-	dfar, err := data.GetDeviceFlowAuthRequest(rctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: strings.Replace(req.UserCode, "-", "", 1)})
+	dfar, err := data.GetDeviceFlowAuthRequest(rCtx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: strings.Replace(req.UserCode, "-", "", 1)})
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid code", internal.ErrNotFound)
 	}
@@ -165,5 +162,5 @@ func (a *API) ApproveDeviceFlow(rCtx access.RequestContext, req *api.ApproveDevi
 		return nil, nil
 	}
 
-	return nil, data.ApproveDeviceFlowAuthRequest(rctx.DBTxn, dfar.ID, rctx.Authenticated.User.ID, rctx.Authenticated.AccessKey.ProviderID)
+	return nil, data.ApproveDeviceFlowAuthRequest(rCtx.DBTxn, dfar.ID, rCtx.Authenticated.User.ID, rCtx.Authenticated.AccessKey.ProviderID)
 }

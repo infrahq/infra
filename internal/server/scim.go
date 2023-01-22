@@ -67,7 +67,7 @@ var deleteProviderUserRoute = route[api.Resource, *api.EmptyResponse]{
 }
 
 func GetProviderUser(rCtx access.RequestContext, r *api.Resource) (*api.SCIMUser, error) {
-	user, err := access.GetProviderUser(getRequestContext(c), r.ID)
+	user, err := access.GetProviderUser(rCtx, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,6 @@ func GetProviderUser(rCtx access.RequestContext, r *api.Resource) (*api.SCIMUser
 }
 
 func ListProviderUsers(rCtx access.RequestContext, r *api.SCIMParametersRequest) (*api.ListProviderUsersResponse, error) {
-	
 	p := data.SCIMParameters{
 		StartIndex: r.StartIndex,
 		Count:      r.Count,
@@ -104,7 +103,6 @@ func ListProviderUsers(rCtx access.RequestContext, r *api.SCIMParametersRequest)
 }
 
 func CreateProviderUser(rCtx access.RequestContext, r *api.SCIMUserCreateRequest) (*api.SCIMUser, error) {
-	
 	user := &models.ProviderUser{
 		GivenName:  r.Name.GivenName,
 		FamilyName: r.Name.FamilyName,
@@ -126,7 +124,6 @@ func CreateProviderUser(rCtx access.RequestContext, r *api.SCIMUserCreateRequest
 }
 
 func UpdateProviderUser(rCtx access.RequestContext, r *api.SCIMUserUpdateRequest) (*api.SCIMUser, error) {
-	
 	user := &models.ProviderUser{
 		IdentityID: r.ID,
 		GivenName:  r.Name.GivenName,
@@ -149,7 +146,6 @@ func UpdateProviderUser(rCtx access.RequestContext, r *api.SCIMUserUpdateRequest
 }
 
 func PatchProviderUser(rCtx access.RequestContext, r *api.SCIMUserPatchRequest) (*api.SCIMUser, error) {
-	
 	// we only support active status patching, so there can only be one operation
 	if len(r.Operations) != 1 || r.Operations[0].Op != "replace" {
 		return nil, internal.ErrBadRequest
@@ -167,5 +163,5 @@ func PatchProviderUser(rCtx access.RequestContext, r *api.SCIMUserPatchRequest) 
 }
 
 func DeleteProviderUser(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteProviderUser(getRequestContext(c), r.ID)
+	return nil, access.DeleteProviderUser(rCtx, r.ID)
 }

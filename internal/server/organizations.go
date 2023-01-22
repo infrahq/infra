@@ -9,7 +9,6 @@ import (
 )
 
 func (a *API) ListOrganizations(rCtx access.RequestContext, r *api.ListOrganizationsRequest) (*api.ListResponse[api.Organization], error) {
-	
 	p := PaginationFromRequest(r.PaginationRequest)
 	orgs, err := access.ListOrganizations(rCtx, r.Name, &p)
 	if err != nil {
@@ -24,7 +23,6 @@ func (a *API) ListOrganizations(rCtx access.RequestContext, r *api.ListOrganizat
 }
 
 func (a *API) GetOrganization(rCtx access.RequestContext, r *api.GetOrganizationRequest) (*api.Organization, error) {
-	
 	if r.ID.IsSelf {
 		iden := rCtx.Authenticated.Organization
 		if iden == nil {
@@ -41,7 +39,6 @@ func (a *API) GetOrganization(rCtx access.RequestContext, r *api.GetOrganization
 }
 
 func (a *API) CreateOrganization(rCtx access.RequestContext, r *api.CreateOrganizationRequest) (*api.Organization, error) {
-	
 	org := &models.Organization{
 		Name:      r.Name,
 		Domain:    r.Domain,
@@ -64,11 +61,10 @@ func (a *API) CreateOrganization(rCtx access.RequestContext, r *api.CreateOrgani
 }
 
 func (a *API) DeleteOrganization(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteOrganization(getRequestContext(c), r.ID)
+	return nil, access.DeleteOrganization(rCtx, r.ID)
 }
 
 func (a *API) UpdateOrganization(rCtx access.RequestContext, r *api.UpdateOrganizationRequest) (*api.Organization, error) {
-	
 	org, err := access.GetOrganization(rCtx, r.ID)
 	if err != nil {
 		return nil, err

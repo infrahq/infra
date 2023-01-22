@@ -17,7 +17,6 @@ import (
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(rCtx access.RequestContext, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
-	
 	p := PaginationFromRequest(r.PaginationRequest)
 	opts := data.ListProvidersOptions{
 		ByName:               r.Name,
@@ -43,7 +42,6 @@ func (a *API) ListProviders(rCtx access.RequestContext, r *api.ListProvidersRequ
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) GetProvider(rCtx access.RequestContext, r *api.Resource) (*api.Provider, error) {
-	
 	provider, err := data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
@@ -66,7 +64,6 @@ func cleanupURL(url string) string {
 }
 
 func (a *API) CreateProvider(rCtx access.RequestContext, r *api.CreateProviderRequest) (*api.Provider, error) {
-	
 	provider := &models.Provider{
 		Name:         r.Name,
 		URL:          cleanupURL(r.URL),
@@ -120,7 +117,6 @@ func (a *API) CreateProvider(rCtx access.RequestContext, r *api.CreateProviderRe
 }
 
 func (a *API) PatchProvider(rCtx access.RequestContext, r *api.PatchProviderRequest) (*api.Provider, error) {
-	
 	provider, err := data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
@@ -138,7 +134,6 @@ func (a *API) PatchProvider(rCtx access.RequestContext, r *api.PatchProviderRequ
 }
 
 func (a *API) UpdateProvider(rCtx access.RequestContext, r *api.UpdateProviderRequest) (*api.Provider, error) {
-	
 	provider := &models.Provider{
 		Model: models.Model{
 			ID: r.ID,
@@ -162,7 +157,7 @@ func (a *API) UpdateProvider(rCtx access.RequestContext, r *api.UpdateProviderRe
 	}
 	provider.Kind = kind
 
-	if err := a.setProviderInfoFromServer(c.Request.Context(), provider); err != nil {
+	if err := a.setProviderInfoFromServer(rCtx.Request.Context(), provider); err != nil {
 		return nil, err
 	}
 
@@ -174,7 +169,7 @@ func (a *API) UpdateProvider(rCtx access.RequestContext, r *api.UpdateProviderRe
 }
 
 func (a *API) DeleteProvider(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteProvider(getRequestContext(c), r.ID)
+	return nil, access.DeleteProvider(rCtx, r.ID)
 }
 
 // setProviderInfoFromServer checks information provided by an OIDC server

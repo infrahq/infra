@@ -16,8 +16,6 @@ import (
 )
 
 func (a *API) ListGrants(rCtx access.RequestContext, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
-	
-
 	rCtx.Response.AddLogFields(func(event *zerolog.Event) {
 		event.Int64("lastUpdateIndex", r.LastUpdateIndex)
 	})
@@ -64,7 +62,6 @@ func (a *API) ListGrants(rCtx access.RequestContext, r *api.ListGrantsRequest) (
 }
 
 func (a *API) GetGrant(rCtx access.RequestContext, r *api.Resource) (*api.Grant, error) {
-	
 	grant, err := access.GetGrant(rCtx, r.ID)
 	if err != nil {
 		return nil, err
@@ -74,7 +71,6 @@ func (a *API) GetGrant(rCtx access.RequestContext, r *api.Resource) (*api.Grant,
 }
 
 func (a *API) CreateGrant(rCtx access.RequestContext, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
-	
 	grant, err := getGrantFromGrantRequest(rCtx, *r)
 	if err != nil {
 		return nil, err
@@ -111,7 +107,6 @@ func (a *API) CreateGrant(rCtx access.RequestContext, r *api.GrantRequest) (*api
 }
 
 func (a *API) DeleteGrant(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
-	
 	grant, err := access.GetGrant(rCtx, r.ID)
 	if err != nil {
 		return nil, err
@@ -136,7 +131,6 @@ func (a *API) DeleteGrant(rCtx access.RequestContext, r *api.Resource) (*api.Emp
 }
 
 func (a *API) UpdateGrants(rCtx access.RequestContext, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
-	
 	iden := rCtx.Authenticated.User
 	var addGrants []*models.Grant
 	for _, g := range r.GrantsToAdd {
@@ -238,7 +232,7 @@ func (a *API) addPreviousVersionHandlersGrants() {
 		route[api.ListGrantsRequest, *api.ListResponse[grantV0_18_1]]{
 			routeSettings: defaultRouteSettingsGet,
 			handler: func(rCtx access.RequestContext, req *api.ListGrantsRequest) (*api.ListResponse[grantV0_18_1], error) {
-				resp, err := a.ListGrants(c, req)
+				resp, err := a.ListGrants(rCtx, req)
 				return api.CopyListResponse(resp, func(item api.Grant) grantV0_18_1 {
 					return *newGrantsV0_18_1FromLatest(&item)
 				}), err
@@ -249,7 +243,7 @@ func (a *API) addPreviousVersionHandlersGrants() {
 		route[api.Resource, *grantV0_18_1]{
 			routeSettings: defaultRouteSettingsGet,
 			handler: func(rCtx access.RequestContext, req *api.Resource) (*grantV0_18_1, error) {
-				resp, err := a.GetGrant(c, req)
+				resp, err := a.GetGrant(rCtx, req)
 				return newGrantsV0_18_1FromLatest(resp), err
 			},
 		})
@@ -261,7 +255,7 @@ func (a *API) addPreviousVersionHandlersGrants() {
 	addVersionHandler(a, http.MethodPost, "/api/grants", "0.18.1",
 		route[api.GrantRequest, *createGrantResponseV0_18_1]{
 			handler: func(rCtx access.RequestContext, req *api.GrantRequest) (*createGrantResponseV0_18_1, error) {
-				resp, err := a.CreateGrant(c, req)
+				resp, err := a.CreateGrant(rCtx, req)
 				if err != nil {
 					return nil, err
 				}

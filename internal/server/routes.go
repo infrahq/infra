@@ -261,7 +261,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 		c.Set(access.RequestContextKey, rCtx)
 
-		resp, err := route.handler(c, req)
+		resp, err := route.handler(rCtx, req)
 		if err != nil {
 			return err
 		}
@@ -394,7 +394,7 @@ func del[Req any, Res any](a *API, r *routeGroup, path string, handler HandlerFu
 	add(a, r, http.MethodDelete, path, route[Req, Res]{handler: handler})
 }
 
-func readRequest(rCtx access.RequestContext, req interface{}) error {
+func readRequest(c *gin.Context, req interface{}) error {
 	if len(c.Params) > 0 {
 		params := make(map[string][]string)
 		for _, v := range c.Params {

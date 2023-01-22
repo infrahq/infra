@@ -13,7 +13,6 @@ import (
 )
 
 func (a *API) ListAccessKeys(rCtx access.RequestContext, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
-	
 	p := PaginationFromRequest(r.PaginationRequest)
 	accessKeys, err := access.ListAccessKeys(rCtx, r.UserID, r.Name, r.ShowExpired, &p)
 	if err != nil {
@@ -29,16 +28,15 @@ func (a *API) ListAccessKeys(rCtx access.RequestContext, r *api.ListAccessKeysRe
 
 // DeleteAccessKey deletes an access key by id
 func (a *API) DeleteAccessKey(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteAccessKey(getRequestContext(c), r.ID, "")
+	return nil, access.DeleteAccessKey(rCtx, r.ID, "")
 }
 
 // DeleteAccessKeys deletes 0 or more access keys by any attribute
 func (a *API) DeleteAccessKeys(rCtx access.RequestContext, r *api.DeleteAccessKeyRequest) (*api.EmptyResponse, error) {
-	return nil, access.DeleteAccessKey(getRequestContext(c), 0, r.Name)
+	return nil, access.DeleteAccessKey(rCtx, 0, r.Name)
 }
 
 func (a *API) CreateAccessKey(rCtx access.RequestContext, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
-	
 	accessKey := &models.AccessKey{
 		IssuedForID:         r.IssuedForID,
 		IssuedForKind:       models.IssuedKind(r.IssuedForKind),
@@ -108,10 +106,12 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 					ShowExpired:       reqOld.ShowExpired,
 					PaginationRequest: reqOld.PaginationRequest,
 				}
+
 				if err := validate.Validate(req); err != nil {
 					return nil, err
 				}
-				resp, err := a.ListAccessKeys(c, req)
+
+				resp, err := a.ListAccessKeys(rCtx, req)
 				return api.CopyListResponse(resp, newAccessKeyV0_18_0FromLatest), err
 			},
 		})
@@ -149,7 +149,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 				if err := validate.Validate(req); err != nil {
 					return nil, err
 				}
-				resp, err := a.CreateAccessKey(c, req)
+				resp, err := a.CreateAccessKey(rCtx, req)
 				if err != nil {
 					return nil, err
 				}
@@ -169,7 +169,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 	addVersionHandler(a, http.MethodGet, "/api/access-keys", "0.18.0",
 		route[api.ListAccessKeysRequest, *api.ListResponse[accessKeyV0_18_0]]{
 			handler: func(rCtx access.RequestContext, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_18_0], error) {
-				resp, err := a.ListAccessKeys(c, req)
+				resp, err := a.ListAccessKeys(rCtx, req)
 				return api.CopyListResponse(resp, newAccessKeyV0_18_0FromLatest), err
 			},
 		})
@@ -194,7 +194,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 	addVersionHandler(a,
 		http.MethodPost, "/api/access-keys", "0.20.0",
 		route[createAccessKeyRequestV0_20_0, *createAccessKeyResponseV0_20_0]{
-			handler: func(c *gin.Context, reqOld *createAccessKeyRequestV0_20_0) (*createAccessKeyResponseV0_20_0, error) {
+			handler: func(rCtx access.RequestContext, reqOld *createAccessKeyRequestV0_20_0) (*createAccessKeyResponseV0_20_0, error) {
 				iss := reqOld.UserID
 				if iss == 0 {
 					// try setting this from the new field
@@ -212,7 +212,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 					req.IssuedForKind = api.KeyIssuedForKindProvider
 				}
 
-				resp, err := a.CreateAccessKey(c, req)
+				resp, err := a.CreateAccessKey(rCtx, req)
 				if err != nil {
 					return nil, err
 				}
@@ -259,8 +259,8 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 	addVersionHandler(a,
 		http.MethodGet, "/api/access-keys", "0.20.0",
 		route[api.ListAccessKeysRequest, *api.ListResponse[accessKeyV0_20_0]]{
-			handler: func(c *gin.Context, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_20_0], error) {
-				resp, err := a.ListAccessKeys(c, req)
+			handler: func(rCtx access.RequestContext, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_20_0], error) {
+				resp, err := a.ListAccessKeys(rCtx, req)
 				return api.CopyListResponse(resp, newAccessKeyV0_20_0FromLatest), err
 			},
 		})

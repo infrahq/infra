@@ -20,7 +20,6 @@ import (
 )
 
 func (a *API) ListUsers(rCtx access.RequestContext, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
-
 	p := PaginationFromRequest(r.PaginationRequest)
 
 	opts := data.ListIdentityOptions{
@@ -59,7 +58,6 @@ var getUserRoute = route[api.GetUserRequest, *api.User]{
 }
 
 func GetUser(rCtx access.RequestContext, r *api.GetUserRequest) (*api.User, error) {
-
 	if r.ID.IsSelf {
 		iden := rCtx.Authenticated.User
 		if iden == nil {
@@ -81,9 +79,6 @@ func GetUser(rCtx access.RequestContext, r *api.GetUserRequest) (*api.User, erro
 
 // CreateUser creates a user with the Infra provider
 func (a *API) CreateUser(rCtx access.RequestContext, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
-
-	user := &models.Identity{Name: r.Name}
-
 	user, err := access.GetIdentity(rCtx, data.GetIdentityOptions{ByName: r.Name, LoadProviders: true})
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
@@ -141,7 +136,6 @@ func (a *API) CreateUser(rCtx access.RequestContext, r *api.CreateUserRequest) (
 }
 
 func (a *API) UpdateUser(rCtx access.RequestContext, r *api.UpdateUserRequest) (*api.UpdateUserResponse, error) {
-
 	if rCtx.Authenticated.User.ID == r.ID {
 		if err := access.UpdateCredential(rCtx, rCtx.Authenticated.User, r.OldPassword, r.Password); err != nil {
 			return nil, err
@@ -169,7 +163,6 @@ func (a *API) UpdateUser(rCtx access.RequestContext, r *api.UpdateUserRequest) (
 }
 
 func (a *API) DeleteUser(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
-
 	if rCtx.Authenticated.User.ID == r.ID {
 		return nil, fmt.Errorf("%w: cannot delete own user", internal.ErrBadRequest)
 	}
@@ -182,7 +175,6 @@ func (a *API) DeleteUser(rCtx access.RequestContext, r *api.Resource) (*api.Empt
 }
 
 func AddUserPublicKey(rCtx access.RequestContext, r *api.AddUserPublicKeyRequest) (*api.UserPublicKey, error) {
-
 	// no authz required, because the userID comes from authenticated User.ID
 	if rCtx.Authenticated.User == nil {
 		return nil, fmt.Errorf("missing authentication")

@@ -58,8 +58,6 @@ var createTokenRoute = route[api.EmptyRequest, *api.CreateTokenResponse]{
 }
 
 func CreateToken(rCtx access.RequestContext, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
-	
-
 	if rCtx.Authenticated.User == nil {
 		return nil, fmt.Errorf("no authenticated user")
 	}
@@ -82,7 +80,6 @@ var wellKnownJWKsRoute = route[api.EmptyRequest, WellKnownJWKResponse]{
 }
 
 func wellKnownJWKsHandler(rCtx access.RequestContext, _ *api.EmptyRequest) (WellKnownJWKResponse, error) {
-	
 	keys, err := getPublicJWK(rCtx)
 	if err != nil {
 		return WellKnownJWKResponse{}, err
@@ -114,8 +111,6 @@ func wrapLinkWithVerification(link, domain, verificationToken string) string {
 }
 
 func (a *API) Login(rCtx access.RequestContext, r *api.LoginRequest) (*api.LoginResponse, error) {
-	
-
 	var onSuccess, onFailure func()
 
 	var loginMethod authn.LoginMethod
@@ -231,17 +226,16 @@ func (a *API) Login(rCtx access.RequestContext, r *api.LoginRequest) (*api.Login
 
 func (a *API) Logout(rCtx access.RequestContext, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
 	// does not need authorization check, this action is limited to the calling key
-	
 	id := rCtx.Authenticated.AccessKey.ID
 	err := data.DeleteAccessKeys(rCtx.DBTxn, data.DeleteAccessKeysOptions{ByID: id})
 	if err != nil {
 		return nil, err
 	}
 
-	deleteCookie(c.Request, rCtx.Response.HTTPWriter, cookieAuthorizationName, c.Request.Host)
+	deleteCookie(rCtx.Request, rCtx.Response.HTTPWriter, cookieAuthorizationName, rCtx.Request.Host)
 	return nil, nil
 }
 
-func (a *API) Version(rCtx access.RequestContext, r *api.EmptyRequest) (*api.Version, error) {
+func (a *API) Version(_ access.RequestContext, _ *api.EmptyRequest) (*api.Version, error) {
 	return &api.Version{Version: internal.FullVersion()}, nil
 }

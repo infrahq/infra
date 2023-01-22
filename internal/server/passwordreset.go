@@ -14,7 +14,6 @@ import (
 )
 
 func (a *API) RequestPasswordReset(rCtx access.RequestContext, r *api.PasswordResetRequest) (*api.EmptyResponse, error) {
-	
 	// no authorization required
 	if err := redis.NewLimiter(a.server.redis).RateOK(r.Email, 10); err != nil {
 		return nil, err
@@ -48,13 +47,12 @@ func (a *API) RequestPasswordReset(rCtx access.RequestContext, r *api.PasswordRe
 }
 
 func (a *API) VerifiedPasswordReset(rCtx access.RequestContext, r *api.VerifiedResetPasswordRequest) (*api.LoginResponse, error) {
-	
 	user, err := access.VerifiedPasswordReset(rCtx, r.Token, r.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	return a.Login(c, &api.LoginRequest{
+	return a.Login(rCtx, &api.LoginRequest{
 		PasswordCredentials: &api.LoginRequestPasswordCredentials{
 			Name:     user.Name,
 			Password: r.Password,

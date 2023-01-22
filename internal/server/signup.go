@@ -30,7 +30,6 @@ func (a *API) SignupRoute() route[api.SignupRequest, *api.SignupResponse] {
 }
 
 func (a *API) Signup(rCtx access.RequestContext, r *api.SignupRequest) (*api.SignupResponse, error) {
-
 	if !a.server.options.EnableSignup {
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
@@ -55,7 +54,7 @@ func (a *API) Signup(rCtx access.RequestContext, r *api.SignupRequest) (*api.Sig
 			RedirectURL: r.Social.RedirectURL,
 			Code:        r.Social.Code,
 		}
-		idpAuth, err := a.socialSignupUserAuth(c, provider, auth)
+		idpAuth, err := a.socialSignupUserAuth(rCtx, provider, auth)
 		if err != nil {
 			return nil, err // make sure to return this error directly for an unauthorized response
 		}
@@ -68,7 +67,7 @@ func (a *API) Signup(rCtx access.RequestContext, r *api.SignupRequest) (*api.Sig
 			Org:       &models.Organization{Name: r.OrgName},
 			SubDomain: r.Subdomain,
 		}
-		created, err = createOrgAndUserForSignup(c, keyExpires, a.server.options.BaseDomain, details)
+		created, err = createOrgAndUserForSignup(rCtx, keyExpires, a.server.options.BaseDomain, details)
 		if err != nil {
 			return nil, handleSignupError(err)
 		}
@@ -82,7 +81,7 @@ func (a *API) Signup(rCtx access.RequestContext, r *api.SignupRequest) (*api.Sig
 			SubDomain: r.Subdomain,
 		}
 		var err error
-		created, err = createOrgAndUserForSignup(c, keyExpires, a.server.options.BaseDomain, details)
+		created, err = createOrgAndUserForSignup(rCtx, keyExpires, a.server.options.BaseDomain, details)
 		if err != nil {
 			return nil, handleSignupError(err)
 		}
@@ -104,7 +103,7 @@ func (a *API) Signup(rCtx access.RequestContext, r *api.SignupRequest) (*api.Sig
 		Domain:  a.server.options.BaseDomain,
 		Expires: time.Now().Add(1 * time.Minute),
 	}
-	setCookie(c.Request, rCtx.Response.HTTPWriter, cookie)
+	setCookie(rCtx.Request, rCtx.Response.HTTPWriter, cookie)
 
 	a.t.User(created.Identity.ID.String(), created.Identity.Name)
 	a.t.Org(created.Organization.ID.String(), created.Identity.ID.String(), created.Organization.Name, created.Organization.Domain)
@@ -143,14 +142,14 @@ func handleSignupError(err error) error {
 }
 
 func (a *API) socialSignupUserAuth(rCtx access.RequestContext, provider *models.Provider, auth *authn.OIDCAuthn) (*providers.IdentityProviderAuth, error) {
-	providerClient, err := a.server.providerClient(c.Request.Context(), provider, auth.RedirectURL)
+	providerClient, err := a.server.providerClient(rCtx.Request.Context(), provider, auth.RedirectURL)
 	if err != nil {
 		return nil, fmt.Errorf("sign-up provider client: %w", err)
 	}
 	auth.OIDCProviderClient = providerClient
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
-	result, err := auth.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(c, auth.Code)
+	result, err := auth.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(rCtx.Request.Context(), auth.Code)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
@@ -366,10 +365,12 @@ func (a *API) addPreviousVersionHandlersSignup() {
 					OrgName:   reqOld.Org.Name,
 					Subdomain: reqOld.Org.Subdomain,
 				}
+
 				if err := validate.Validate(req); err != nil {
 					return nil, err
 				}
-				return a.Signup(c, req)
+
+				return a.Signup(rCtx, req)
 			},
 		},
 	)
