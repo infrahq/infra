@@ -169,7 +169,7 @@ function PersonalKeys() {
                         setOpenDeleteModal(false)
                         mutate()
                       }}
-                      title='Remove Access Key'
+                      title='Remove personal key'
                       message={
                         <div>
                           Are you sure you want to remove access key:{' '}
@@ -324,7 +324,7 @@ function ConnectorKeys() {
                         setOpenDeleteModal(false)
                         mutate()
                       }}
-                      title='Remove Access Key'
+                      title='Remove connector key'
                       message={
                         <div>
                           Are you sure you want to remove access key:{' '}
