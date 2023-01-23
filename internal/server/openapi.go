@@ -218,19 +218,22 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 func newOpenAPIDoc(version string) openapi3b.Doc {
 	doc := openapi3b.Doc{}
 	doc.OpenAPI = "3.0.0"
-	doc.Info = &openapi3.Info{
+	doc.Info = &openapi3b.Info{
 		Title:       "Infra API",
 		Version:     version,
 		Description: "Infra API",
-		License:     &openapi3.License{Name: "Elastic License v2.0", URL: "https://www.elastic.co/licensing/elastic-license"},
+		License: &openapi3b.License{
+			Name: "Elastic License v2.0",
+			URL:  "https://www.elastic.co/licensing/elastic-license",
+		},
 	}
-	doc.Servers = []*openapi3.Server{
+	doc.Servers = []openapi3b.Server{
 		{URL: "https://api.infrahq.com"},
 	}
 	return doc
 }
 
-func writeOpenAPISpec(spec openapi3b.Doc, out io.Writer) error {
+func writeOpenAPIDoc(spec openapi3b.Doc, out io.Writer) error {
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
 
@@ -246,10 +249,7 @@ func WriteOpenAPIDocToFile(openAPIDoc openapi3b.Doc, filename string) error {
 		return err
 	}
 	defer fh.Close()
-	if err := writeOpenAPISpec(openAPIDoc, fh); err != nil {
-		return err
-	}
-	return nil
+	return writeOpenAPIDoc(openAPIDoc, fh)
 }
 
 func updateSchemaFromStructTags(field reflect.StructField, schema *openapi3.Schema) {
