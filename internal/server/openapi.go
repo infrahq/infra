@@ -512,14 +512,10 @@ func buildRequest(r reflect.Type, op *openapi3b.Operation, method string, requir
 	switch method {
 	// These methods accept arguments from a request body
 	case http.MethodPut, http.MethodPost, http.MethodPatch:
-		op.RequestBody = &openapi3.RequestBodyRef{
-			Value: &openapi3.RequestBody{
-				Content: openapi3.Content{
-					"application/json": &openapi3.MediaType{
-						Schema: &openapi3.SchemaRef{
-							Value: schema,
-						},
-					},
+		op.RequestBody = &openapi3b.RequestBody{
+			Content: map[string]*openapi3b.MediaType{
+				"application/json": {
+					Schema: &openapi3.SchemaRef{Value: schema},
 				},
 			},
 		}

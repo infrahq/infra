@@ -38,21 +38,38 @@ type PathItem struct {
 // Operation represents "operation" specified by" OpenAPI/Swagger 3.0 standard.
 // See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#operation-object
 type Operation struct {
-	Description string                   `json:"description,omitempty" yaml:"description,omitempty"`
-	OperationID string                   `json:"operationId,omitempty" yaml:"operationId,omitempty"`
-	Parameters  []*Parameter             `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-	RequestBody *openapi3.RequestBodyRef `json:"requestBody,omitempty" yaml:"requestBody,omitempty"`
-	Responses   openapi3.Responses       `json:"responses" yaml:"responses"` // Required
-	Callbacks   openapi3.Callbacks       `json:"callbacks,omitempty" yaml:"callbacks,omitempty"`
-	Deprecated  bool                     `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
-	Security    []SecurityRequirement    `json:"security,omitempty" yaml:"security,omitempty"`
-	Servers     []Server                 `json:"servers,omitempty" yaml:"servers,omitempty"`
-	Summary     string                   `json:"summary,omitempty" yaml:"summary,omitempty"`
-	Tags        []string                 `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Description string                `json:"description,omitempty" yaml:"description,omitempty"`
+	OperationID string                `json:"operationId,omitempty" yaml:"operationId,omitempty"`
+	Parameters  []*Parameter          `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	RequestBody *RequestBody          `json:"requestBody,omitempty" yaml:"requestBody,omitempty"`
+	Responses   openapi3.Responses    `json:"responses" yaml:"responses"` // Required
+	Callbacks   openapi3.Callbacks    `json:"callbacks,omitempty" yaml:"callbacks,omitempty"`
+	Deprecated  bool                  `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
+	Security    []SecurityRequirement `json:"security,omitempty" yaml:"security,omitempty"`
+	Servers     []Server              `json:"servers,omitempty" yaml:"servers,omitempty"`
+	Summary     string                `json:"summary,omitempty" yaml:"summary,omitempty"`
+	Tags        []string              `json:"tags,omitempty" yaml:"tags,omitempty"`
 }
 
 func (o *Operation) AddParameter(p *Parameter) {
 	o.Parameters = append(o.Parameters, p)
+}
+
+// RequestBody is specified by OpenAPI/Swagger 3.0 standard.
+// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#request-body-object
+type RequestBody struct {
+	Description string                `json:"description,omitempty" yaml:"description,omitempty"`
+	Required    bool                  `json:"required,omitempty" yaml:"required,omitempty"`
+	Content     map[string]*MediaType `json:"content" yaml:"content"`
+}
+
+// MediaType is specified by OpenAPI/Swagger 3.0 standard.
+// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#media-type-object
+type MediaType struct {
+	Schema   *openapi3.SchemaRef           `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Example  interface{}                   `json:"example,omitempty" yaml:"example,omitempty"`
+	Examples map[string]*openapi3.Example  `json:"examples,omitempty" yaml:"examples,omitempty"`
+	Encoding map[string]*openapi3.Encoding `json:"encoding,omitempty" yaml:"encoding,omitempty"`
 }
 
 // Parameter is specified by OpenAPI/Swagger 3.0 standard.
