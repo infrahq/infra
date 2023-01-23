@@ -302,7 +302,7 @@ function ConnectorKeys() {
                     <div className='group invisible rounded-md bg-white group-hover:visible'>
                       <button
                         type='button'
-                        onClick={() => setOpen(true)}
+                        onClick={() => setOpenDeleteModal(true)}
                         className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
                       >
                         <div className='flex flex-row items-center'>
@@ -634,15 +634,13 @@ function Admins() {
               const [open, setOpen] = useState(false)
               const [deleteId, setDeleteId] = useState(null)
 
-              const { id, name } = info.row.original
-
               return (
                 grants?.length > 1 && (
                   <div className='text-right'>
                     <div className='group invisible rounded-md bg-white group-hover:visible'>
                       <button
                         onClick={() => {
-                          setDeleteId(id)
+                          setDeleteId(info.row.original.id)
                           setOpen(true)
                         }}
                         className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
@@ -651,7 +649,9 @@ function Admins() {
                           <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
                           Revoke
                         </div>
-                        <span className='sr-only'>{name}</span>
+                        <span className='sr-only'>
+                          {info.row.original.name}
+                        </span>
                       </button>
                     </div>
                     <DeleteModal
