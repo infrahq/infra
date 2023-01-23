@@ -27,27 +27,27 @@ function ComboBox({ options = [], selected, setSelected }) {
     <HeadlessUIComboBox
       as='div'
       className='relative w-full'
-      value={selected}
+      value={selected || ''}
       onChange={user => {
         setSelected(user)
       }}
-      onClick={() => {
-        button.current?.click()
-      }}
     >
       <HeadlessUIComboBox.Input
-        className='w-full rounded-md border border-gray-300 bg-white py-[7px] pl-2.5 pr-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 md:text-xs'
+        className='w-full rounded-md border border-gray-300 bg-white pl-2.5 pr-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 md:text-xs'
         placeholder='Enter user'
         type='search'
-        onChange={event => setQuery(event.target.value)}
+        onChange={event => {
+          setQuery(event.target.value)
+          if (event.target.value.length === 0) {
+            setSelected(null)
+          }
+        }}
         onFocus={() => {
           if (!selected) {
             button.current?.click()
           }
         }}
       />
-      <HeadlessUIComboBox.Button className='hidden' ref={button} />
-
       {filtered?.length > 0 && (
         <HeadlessUIComboBox.Options className='absolute z-30 mt-2 max-h-64 min-w-[16rem] max-w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
           {filtered.map(o => (
@@ -56,15 +56,15 @@ function ComboBox({ options = [], selected, setSelected }) {
               value={o}
               className={({ active }) =>
                 `relative cursor-default select-none py-2 pl-3 pr-9
-                  ${active ? 'bg-gray-100' : 'bg-transparent'}`
+            ${active ? 'bg-gray-100' : 'bg-transparent'}`
               }
             >
               {({ active, selected }) => (
                 <>
                   <span
                     className={`
-                          block truncate
-                          ${selected ? 'font-medium' : ''}`}
+                    block truncate
+                    ${selected ? 'font-medium' : ''}`}
                   >
                     {o}
                   </span>
@@ -72,8 +72,8 @@ function ComboBox({ options = [], selected, setSelected }) {
                   {selected && (
                     <span
                       className={`
-                            absolute inset-y-0 right-0 flex items-center pr-4
-                            ${active ? 'bg-gray-100' : 'bg-transparent'}`}
+                    absolute inset-y-0 right-0 flex items-center pr-4
+                    ${active ? 'bg-gray-100' : 'bg-transparent'}`}
                     >
                       <CheckIcon
                         className='h-4 w-4 text-gray-600'
@@ -87,6 +87,7 @@ function ComboBox({ options = [], selected, setSelected }) {
           ))}
         </HeadlessUIComboBox.Options>
       )}
+      <HeadlessUIComboBox.Button className='hidden' ref={button} />
     </HeadlessUIComboBox>
   )
 }

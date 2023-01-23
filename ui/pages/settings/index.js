@@ -136,17 +136,23 @@ function PersonalKeys() {
                 const { name, id } = info.row.original
 
                 return (
-                  <div className='flex justify-end'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setOpenDeleteModal(true)
-                      }}
-                      className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                      <span className='hidden sm:block'>Remove</span>
-                    </button>
+                  <div className='text-right'>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setOpenDeleteModal(true)
+                        }}
+                        className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <div className='flex flex-row items-center'>
+                          <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                          Remove
+                        </div>
+                        <span className='sr-only'>{name}</span>
+                      </button>
+                    </div>
+
                     <DeleteModal
                       open={openDeleteModal}
                       setOpen={setOpenDeleteModal}
@@ -292,17 +298,21 @@ function ConnectorKeys() {
                 const { name, id } = info.row.original
 
                 return (
-                  <div className='flex justify-end'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setOpenDeleteModal(true)
-                      }}
-                      className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                      <span className='hidden sm:block'>Remove</span>
-                    </button>
+                  <div className='text-right'>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        type='button'
+                        onClick={() => setOpen(true)}
+                        className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <div className='flex flex-row items-center'>
+                          <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                          Remove
+                        </div>
+                        <span className='sr-only'>{name}</span>
+                      </button>
+                    </div>
+
                     <DeleteModal
                       open={openDeleteModal}
                       setOpen={setOpenDeleteModal}
@@ -445,7 +455,7 @@ function Password() {
             required
             name={'old-password'}
             type='password'
-            autoComplete='off'
+            autoComplete='current-password'
             value={oldPassword}
             onChange={e => {
               setOldPassword(e.target.value)
@@ -471,7 +481,7 @@ function Password() {
             required
             name='newPassword'
             type='password'
-            autoComplete='off'
+            autoComplete='new-password'
             value={password}
             onChange={e => {
               setPassword(e.target.value)
@@ -497,7 +507,7 @@ function Password() {
             required
             name='confirmPassword'
             type='password'
-            autoComplete='off'
+            autoComplete='new-password'
             value={confirmPassword}
             onChange={e => {
               setConfirmPassword(e.target.value)
@@ -624,22 +634,26 @@ function Admins() {
               const [open, setOpen] = useState(false)
               const [deleteId, setDeleteId] = useState(null)
 
+              const { id, name } = info.row.original
+
               return (
                 grants?.length > 1 && (
                   <div className='text-right'>
-                    <button
-                      onClick={() => {
-                        setDeleteId(info.row.original.id)
-                        setOpen(true)
-                      }}
-                      className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <div className='flex flex-row items-center'>
-                        <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
-                        Revoke
-                      </div>
-                      <span className='sr-only'>{info.row.original.name}</span>
-                    </button>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        onClick={() => {
+                          setDeleteId(id)
+                          setOpen(true)
+                        }}
+                        className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <div className='flex flex-row items-center'>
+                          <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                          Revoke
+                        </div>
+                        <span className='sr-only'>{name}</span>
+                      </button>
+                    </div>
                     <DeleteModal
                       open={open}
                       setOpen={setOpen}
@@ -653,7 +667,7 @@ function Admins() {
 
                         setOpen(false)
                       }}
-                      title='Revoke Admin'
+                      title='Revoke admin'
                       message={
                         !grantsList?.find(grant => grant.id === deleteId)
                           ?.message ? (
@@ -697,7 +711,6 @@ function Authentication() {
   const [error, setError] = useState('')
 
   async function removeDomain(e, domain) {
-    console.log('removedomain')
     e.preventDefault()
     const newAllowedDomains = allowedDomains.filter(d => d !== domain)
     updateAllowedDomains(newAllowedDomains)
