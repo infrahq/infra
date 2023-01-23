@@ -31,10 +31,6 @@ func VerifiedPasswordReset(rCtx RequestContext, token, password string) (*models
 		}
 	}
 
-	if err := checkPasswordRequirements(tx, password); err != nil {
-		return nil, err
-	}
-
 	credential, err := data.GetCredentialByUserID(tx, user.ID)
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
@@ -48,9 +44,15 @@ func VerifiedPasswordReset(rCtx RequestContext, token, password string) (*models
 		return nil, fmt.Errorf("get credential: %w", err)
 	}
 
-	credential.OneTimePassword = false
+	hash, err := GenerateFromPassword(password)
+	if err != nil {
+		return nil, err
+	}
 
-	if err := updateCredential(tx, credential, password); err != nil {
+	credential.OneTimePassword = false
+	credential.PasswordHash = hash
+
+	if err := data.UpdateCredential(tx, credential); err != nil {
 		return nil, err
 	}
 

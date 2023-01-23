@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -247,7 +246,7 @@ func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomai
 			return nil, err
 		}
 
-		hash, err := bcrypt.GenerateFromPassword([]byte(details.User.Password), bcrypt.DefaultCost)
+		hash, err := access.GenerateFromPassword(details.User.Password)
 		if err != nil {
 			return nil, fmt.Errorf("hash password on sign-up: %w", err)
 		}

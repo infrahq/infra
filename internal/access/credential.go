@@ -86,10 +86,16 @@ func ResetCredential(rCtx RequestContext, user *models.Identity, newPassword str
 		return "", fmt.Errorf("get credential: %w", err)
 	}
 
-	credential.OneTimePassword = true
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("generate from password: %w", err)
+	}
 
-	if err := updateCredential(tx, credential, newPassword); err != nil {
-		return "", err
+	credential.OneTimePassword = true
+	credential.PasswordHash = hash
+
+	if err := data.UpdateCredential(tx, credential); err != nil {
+		return "", fmt.Errorf("update credential: %w", err)
 	}
 
 	return newPassword, nil
@@ -116,14 +122,16 @@ func UpdateCredential(rCtx RequestContext, user *models.Identity, oldPassword, n
 		return errs
 	}
 
-	if err := checkPasswordRequirements(tx, newPassword); err != nil {
+	hash, err := GenerateFromPassword(newPassword)
+	if err != nil {
 		return err
 	}
 
 	credential.OneTimePassword = false
+	credential.PasswordHash = hash
 
-	if err := updateCredential(tx, credential, newPassword); err != nil {
-		return err
+	if err := data.UpdateCredential(tx, credential); err != nil {
+		return fmt.Errorf("update credential: %w", err)
 	}
 
 	// if we updated our own password, remove the password-reset scope from our access key.
@@ -143,31 +151,16 @@ func UpdateCredential(rCtx RequestContext, user *models.Identity, oldPassword, n
 	return nil
 }
 
-func updateCredential(tx *data.Transaction, credential *models.Credential, password string) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("generate from password: %w", err)
-	}
-
-	credential.PasswordHash = hash
-
-	if err := data.UpdateCredential(tx, credential); err != nil {
-		return fmt.Errorf("update credential: %w", err)
-	}
-
-	return nil
-}
-
-func checkPasswordRequirements(db data.ReadTxn, password string) error {
+func GenerateFromPassword(password string) ([]byte, error) {
 	if len(password) < 8 {
-		return validate.Error{"password": []string{"8 characters"}}
+		return nil, validate.Error{"password": []string{"8 characters"}}
 	}
 
 	if err := checkBadPasswords(password); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 }
 
 // checkBadPasswords checks if the password is a known bad password, i.e. a widely reused password.
