@@ -80,15 +80,15 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type, req
 	}
 
 	if a.openAPIDoc.Paths == nil {
-		a.openAPIDoc.Paths = openapi3.Paths{}
+		a.openAPIDoc.Paths = map[string]*openapi3b.PathItem{}
 	}
 
 	p, ok := a.openAPIDoc.Paths[path]
 	if !ok {
-		p = &openapi3.PathItem{}
+		p = &openapi3b.PathItem{}
 	}
 
-	op := openapi3.NewOperation()
+	op := &openapi3b.Operation{}
 	op.OperationID = funcName
 	op.Description = funcName
 	op.Summary = funcName
@@ -387,7 +387,7 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 // so that tests expect a consistent value that does not change with every release.
 var productVersion = internal.FullVersion
 
-func buildRequest(r reflect.Type, op *openapi3.Operation, method string, requiresAuthentication bool) {
+func buildRequest(r reflect.Type, op *openapi3b.Operation, method string, requiresAuthentication bool) {
 	if r.Kind() == reflect.Pointer {
 		r = r.Elem()
 	}
@@ -396,9 +396,9 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 		panic(fmt.Sprintf("openapi: unexpected kind %v (%v) for %v request struct", r.Kind(), r, op.OperationID))
 	}
 
-	op.Parameters = openapi3.NewParameters()
+	op.Parameters = []*openapi3b.Parameter{}
 
-	op.AddParameter(&openapi3.Parameter{
+	op.AddParameter(&openapi3b.Parameter{
 		Name:     "Infra-Version",
 		In:       "header",
 		Required: true,
@@ -413,7 +413,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 	})
 
 	if requiresAuthentication {
-		op.AddParameter(&openapi3.Parameter{
+		op.AddParameter(&openapi3b.Parameter{
 			Name:     "Authorization",
 			In:       "header",
 			Required: true,
@@ -436,12 +436,12 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 	for i := 0; i < r.NumField(); i++ {
 		f := r.Field(i)
 		if f.Type.Kind() == reflect.Struct && f.Anonymous {
-			tmpOp := openapi3.NewOperation()
+			tmpOp := &openapi3b.Operation{}
 
 			buildRequest(f.Type, tmpOp, method, false)
 			for _, param := range tmpOp.Parameters {
-				if param.Value.Name != "Infra-Version" && param.Value.Name != "Authorization" {
-					op.AddParameter(param.Value)
+				if param.Name != "Infra-Version" && param.Name != "Authorization" {
+					op.AddParameter(param)
 				}
 			}
 
@@ -464,7 +464,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 			continue
 		}
 
-		p := &openapi3.Parameter{Name: propName, Schema: propSchema}
+		p := &openapi3b.Parameter{Name: propName, Schema: propSchema}
 
 		if _, ok := f.Tag.Lookup("form"); ok {
 			p.In = "query"
@@ -503,9 +503,9 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 	// Remove any non-body parameter from the parent schema now that the validation
 	// rules have had a chance to update them.
 	for _, param := range op.Parameters {
-		if param.Value.In != "" {
-			delete(schema.Properties, param.Value.Name)
-			schema.Required = removeString(schema.Required, param.Value.Name)
+		if param.In != "" {
+			delete(schema.Properties, param.Name)
+			schema.Required = removeString(schema.Required, param.Name)
 		}
 	}
 
