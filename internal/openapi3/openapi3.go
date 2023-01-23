@@ -68,28 +68,47 @@ type RequestBody struct {
 // MediaType is specified by OpenAPI/Swagger 3.0 standard.
 // See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#media-type-object
 type MediaType struct {
-	Schema   *openapi3.SchemaRef           `json:"schema,omitempty" yaml:"schema,omitempty"`
-	Example  interface{}                   `json:"example,omitempty" yaml:"example,omitempty"`
-	Examples map[string]*openapi3.Example  `json:"examples,omitempty" yaml:"examples,omitempty"`
-	Encoding map[string]*openapi3.Encoding `json:"encoding,omitempty" yaml:"encoding,omitempty"`
+	Schema   *openapi3.SchemaRef `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Example  interface{}         `json:"example,omitempty" yaml:"example,omitempty"`
+	Examples map[string]Example  `json:"examples,omitempty" yaml:"examples,omitempty"`
+	Encoding map[string]Encoding `json:"encoding,omitempty" yaml:"encoding,omitempty"`
 }
 
 // Parameter is specified by OpenAPI/Swagger 3.0 standard.
 // See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#parameter-object
 type Parameter struct {
-	AllowEmptyValue bool                `json:"allowEmptyValue,omitempty" yaml:"allowEmptyValue,omitempty"`
-	AllowReserved   bool                `json:"allowReserved,omitempty" yaml:"allowReserved,omitempty"`
-	Deprecated      bool                `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
-	Description     string              `json:"description,omitempty" yaml:"description,omitempty"`
-	Example         interface{}         `json:"example,omitempty" yaml:"example,omitempty"`
-	Examples        openapi3.Examples   `json:"examples,omitempty" yaml:"examples,omitempty"`
-	Explode         *bool               `json:"explode,omitempty" yaml:"explode,omitempty"`
-	In              string              `json:"in,omitempty" yaml:"in,omitempty"`
-	Name            string              `json:"name,omitempty" yaml:"name,omitempty"`
-	Required        bool                `json:"required,omitempty" yaml:"required,omitempty"`
-	Schema          *openapi3.SchemaRef `json:"schema,omitempty" yaml:"schema,omitempty"`
-	Style           string              `json:"style,omitempty" yaml:"style,omitempty"`
-	Content         openapi3.Content    `json:"content,omitempty" yaml:"content,omitempty"`
+	AllowEmptyValue bool                  `json:"allowEmptyValue,omitempty" yaml:"allowEmptyValue,omitempty"`
+	AllowReserved   bool                  `json:"allowReserved,omitempty" yaml:"allowReserved,omitempty"`
+	Deprecated      bool                  `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
+	Description     string                `json:"description,omitempty" yaml:"description,omitempty"`
+	Example         interface{}           `json:"example,omitempty" yaml:"example,omitempty"`
+	Examples        map[string]Example    `json:"examples,omitempty" yaml:"examples,omitempty"`
+	Explode         *bool                 `json:"explode,omitempty" yaml:"explode,omitempty"`
+	In              string                `json:"in,omitempty" yaml:"in,omitempty"`
+	Name            string                `json:"name,omitempty" yaml:"name,omitempty"`
+	Required        bool                  `json:"required,omitempty" yaml:"required,omitempty"`
+	Schema          *openapi3.SchemaRef   `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Style           string                `json:"style,omitempty" yaml:"style,omitempty"`
+	Content         map[string]*MediaType `json:"content,omitempty" yaml:"content,omitempty"`
+}
+
+// Example is specified by OpenAPI/Swagger 3.0 standard.
+// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#example-object
+type Example struct {
+	Summary       string      `json:"summary,omitempty" yaml:"summary,omitempty"`
+	Description   string      `json:"description,omitempty" yaml:"description,omitempty"`
+	Value         interface{} `json:"value,omitempty" yaml:"value,omitempty"`
+	ExternalValue string      `json:"externalValue,omitempty" yaml:"externalValue,omitempty"`
+}
+
+// Encoding is specified by OpenAPI/Swagger 3.0 standard.
+// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object
+type Encoding struct {
+	ContentType   string                `json:"contentType,omitempty" yaml:"contentType,omitempty"`
+	Headers       map[string]*Parameter `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Style         string                `json:"style,omitempty" yaml:"style,omitempty"`
+	Explode       *bool                 `json:"explode,omitempty" yaml:"explode,omitempty"`
+	AllowReserved bool                  `json:"allowReserved,omitempty" yaml:"allowReserved,omitempty"`
 }
 
 // Response is specified by OpenAPI/Swagger 3.0 standard.
