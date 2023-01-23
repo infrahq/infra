@@ -3,8 +3,9 @@ package validate
 import (
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/openapi3"
 )
 
 type EmailExample struct {
@@ -95,9 +96,9 @@ func TestEmail_DescribeSchema(t *testing.T) {
 	var schema openapi3.Schema
 	e.DescribeSchema(&schema)
 	expected := openapi3.Schema{
-		Properties: openapi3.Schemas{
+		Properties: map[string]*openapi3.SchemaRef{
 			"addrField": &openapi3.SchemaRef{
-				Value: &openapi3.Schema{Format: "email"},
+				Schema: &openapi3.Schema{Format: "email"},
 			},
 		},
 	}

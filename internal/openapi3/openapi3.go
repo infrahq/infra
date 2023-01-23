@@ -1,19 +1,26 @@
 package openapi3
 
-import (
-	"github.com/getkin/kin-openapi/openapi3"
-)
-
 // Doc is the root of an OpenAPI v3 document
 // See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#openapi-object
 type Doc struct {
 	OpenAPI    string                `json:"openapi" yaml:"openapi"` // Required
-	Components openapi3.Components   `json:"components,omitempty" yaml:"components,omitempty"`
+	Components Components            `json:"components,omitempty" yaml:"components,omitempty"`
 	Info       *Info                 `json:"info" yaml:"info"`   // Required
 	Paths      map[string]*PathItem  `json:"paths" yaml:"paths"` // Required
 	Security   []SecurityRequirement `json:"security,omitempty" yaml:"security,omitempty"`
 	Servers    []Server              `json:"servers,omitempty" yaml:"servers,omitempty"`
 	Tags       []Tag                 `json:"tags,omitempty" yaml:"tags,omitempty"`
+}
+
+// Components is specified by OpenAPI/Swagger standard version 3.
+// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#components-object
+type Components struct {
+	Schemas    map[string]*SchemaRef `json:"schemas,omitempty" yaml:"schemas,omitempty"`
+	Parameters map[string]*Parameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Headers    map[string]*Parameter `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Responses  map[string]Response   `json:"responses,omitempty" yaml:"responses,omitempty"`
+	Examples   map[string]Example    `json:"examples,omitempty" yaml:"examples,omitempty"`
+	Callbacks  map[string]Callback   `json:"callbacks,omitempty" yaml:"callbacks,omitempty"`
 }
 
 // PathItem is specified by OpenAPI/Swagger standard version 3.
@@ -68,7 +75,7 @@ type RequestBody struct {
 // MediaType is specified by OpenAPI/Swagger 3.0 standard.
 // See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#media-type-object
 type MediaType struct {
-	Schema   *openapi3.SchemaRef `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Schema   *SchemaRef          `json:"schema,omitempty" yaml:"schema,omitempty"`
 	Example  interface{}         `json:"example,omitempty" yaml:"example,omitempty"`
 	Examples map[string]Example  `json:"examples,omitempty" yaml:"examples,omitempty"`
 	Encoding map[string]Encoding `json:"encoding,omitempty" yaml:"encoding,omitempty"`
@@ -87,9 +94,55 @@ type Parameter struct {
 	In              string                `json:"in,omitempty" yaml:"in,omitempty"`
 	Name            string                `json:"name,omitempty" yaml:"name,omitempty"`
 	Required        bool                  `json:"required,omitempty" yaml:"required,omitempty"`
-	Schema          *openapi3.SchemaRef   `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Schema          *SchemaRef            `json:"schema,omitempty" yaml:"schema,omitempty"`
 	Style           string                `json:"style,omitempty" yaml:"style,omitempty"`
 	Content         map[string]*MediaType `json:"content,omitempty" yaml:"content,omitempty"`
+}
+
+// SchemaRef represents either a Schema or a $ref to a Schema.
+// When serializing and both fields are set, Ref is preferred over Value.
+type SchemaRef struct {
+	Ref     string `json:"$ref,omitempty"`
+	*Schema `json:",inline,omitempty"`
+}
+
+// Schema is specified by OpenAPI/Swagger 3.0 standard.
+// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#schema-object
+type Schema struct {
+	AdditionalProperties        *SchemaRef            `multijson:"additionalProperties,omitempty" json:"-" yaml:"-"`
+	AdditionalPropertiesAllowed *bool                 `multijson:"additionalProperties,omitempty" json:"-" yaml:"-"`
+	AllOf                       []*SchemaRef          `json:"allOf,omitempty" yaml:"allOf,omitempty"`
+	AllowEmptyValue             bool                  `json:"allowEmptyValue,omitempty" yaml:"allowEmptyValue,omitempty"`
+	AnyOf                       []*SchemaRef          `json:"anyOf,omitempty" yaml:"anyOf,omitempty"`
+	Default                     interface{}           `json:"default,omitempty" yaml:"default,omitempty"`
+	Deprecated                  bool                  `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
+	Description                 string                `json:"description,omitempty" yaml:"description,omitempty"`
+	Enum                        []interface{}         `json:"enum,omitempty" yaml:"enum,omitempty"`
+	Example                     interface{}           `json:"example,omitempty" yaml:"example,omitempty"`
+	ExclusiveMax                bool                  `json:"exclusiveMaximum,omitempty" yaml:"exclusiveMaximum,omitempty"`
+	ExclusiveMin                bool                  `json:"exclusiveMinimum,omitempty" yaml:"exclusiveMinimum,omitempty"`
+	Format                      string                `json:"format,omitempty" yaml:"format,omitempty"`
+	Items                       *SchemaRef            `json:"items,omitempty" yaml:"items,omitempty"`
+	Max                         *float64              `json:"maximum,omitempty" yaml:"maximum,omitempty"`
+	MaxItems                    *uint64               `json:"maxItems,omitempty" yaml:"maxItems,omitempty"`
+	MaxLength                   *uint64               `json:"maxLength,omitempty" yaml:"maxLength,omitempty"`
+	MaxProps                    *uint64               `json:"maxProperties,omitempty" yaml:"maxProperties,omitempty"`
+	Min                         *float64              `json:"minimum,omitempty" yaml:"minimum,omitempty"`
+	MinItems                    uint64                `json:"minItems,omitempty" yaml:"minItems,omitempty"`
+	MinLength                   uint64                `json:"minLength,omitempty" yaml:"minLength,omitempty"`
+	MinProps                    uint64                `json:"minProperties,omitempty" yaml:"minProperties,omitempty"`
+	MultipleOf                  *float64              `json:"multipleOf,omitempty" yaml:"multipleOf,omitempty"`
+	Not                         *SchemaRef            `json:"not,omitempty" yaml:"not,omitempty"`
+	Nullable                    bool                  `json:"nullable,omitempty" yaml:"nullable,omitempty"`
+	OneOf                       []*SchemaRef          `json:"oneOf,omitempty" yaml:"oneOf,omitempty"`
+	Pattern                     string                `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	Properties                  map[string]*SchemaRef `json:"properties,omitempty" yaml:"properties,omitempty"`
+	ReadOnly                    bool                  `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
+	Required                    []string              `json:"required,omitempty" yaml:"required,omitempty"`
+	Title                       string                `json:"title,omitempty" yaml:"title,omitempty"`
+	Type                        string                `json:"type,omitempty" yaml:"type,omitempty"`
+	UniqueItems                 bool                  `json:"uniqueItems,omitempty" yaml:"uniqueItems,omitempty"`
+	WriteOnly                   bool                  `json:"writeOnly,omitempty" yaml:"writeOnly,omitempty"`
 }
 
 // Example is specified by OpenAPI/Swagger 3.0 standard.

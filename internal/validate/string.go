@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/infrahq/infra/internal/openapi3"
 )
 
 type StringRule struct {

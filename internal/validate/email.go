@@ -5,7 +5,7 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/infrahq/infra/internal/openapi3"
 )
 
 // Email validates a field that should contain an email address.

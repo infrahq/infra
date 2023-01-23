@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/infrahq/infra/api"
@@ -76,7 +75,7 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type, req
 	})
 
 	if a.openAPIDoc.Components.Schemas == nil {
-		a.openAPIDoc.Components.Schemas = openapi3.Schemas{}
+		a.openAPIDoc.Components.Schemas = map[string]*openapi3b.SchemaRef{}
 	}
 
 	if a.openAPIDoc.Paths == nil {
@@ -131,7 +130,7 @@ func getFuncName(i interface{}) string {
 }
 
 // createComponent creates and returns the SchemaRef for a response type.
-func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.SchemaRef {
+func createComponent(schemas map[string]*openapi3b.SchemaRef, rst reflect.Type) *openapi3b.SchemaRef {
 	if rst.Kind() == reflect.Pointer {
 		rst = rst.Elem()
 	}
@@ -139,8 +138,8 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 		panic(fmt.Sprintf("openapi: unexpected kind %v (%v) for response struct", rst.Kind(), rst))
 	}
 
-	schema := &openapi3.Schema{
-		Properties: openapi3.Schemas{},
+	schema := &openapi3b.Schema{
+		Properties: map[string]*openapi3b.SchemaRef{},
 	}
 
 	// Reformat the name of generic types
@@ -173,23 +172,23 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 	}
 
 	if _, ok := schemas[name]; ok {
-		return &openapi3.SchemaRef{
+		return &openapi3b.SchemaRef{
 			Ref: "#/components/schemas/" + name,
 		}
 	}
 
-	schemas[name] = &openapi3.SchemaRef{Value: schema}
-	return &openapi3.SchemaRef{
+	schemas[name] = &openapi3b.SchemaRef{Schema: schema}
+	return &openapi3b.SchemaRef{
 		Ref: "#/components/schemas/" + name,
 	}
 }
 
-func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *openapi3.Schema) *openapi3.SchemaRef {
+func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *openapi3b.Schema) *openapi3b.SchemaRef {
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
-	s := &openapi3.Schema{}
+	s := &openapi3b.Schema{}
 	setTypeInfo(t, s)
 	updateSchemaFromStructTags(f, s)
 
@@ -198,7 +197,7 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 
 	if s.Type == "object" {
-		s.Properties = openapi3.Schemas{}
+		s.Properties = map[string]*openapi3b.SchemaRef{}
 
 		for i := 0; i < t.NumField(); i++ {
 			f2 := t.Field(i)
@@ -212,7 +211,7 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 		}
 	}
 
-	return &openapi3.SchemaRef{Value: s}
+	return &openapi3b.SchemaRef{Schema: s}
 }
 
 func newOpenAPIDoc(version string) openapi3b.Doc {
@@ -252,7 +251,7 @@ func WriteOpenAPIDocToFile(openAPIDoc openapi3b.Doc, filename string) error {
 	return writeOpenAPIDoc(openAPIDoc, fh)
 }
 
-func updateSchemaFromStructTags(field reflect.StructField, schema *openapi3.Schema) {
+func updateSchemaFromStructTags(field reflect.StructField, schema *openapi3b.Schema) {
 	if example, ok := field.Tag.Lookup("example"); ok {
 		schema.Example = example
 	}
@@ -263,12 +262,12 @@ func updateSchemaFromStructTags(field reflect.StructField, schema *openapi3.Sche
 }
 
 type describeSchema interface {
-	DescribeSchema(schema *openapi3.Schema)
+	DescribeSchema(schema *openapi3b.Schema)
 }
 
 // `type` can be one of the following only: "object", "array", "string", "number", "integer", "boolean", "null".
 // `format` has a few defined types, but can be anything. https://swagger.io/docs/specification/data-models/data-types/
-func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
+func setTypeInfo(t reflect.Type, schema *openapi3b.Schema) {
 	// TODO: convert to value earlier?
 	value := reflect.New(t).Interface()
 	if ds, ok := value.(describeSchema); ok {
@@ -316,9 +315,9 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 	}
 }
 
-func buildResponse(schemas openapi3.Schemas, rst reflect.Type) map[string]openapi3b.Response {
-	schema := &openapi3.SchemaRef{
-		Value: &openapi3.Schema{Type: "object"},
+func buildResponse(schemas map[string]*openapi3b.SchemaRef, rst reflect.Type) map[string]openapi3b.Response {
+	schema := &openapi3b.SchemaRef{
+		Schema: &openapi3b.Schema{Type: "object"},
 	}
 
 	if rst != nil {
@@ -381,8 +380,8 @@ func buildRequest(r reflect.Type, op *openapi3b.Operation, method string, requir
 		Name:     "Infra-Version",
 		In:       "header",
 		Required: true,
-		Schema: &openapi3.SchemaRef{
-			Value: &openapi3.Schema{
+		Schema: &openapi3b.SchemaRef{
+			Schema: &openapi3b.Schema{
 				Example:     productVersion(),
 				Format:      `\d+\.\d+\(.\d+)?(-.\w(+\w)?)?`,
 				Type:        "string",
@@ -396,8 +395,8 @@ func buildRequest(r reflect.Type, op *openapi3b.Operation, method string, requir
 			Name:     "Authorization",
 			In:       "header",
 			Required: true,
-			Schema: &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
+			Schema: &openapi3b.SchemaRef{
+				Schema: &openapi3b.Schema{
 					Example:     "Bearer ACCESSKEY",
 					Format:      `Bearer [\da-zA-Z]{10}\.[\da-zA-Z]{24}`,
 					Type:        "string",
@@ -407,9 +406,9 @@ func buildRequest(r reflect.Type, op *openapi3b.Operation, method string, requir
 		})
 	}
 
-	schema := &openapi3.Schema{
+	schema := &openapi3b.Schema{
 		Type:       "object",
-		Properties: openapi3.Schemas{},
+		Properties: map[string]*openapi3b.SchemaRef{},
 	}
 
 	for i := 0; i < r.NumField(); i++ {
@@ -494,7 +493,7 @@ func buildRequest(r reflect.Type, op *openapi3b.Operation, method string, requir
 		op.RequestBody = &openapi3b.RequestBody{
 			Content: map[string]*openapi3b.MediaType{
 				"application/json": {
-					Schema: &openapi3.SchemaRef{Value: schema},
+					Schema: &openapi3b.SchemaRef{Schema: schema},
 				},
 			},
 		}
