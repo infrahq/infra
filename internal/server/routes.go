@@ -40,7 +40,7 @@ type Routes struct {
 // with all the middleware that will apply to the route when the
 // Router.{GET,POST,etc} method is called.
 func (s *Server) GenerateRoutes() Routes {
-	a := &API{t: s.tel, server: s}
+	a := &API{t: s.tel, server: s, openAPIDoc: newOpenAPIDoc(productVersion())}
 
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)

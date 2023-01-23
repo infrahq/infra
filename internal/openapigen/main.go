@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server"
 )
 
@@ -22,5 +21,5 @@ func run(args []string) error {
 	filename := args[0]
 
 	doc := server.GenerateOpenAPIDoc()
-	return server.WriteOpenAPIDocToFile(doc, internal.FullVersion(), filename)
+	return server.WriteOpenAPIDocToFile(doc, filename)
 }
