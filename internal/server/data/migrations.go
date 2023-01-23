@@ -89,6 +89,7 @@ func migrations() []*migrator.Migration {
 		removeSettingsPasswordPolicy(),
 		moveSettingsJWKOrganizations(),
 		addAccessKeyIssuedForKind(),
+		resourceURNToDestinationNameAndResource(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1325,6 +1326,61 @@ func addAccessKeyIssuedForKind() *migrator.Migration {
 			if _, err := tx.Exec(`CREATE UNIQUE INDEX idx_access_keys_issued_for ON access_keys USING btree (organization_id, issued_for_id, name) WHERE (deleted_at IS NULL);`); err != nil {
 				return fmt.Errorf("create access key issued_for index: %w", err)
 			}
+			return nil
+		},
+	}
+}
+
+func resourceURNToDestinationNameAndResource() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2023-01-23T17:45",
+		Migrate: func(tx migrator.DB) error {
+			if migrator.HasColumn(tx, "grants", "resource") {
+				_, err := tx.Exec(`
+					DROP INDEX IF EXISTS idx_grants_subject_privilege_resource;
+					ALTER TABLE grants
+						ADD COLUMN IF NOT EXISTS destination_name text,
+						ADD COLUMN IF NOT EXISTS destination_resource text;`)
+				if err != nil {
+					return err
+				}
+
+				type grantResource struct {
+					ID          uid.ID
+					ResourceURN string
+				}
+
+				rows, err := tx.Query(`SELECT id, resource FROM grants`)
+				if err != nil {
+					return err
+				}
+
+				grants, err := scanRows(rows, func(g *grantResource) []any {
+					return []any{&g.ID, &g.ResourceURN}
+				})
+				if err != nil {
+					return err
+				}
+
+				for _, grant := range grants {
+					name, resource, _ := strings.Cut(grant.ResourceURN, ".")
+					_, err := tx.Exec(
+						`UPDATE grants SET destination_name = ?, destination_resource = ? WHERE id = ?`,
+						name, resource, grant.ID,
+					)
+					if err != nil {
+						return err
+					}
+				}
+
+				_, err = tx.Exec(`
+					ALTER TABLE grants DROP COLUMN IF EXISTS resource;
+					CREATE UNIQUE INDEX IF NOT EXISTS idx_grants_subject_privilege_destination_resource
+						ON grants
+						USING btree (organization_id, subject_id, privilege, destination_name, destination_resource) WHERE (deleted_at IS NULL);`)
+				return err
+			}
+
 			return nil
 		},
 	}

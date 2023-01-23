@@ -10,9 +10,10 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+const BasePermissionConnect = "connect"
 
 type grantsCmdOptions struct {
 	UserName    string
@@ -350,7 +351,7 @@ $ infra grants add johndoe@example.com infra --role admin
 	}
 
 	cmd.Flags().BoolVarP(&isGroup, "group", "g", false, "When set, creates a grant for a group instead of a user")
-	cmd.Flags().StringVar(&options.Role, "role", models.BasePermissionConnect, "Type of access that the user or group will be given")
+	cmd.Flags().StringVar(&options.Role, "role", BasePermissionConnect, "Type of access that the user or group will be given")
 	cmd.Flags().BoolVar(&options.Force, "force", false, "Create grant even if requested user, destination, or role are unknown")
 	return cmd
 }

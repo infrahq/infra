@@ -1192,6 +1192,52 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.DeepEqual(t, expectedKey, accessKey)
 			},
 		},
+		{
+			label: testCaseLine("2023-01-23T17:45"),
+			setup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`
+					INSERT INTO
+						grants(id, created_at, updated_at, deleted_at, organization_id, subject_id, subject_kind, privilege, resource, created_by)
+					VALUES
+						(2000, '2023-01-23T17:45:00.000+00', '2023-01-23T17:45:00.000+00', null, 1000, 999, 1, 'admin', 'mycluster', 1),
+						(2001, '2023-01-23T17:45:00.000+00', '2023-01-23T17:45:00.000+00', null, 1000, 999, 1, 'admin', 'mycluster2.namespace', 1);
+				`)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE FROM grants;`)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				rows, err := tx.Query(`SELECT id, destination_name, destination_resource FROM grants WHERE id IN (2000, 2001)`)
+				assert.NilError(t, err)
+				defer rows.Close()
+
+				actual, err := scanRows(rows, func(o *models.Grant) []any {
+					return []any{&o.ID, &o.DestinationName, &o.DestinationResource}
+				})
+				assert.NilError(t, err)
+
+				expected := []models.Grant{
+					{
+						Model: models.Model{
+							ID: 2000,
+						},
+						DestinationName:     "mycluster",
+						DestinationResource: "",
+					},
+					{
+						Model: models.Model{
+							ID: 2001,
+						},
+						DestinationName:     "mycluster2",
+						DestinationResource: "namespace",
+					},
+				}
+
+				assert.DeepEqual(t, actual, expected)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

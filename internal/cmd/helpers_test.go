@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -29,10 +30,12 @@ func createGrants(t *testing.T, tx data.WriteTxn, grants ...api.GrantRequest) {
 			subject = models.NewSubjectForGroup(group.ID)
 		}
 
+		destinationName, destinationResource, _ := strings.Cut(g.Resource, ".")
 		err := data.CreateGrant(tx, &models.Grant{
-			Subject:   subject,
-			Resource:  g.Resource,
-			Privilege: g.Privilege,
+			Subject:             subject,
+			DestinationName:     destinationName,
+			DestinationResource: destinationResource,
+			Privilege:           g.Privilege,
 		})
 		assert.NilError(t, err, "grant %v", i)
 	}

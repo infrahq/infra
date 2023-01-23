@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
@@ -10,25 +12,26 @@ const (
 	InfraAdminRole        = "admin"
 	InfraViewRole         = "view"
 	InfraConnectorRole    = "connector"
-)
 
-// BasePermissionConnect is the first-principle permission that all other permissions are defined from.
-// This permission gives you permission to authenticate with a destination
-const BasePermissionConnect = "connect"
+	GrantDestinationInfra = "infra"
+)
 
 // Grant is an access grant.
 type Grant struct {
 	Model
 	OrganizationMember
 
+	CreatedBy   uid.ID
+	UpdateIndex int64 `db:"-"`
+
 	// Subject is the ID of the user or group that is granted access to a resource.
 	Subject Subject
 	// Privilege is the role or permission being granted.
 	Privilege string
-	// Resource identifies the resource the privilege applies to.
-	Resource    string
-	CreatedBy   uid.ID
-	UpdateIndex int64 `db:"-"`
+	// DestinationName identifies the destination the grant applies to
+	DestinationName string
+	// DestinationResource identifies the destination-specific resource the grant applies to
+	DestinationResource string
 }
 
 type Subject struct {
@@ -61,7 +64,13 @@ func (r *Grant) ToAPI() *api.Grant {
 		Updated:   api.Time(r.UpdatedAt),
 		CreatedBy: r.CreatedBy,
 		Privilege: r.Privilege,
-		Resource:  r.Resource,
+	}
+
+	switch {
+	case r.DestinationResource != "":
+		grant.Resource = fmt.Sprintf("%s.%s", r.DestinationName, r.DestinationResource)
+	default:
+		grant.Resource = r.DestinationName
 	}
 
 	switch r.Subject.Kind {

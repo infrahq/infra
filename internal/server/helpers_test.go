@@ -97,9 +97,9 @@ func createAdmin(t *testing.T, db data.WriteTxn) *models.Identity {
 	assert.NilError(t, err)
 
 	err = data.CreateGrant(db, &models.Grant{
-		Subject:   models.NewSubjectForUser(user.ID),
-		Resource:  "infra",
-		Privilege: models.InfraAdminRole,
+		Subject:         models.NewSubjectForUser(user.ID),
+		DestinationName: models.GrantDestinationInfra,
+		Privilege:       models.InfraAdminRole,
 	})
 	assert.NilError(t, err)
 

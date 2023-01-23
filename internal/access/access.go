@@ -9,8 +9,6 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-const ResourceInfraAPI = "infra"
-
 var ErrNotAuthorized = errors.New("not authorized")
 
 // AuthorizationError indicates that the user who performed the operation does
@@ -71,7 +69,7 @@ func IsAuthorized(rCtx RequestContext, requiredRole ...string) error {
 		Pagination:                 &data.Pagination{Limit: 1},
 		BySubject:                  models.NewSubjectForUser(user.ID),
 		ByPrivileges:               requiredRole,
-		ByResource:                 ResourceInfraAPI,
+		ByDestinationName:          models.GrantDestinationInfra,
 		IncludeInheritedFromGroups: true,
 	})
 	if err != nil {

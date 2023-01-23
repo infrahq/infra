@@ -335,19 +335,20 @@ func TestDeleteDestination(t *testing.T) {
 
 		pileOGrants := []*models.Grant{
 			{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "view",
-				Resource:  "kube",
+				Subject:         models.NewSubjectForUser(1234567),
+				Privilege:       "view",
+				DestinationName: "kube",
 			},
 			{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "view",
-				Resource:  "kube.namespace",
+				Subject:             models.NewSubjectForUser(1234567),
+				Privilege:           "view",
+				DestinationName:     "kube",
+				DestinationResource: "namespace",
 			},
 			{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "view",
-				Resource:  "somethingelse",
+				Subject:         models.NewSubjectForUser(1234567),
+				Privilege:       "view",
+				DestinationName: "somethingelse",
 			},
 		}
 
@@ -369,7 +370,7 @@ func TestDeleteDestination(t *testing.T) {
 		actual, err = ListGrants(tx, ListGrantsOptions{BySubject: models.NewSubjectForUser(1234567)})
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 1)
-		assert.Equal(t, actual[0].Resource, "somethingelse")
+		assert.Equal(t, actual[0].DestinationName, "somethingelse")
 	})
 }
 

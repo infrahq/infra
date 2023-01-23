@@ -197,19 +197,20 @@ func TestAPI_DeleteDestination(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				grants := []*models.Grant{
 					{
-						Subject:   models.NewSubjectForUser(7654321),
-						Privilege: "view",
-						Resource:  "wow",
+						Subject:         models.NewSubjectForUser(7654321),
+						Privilege:       "view",
+						DestinationName: "wow",
 					},
 					{
-						Subject:   models.NewSubjectForUser(7654321),
-						Privilege: "view",
-						Resource:  "wow.awesome",
+						Subject:             models.NewSubjectForUser(7654321),
+						Privilege:           "view",
+						DestinationName:     "wow",
+						DestinationResource: "awesome",
 					},
 					{
-						Subject:   models.NewSubjectForUser(7654321),
-						Privilege: "view",
-						Resource:  "anotherthing",
+						Subject:         models.NewSubjectForUser(7654321),
+						Privilege:       "view",
+						DestinationName: "anotherthing",
 					},
 				}
 				for _, g := range grants {

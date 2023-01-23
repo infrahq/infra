@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -31,11 +32,19 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = models.NewSubjectForGroup(r.Group)
 	}
 
+	var destinationName, destinationResource string
+	switch {
+	case r.Destination != "":
+		destinationName = r.Destination
+	case r.Resource != "":
+		destinationName, destinationResource, _ = strings.Cut(r.Resource, ".")
+	}
+
 	var p data.Pagination
 	opts := data.ListGrantsOptions{
-		ByResource:                 r.Resource,
+		ByDestinationName:          destinationName,
+		ByDestinationResource:      destinationResource,
 		BySubject:                  subject,
-		ByDestination:              r.Destination,
 		ExcludeConnectorGrant:      !r.ShowSystem,
 		IncludeInheritedFromGroups: r.ShowInherited,
 	}
@@ -86,9 +95,10 @@ func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrant
 
 	if errors.As(err, &ucerr) {
 		opts := data.ListGrantsOptions{
-			ByResource:   grant.Resource,
-			BySubject:    grant.Subject,
-			ByPrivileges: []string{grant.Privilege},
+			ByDestinationName:     grant.DestinationName,
+			ByDestinationResource: grant.DestinationResource,
+			BySubject:             grant.Subject,
+			ByPrivileges:          []string{grant.Privilege},
 		}
 		grants, err := access.ListGrants(rCtx, opts, 0)
 
@@ -118,10 +128,10 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 		return nil, err
 	}
 
-	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
+	if grant.DestinationName == models.GrantDestinationInfra && grant.Privilege == models.InfraAdminRole {
 		opts := data.ListGrantsOptions{
-			ByResource:   access.ResourceInfraAPI,
-			ByPrivileges: []string{models.InfraAdminRole},
+			ByDestinationName: models.GrantDestinationInfra,
+			ByPrivileges:      []string{models.InfraAdminRole},
 		}
 		infraAdminGrants, err := access.ListGrants(rCtx, opts, 0)
 		if err != nil {
@@ -199,10 +209,13 @@ func getGrantFromGrantRequest(rCtx access.RequestContext, r api.GrantRequest) (*
 		return nil, fmt.Errorf("%w: must specify privilege", internal.ErrBadRequest)
 	}
 
+	destinationName, destinationResource, _ := strings.Cut(r.Resource, ".")
+
 	return &models.Grant{
-		Subject:   subject,
-		Resource:  r.Resource,
-		Privilege: r.Privilege,
+		Subject:             subject,
+		Privilege:           r.Privilege,
+		DestinationName:     destinationName,
+		DestinationResource: destinationResource,
 	}, nil
 }
 

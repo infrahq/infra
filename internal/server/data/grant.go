@@ -20,15 +20,15 @@ func (g grantsTable) Table() string {
 }
 
 func (g grantsTable) Columns() []string {
-	return []string{"created_at", "created_by", "deleted_at", "id", "organization_id", "privilege", "resource", "subject_id", "subject_kind", "updated_at"}
+	return []string{"created_at", "created_by", "deleted_at", "id", "organization_id", "privilege", "subject_id", "subject_kind", "updated_at", "destination_name", "destination_resource"}
 }
 
 func (g grantsTable) Values() []any {
-	return []any{g.CreatedAt, g.CreatedBy, g.DeletedAt, g.ID, g.OrganizationID, g.Privilege, g.Resource, g.Subject.ID, g.Subject.Kind, g.UpdatedAt}
+	return []any{g.CreatedAt, g.CreatedBy, g.DeletedAt, g.ID, g.OrganizationID, g.Privilege, g.Subject.ID, g.Subject.Kind, g.UpdatedAt, g.DestinationName, g.DestinationResource}
 }
 
 func (g *grantsTable) ScanFields() []any {
-	return []any{&g.CreatedAt, &g.CreatedBy, &g.DeletedAt, &g.ID, &g.OrganizationID, &g.Privilege, &g.Resource, &g.Subject.ID, &g.Subject.Kind, &g.UpdatedAt}
+	return []any{&g.CreatedAt, &g.CreatedBy, &g.DeletedAt, &g.ID, &g.OrganizationID, &g.Privilege, &g.Subject.ID, &g.Subject.Kind, &g.UpdatedAt, &g.DestinationName, &g.DestinationResource}
 }
 
 func CreateGrant(tx WriteTxn, grant *models.Grant) error {
@@ -82,9 +82,12 @@ type GetGrantOptions struct {
 	// ByPrivilege instructs GetGrant to return the grant with this privilege. Must
 	// be used with BySubject, and ByResource.
 	ByPrivilege string
-	// ByResource instructs GetGrant to return the grant with this resource. Must
+	// ByDestinationName instructs GetGrant to return the grant with this destination. Must
 	// be used with BySubject, and ByPrivilege.
-	ByResource string
+	ByDestinationName string
+	// ByResource instructs GetGrant to return the grant with this destination-specific resource. Must
+	// be used with BySubject, ByPrivilege, and ByDestinationName.
+	ByDestinationResource string
 }
 
 func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
@@ -106,7 +109,14 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 		query.B("AND subject_id = ? AND subject_kind = ?",
 			opts.BySubject.ID, opts.BySubject.Kind)
 		query.B("AND privilege = ?", opts.ByPrivilege)
-		query.B("AND resource = ?", opts.ByResource)
+		if opts.ByDestinationName != "" {
+			query.B("AND destination_name = ?", opts.ByDestinationName)
+			if opts.ByDestinationResource != "" {
+				query.B("AND destination_resource = ?", opts.ByDestinationResource)
+			}
+		} else if opts.ByDestinationResource != "" {
+			return nil, fmt.Errorf("destination_resource query requires destination_name")
+		}
 	default:
 		return nil, fmt.Errorf("GetGrant requires an ID or subject")
 	}
@@ -120,10 +130,10 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 }
 
 type ListGrantsOptions struct {
-	BySubject     models.Subject
-	ByPrivileges  []string
-	ByResource    string
-	ByDestination string
+	BySubject             models.Subject
+	ByPrivileges          []string
+	ByDestinationName     string
+	ByDestinationResource string
 
 	// IncludeInheritedFromGroups instructs ListGrants to include grants from
 	// groups where the user is a member. This option can only be used when
@@ -177,14 +187,16 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 		query.B("AND privilege IN")
 		queryInClause(query, opts.ByPrivileges)
 	}
-	if opts.ByResource != "" {
-		query.B("AND resource = ?", opts.ByResource)
-	}
-	if opts.ByDestination != "" {
-		grantsByDestination(query, opts.ByDestination)
+	if opts.ByDestinationName != "" {
+		query.B("AND destination_name = ?", opts.ByDestinationName)
+		if opts.ByDestinationResource != "" {
+			query.B("AND destination_resource = ?", opts.ByDestinationResource)
+		}
+	} else if opts.ByDestinationResource != "" {
+		return nil, fmt.Errorf("destination_resource query requires destination_name")
 	}
 	if opts.ExcludeConnectorGrant {
-		query.B("AND NOT (privilege = 'connector' AND resource = 'infra')")
+		query.B("AND NOT (privilege = 'connector' AND destination_name = 'infra')")
 	}
 
 	query.B("ORDER BY id ASC")
@@ -205,12 +217,9 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	})
 }
 
-func grantsByDestination(query *querybuilder.Query, destination string) {
-	query.B("AND (resource = ? OR resource LIKE ?)", destination, destination+".%")
-}
-
 type GrantsMaxUpdateIndexOptions struct {
-	ByDestination string
+	ByDestinationName     string
+	ByDestinationResource string
 }
 
 // GrantsMaxUpdateIndex returns the maximum update_index all the grants that
@@ -224,8 +233,13 @@ func GrantsMaxUpdateIndex(tx ReadTxn, opts GrantsMaxUpdateIndexOptions) (int64, 
 	query := querybuilder.New("SELECT max(update_index) FROM grants")
 	query.B("WHERE organization_id = ?", tx.OrganizationID())
 
-	if opts.ByDestination != "" {
-		grantsByDestination(query, opts.ByDestination)
+	if opts.ByDestinationName != "" {
+		query.B("AND destination_name = ?", opts.ByDestinationName)
+		if opts.ByDestinationResource != "" {
+			query.B("AND destination_resource = ?", opts.ByDestinationResource)
+		}
+	} else if opts.ByDestinationResource != "" {
+		return 0, fmt.Errorf("destination_resource query requires destination_name")
 	}
 
 	var result *int64
@@ -240,7 +254,7 @@ func GrantsMaxUpdateIndex(tx ReadTxn, opts GrantsMaxUpdateIndexOptions) (int64, 
 // models.Grant does not work because it expects to decode uid.ID from a string
 // not a number.
 type grantJSON struct {
-	Resource string
+	DestinationName string `json:"destination_name"`
 }
 
 type DeleteGrantsOptions struct {
@@ -249,10 +263,9 @@ type DeleteGrantsOptions struct {
 	ByID uid.ID
 	// BySubject instructs DeleteGrants to delete all grants that match this
 	// subject. When set other fields below this on this struct are ignored.
-	BySubject models.Subject
-	// ByDestination instructs DeleteGrants to delete all grants that match
-	// this destination in their resource, including namespaces.
-	ByDestination string
+	BySubject             models.Subject
+	ByDestinationName     string
+	ByDestinationResource string
 }
 
 func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
@@ -271,8 +284,13 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 		}
 		query.B("AND subject_id = ? AND subject_kind = ?",
 			opts.BySubject.ID, opts.BySubject.Kind)
-	case opts.ByDestination != "":
-		grantsByDestination(query, opts.ByDestination)
+	case opts.ByDestinationName != "":
+		query.B("AND destination_name = ?", opts.ByDestinationName)
+		if opts.ByDestinationResource != "" {
+			query.B("AND destination_name = ?", opts.ByDestinationResource)
+		}
+	case opts.ByDestinationResource != "":
+		return fmt.Errorf("destination_resource query requires destination_name")
 	default:
 		return fmt.Errorf("DeleteGrants requires an ID to delete")
 	}
@@ -310,8 +328,8 @@ func validateGrant(grant *models.Grant) error {
 		return fmt.Errorf("subject is required")
 	case grant.Privilege == "":
 		return fmt.Errorf("privilege is required")
-	case grant.Resource == "":
-		return fmt.Errorf("resource is required")
+	case grant.DestinationName == "":
+		return fmt.Errorf("resource name is required")
 	}
 	return nil
 }
@@ -378,7 +396,14 @@ func deleteGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
 	for i, g := range grants {
 		query.B("SELECT id FROM grants")
 		query.B("WHERE subject_id = ? AND subject_kind = ?", g.Subject.ID, g.Subject.Kind)
-		query.B("AND resource = ?", g.Resource)
+
+		if g.DestinationName != "" {
+			query.B("AND destination_name = ?", g.DestinationName)
+			if g.DestinationResource != "" {
+				query.B("AND destination_resource = ?", g.DestinationResource)
+			}
+		}
+
 		query.B("AND privilege = ?", g.Privilege)
 		if i+1 != len(grants) {
 			query.B("UNION")

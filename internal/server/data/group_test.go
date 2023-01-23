@@ -239,9 +239,9 @@ func TestDeleteGroup(t *testing.T) {
 		createIdentities(t, tx, someone)
 
 		groupGrant := &models.Grant{
-			Subject:   models.NewSubjectForGroup(everyone.ID),
-			Privilege: "admin",
-			Resource:  "any",
+			Subject:         models.NewSubjectForGroup(everyone.ID),
+			Privilege:       "admin",
+			DestinationName: "any",
 		}
 		createGrants(t, tx, groupGrant)
 

@@ -181,7 +181,7 @@ func DeleteDestination(tx WriteTxn, id uid.ID) error {
 		return handleError(err)
 	}
 
-	err = DeleteGrants(tx, DeleteGrantsOptions{ByDestination: dest.Name})
+	err = DeleteGrants(tx, DeleteGrantsOptions{ByDestinationName: dest.Name})
 	if err != nil {
 		return handleError(err)
 	}

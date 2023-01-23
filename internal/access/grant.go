@@ -61,8 +61,8 @@ func ListGrants(rCtx RequestContext, opts data.ListGrantsOptions, lastUpdateInde
 	}
 
 	listenOpts := data.ListenForNotifyOptions{
-		GrantsByDestination: opts.ByDestination,
-		OrgID:               rCtx.DBTxn.OrganizationID(),
+		GrantsByDestinationName: opts.ByDestinationName,
+		OrgID:                   rCtx.DBTxn.OrganizationID(),
 	}
 	listener, err := data.ListenForNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 	if err != nil {
@@ -124,7 +124,8 @@ func listGrantsWithMaxUpdateIndex(rCtx RequestContext, opts data.ListGrantsOptio
 	}
 
 	maxUpdateIndex, err := data.GrantsMaxUpdateIndex(tx, data.GrantsMaxUpdateIndexOptions{
-		ByDestination: opts.ByDestination,
+		ByDestinationName:     opts.ByDestinationName,
+		ByDestinationResource: opts.ByDestinationResource,
 	})
 	return ListGrantsResponse{Grants: result, MaxUpdateIndex: maxUpdateIndex}, err
 }
@@ -187,7 +188,7 @@ func UpdateGrants(rCtx RequestContext, addGrants, rmGrants []*models.Grant) erro
 
 func requiredInfraRoleForGrantOperation(grants ...*models.Grant) string {
 	for _, grant := range grants {
-		if grant.Privilege == models.InfraSupportAdminRole && grant.Resource == ResourceInfraAPI {
+		if grant.Privilege == models.InfraSupportAdminRole && grant.DestinationName == models.GrantDestinationInfra {
 			return models.InfraSupportAdminRole
 		}
 	}

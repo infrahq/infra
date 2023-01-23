@@ -320,9 +320,9 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	assert.NilError(t, err)
 
 	grant := models.Grant{
-		Subject:   models.NewSubjectForUser(connector.ID),
-		Privilege: models.InfraConnectorRole,
-		Resource:  "infra",
+		Subject:         models.NewSubjectForUser(connector.ID),
+		Privilege:       models.InfraConnectorRole,
+		DestinationName: models.GrantDestinationInfra,
 	}
 	err = data.CreateGrant(db, &grant)
 	assert.NilError(t, err)

@@ -10,7 +10,6 @@ import (
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -65,10 +64,10 @@ func TestAPI_PProfHandler(t *testing.T) {
 			setupRequest: func(t *testing.T, req *http.Request) {
 				key, user := createAccessKey(t, s.DB(), "user2@example.com")
 				err := data.CreateGrant(s.DB(), &models.Grant{
-					Subject:   models.NewSubjectForUser(user.ID),
-					Privilege: models.InfraSupportAdminRole,
-					Resource:  access.ResourceInfraAPI,
-					CreatedBy: user.ID,
+					Subject:         models.NewSubjectForUser(user.ID),
+					Privilege:       models.InfraSupportAdminRole,
+					DestinationName: models.GrantDestinationInfra,
+					CreatedBy:       user.ID,
 				})
 				assert.NilError(t, err)
 

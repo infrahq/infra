@@ -102,7 +102,7 @@ func CreateOrganization(tx WriteTxn, org *models.Organization) error {
 	err := CreateGrant(tx, &models.Grant{
 		Subject:            models.NewSubjectForUser(connector.ID),
 		Privilege:          models.InfraConnectorRole,
-		Resource:           "infra",
+		DestinationName:    models.GrantDestinationInfra,
 		CreatedBy:          models.CreatedBySystem,
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	})

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/jackc/pgx/v4"
 	pgxstdlib "github.com/jackc/pgx/v4/stdlib"
@@ -67,7 +66,7 @@ func (l *Listener) Release(ctx context.Context) error {
 
 type ListenForNotifyOptions struct {
 	OrgID                                 uid.ID
-	GrantsByDestination                   string
+	GrantsByDestinationName               string
 	DestinationCredentialsByDestinationID uid.ID
 	DestinationCredentialsByID            uid.ID
 }
@@ -94,7 +93,7 @@ func ListenForNotify(ctx context.Context, db *DB, opts ListenForNotifyOptions) (
 
 	var channel string
 	switch {
-	case opts.GrantsByDestination != "":
+	case opts.GrantsByDestinationName != "":
 		channel = fmt.Sprintf("grants_%d", opts.OrgID)
 	case opts.DestinationCredentialsByDestinationID != 0:
 		channel = fmt.Sprintf("credreq_%s_%s", opts.OrgID.String(), opts.DestinationCredentialsByDestinationID.String())
@@ -112,15 +111,14 @@ func ListenForNotify(ctx context.Context, db *DB, opts ListenForNotifyOptions) (
 	}
 
 	switch {
-	case opts.GrantsByDestination != "":
+	case opts.GrantsByDestinationName != "":
 		listener.isMatchingNotify = func(payload string) error {
 			var grant grantJSON
 			err := json.Unmarshal([]byte(payload), &grant)
 			if err != nil {
 				return err
 			}
-			destination, _, _ := strings.Cut(grant.Resource, ".")
-			if destination != opts.GrantsByDestination {
+			if grant.DestinationName != opts.GrantsByDestinationName {
 				return errNotificationNoMatch
 			}
 			return nil

@@ -12,7 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -109,19 +108,19 @@ func loadGrant(tx data.WriteTxn, userID uid.ID, role string) error {
 		return nil
 	}
 	_, err := data.GetGrant(tx, data.GetGrantOptions{
-		BySubject:   models.NewSubjectForUser(userID),
-		ByResource:  access.ResourceInfraAPI,
-		ByPrivilege: role,
+		BySubject:         models.NewSubjectForUser(userID),
+		ByDestinationName: models.GrantDestinationInfra,
+		ByPrivilege:       role,
 	})
 	if err == nil || !errors.Is(err, internal.ErrNotFound) {
 		return err
 	}
 
 	grant := &models.Grant{
-		Subject:   models.NewSubjectForUser(userID),
-		Resource:  access.ResourceInfraAPI,
-		Privilege: role,
-		CreatedBy: models.CreatedBySystem,
+		Subject:         models.NewSubjectForUser(userID),
+		DestinationName: models.GrantDestinationInfra,
+		Privilege:       role,
+		CreatedBy:       models.CreatedBySystem,
 	}
 	return data.CreateGrant(tx, grant)
 }

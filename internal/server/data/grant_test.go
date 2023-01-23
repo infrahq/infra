@@ -21,10 +21,10 @@ func TestCreateGrant(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			actual := models.Grant{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "view",
-				Resource:  "infra",
-				CreatedBy: uid.ID(1091),
+				Subject:         models.NewSubjectForUser(1234567),
+				Privilege:       "view",
+				DestinationName: models.GrantDestinationInfra,
+				CreatedBy:       uid.ID(1091),
 			}
 			err := CreateGrant(tx, &actual)
 			assert.NilError(t, err)
@@ -39,7 +39,7 @@ func TestCreateGrant(t *testing.T) {
 				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
 				Subject:            models.NewSubjectForUser(1234567),
 				Privilege:          "view",
-				Resource:           "infra",
+				DestinationName:    models.GrantDestinationInfra,
 				CreatedBy:          uid.ID(1091),
 			}
 			assert.DeepEqual(t, actual, expected, cmpModel)
@@ -48,17 +48,17 @@ func TestCreateGrant(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			g := models.Grant{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "view",
-				Resource:  "infra",
+				Subject:         models.NewSubjectForUser(1234567),
+				Privilege:       "view",
+				DestinationName: models.GrantDestinationInfra,
 			}
 			err := CreateGrant(tx, &g)
 			assert.NilError(t, err)
 
 			g2 := models.Grant{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "view",
-				Resource:  "infra",
+				Subject:         models.NewSubjectForUser(1234567),
+				Privilege:       "view",
+				DestinationName: models.GrantDestinationInfra,
 			}
 			err = CreateGrant(tx, &g2)
 			var ucErr UniqueConstraintError
@@ -66,16 +66,16 @@ func TestCreateGrant(t *testing.T) {
 			assert.DeepEqual(t, ucErr, UniqueConstraintError{Table: "grants"})
 
 			grants, err := ListGrants(tx, ListGrantsOptions{
-				BySubject:  models.NewSubjectForUser(1234567),
-				ByResource: "infra",
+				BySubject:         models.NewSubjectForUser(1234567),
+				ByDestinationName: models.GrantDestinationInfra,
 			})
 			assert.NilError(t, err)
 			assert.Assert(t, is.Len(grants, 1))
 
 			g3 := models.Grant{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "edit",
-				Resource:  "infra",
+				Subject:         models.NewSubjectForUser(1234567),
+				Privilege:       "edit",
+				DestinationName: models.GrantDestinationInfra,
 			}
 			// check that unique constraint needs all three fields
 			err = CreateGrant(tx, &g3)
@@ -84,8 +84,8 @@ func TestCreateGrant(t *testing.T) {
 		t.Run("notify", func(t *testing.T) {
 			ctx := context.Background()
 			listener, err := ListenForNotify(ctx, db, ListenForNotifyOptions{
-				GrantsByDestination: "match",
-				OrgID:               defaultOrganizationID,
+				GrantsByDestinationName: "match",
+				OrgID:                   defaultOrganizationID,
 			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
@@ -94,9 +94,9 @@ func TestCreateGrant(t *testing.T) {
 
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 			g := models.Grant{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "view",
-				Resource:  "match",
+				Subject:         models.NewSubjectForUser(1234567),
+				Privilege:       "view",
+				DestinationName: "match",
 			}
 			err = CreateGrant(tx, &g)
 			assert.NilError(t, err)
@@ -124,21 +124,21 @@ func TestDeleteGrants(t *testing.T) {
 		t.Run("by id", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-			grant := &models.Grant{Subject: models.NewSubjectForUser(4444), Privilege: "view", Resource: "any"}
-			toKeep := &models.Grant{Subject: models.NewSubjectForUser(6666), Privilege: "view", Resource: "any"}
+			grant := &models.Grant{Subject: models.NewSubjectForUser(4444), Privilege: "view", DestinationName: "any"}
+			toKeep := &models.Grant{Subject: models.NewSubjectForUser(6666), Privilege: "view", DestinationName: "any"}
 			createGrants(t, tx, grant, toKeep)
 
 			err := DeleteGrants(tx, DeleteGrantsOptions{ByID: grant.ID})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestinationName: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 
-			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
+			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestinationName: "any"})
 			assert.NilError(t, err)
 			assert.Equal(t, maxIndex, startUpdateIndex+3) // 2 inserts, 1 delete
 			startUpdateIndex = maxIndex
@@ -146,44 +146,44 @@ func TestDeleteGrants(t *testing.T) {
 		t.Run("by subject", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-			grant1 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "any"}
-			grant2 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "edit", Resource: "any"}
-			toKeep := &models.Grant{Subject: models.NewSubjectForUser(6666), Privilege: "view", Resource: "any"}
+			grant1 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "any"}
+			grant2 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "edit", DestinationName: "any"}
+			toKeep := &models.Grant{Subject: models.NewSubjectForUser(6666), Privilege: "view", DestinationName: "any"}
 			createGrants(t, tx, grant1, grant2, toKeep)
 
-			otherOrgGrant := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "any"}
+			otherOrgGrant := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "any"}
 			createGrants(t, tx.WithOrgID(otherOrg.ID), otherOrgGrant)
 
 			err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: grant1.Subject})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestinationName: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 
-			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
+			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestinationName: "any"})
 			assert.NilError(t, err)
 			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
 			startUpdateIndex = maxIndex
 
 			// other org still has the grant
-			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestination: "any"})
+			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestinationName: "any"})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
 		})
-		t.Run("by destination", func(t *testing.T) {
+		t.Run("by resource", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-			toKeep := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "somethingelse"}
+			toKeep := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "somethingelse"}
 			createGrants(t, tx, toKeep)
 
 			grants := []*models.Grant{
-				{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "any"},
-				{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "any.one"},
-				{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "any.two"},
+				{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "any"},
+				{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "any", DestinationResource: "one"},
+				{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "any", DestinationResource: "two"},
 			}
 			createGrants(t, tx, grants...)
 
@@ -191,7 +191,7 @@ func TestDeleteGrants(t *testing.T) {
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 4)
 
-			err = DeleteGrants(tx, DeleteGrantsOptions{ByDestination: "any"})
+			err = DeleteGrants(tx, DeleteGrantsOptions{ByDestinationName: "any"})
 			assert.NilError(t, err)
 
 			actual, err = ListGrants(tx, ListGrantsOptions{BySubject: models.NewSubjectForUser(5555)})
@@ -203,16 +203,17 @@ func TestDeleteGrants(t *testing.T) {
 		})
 		t.Run("notify", func(t *testing.T) {
 			g := models.Grant{
-				Subject:   models.NewSubjectForUser(1234567),
-				Privilege: "view",
-				Resource:  "match.a.resource",
+				Subject:             models.NewSubjectForUser(1234567),
+				Privilege:           "view",
+				DestinationName:     "match",
+				DestinationResource: "a.resource",
 			}
 			assert.NilError(t, CreateGrant(db, &g))
 
 			ctx := context.Background()
 			listener, err := ListenForNotify(ctx, db, ListenForNotifyOptions{
-				GrantsByDestination: "match",
-				OrgID:               defaultOrganizationID,
+				GrantsByDestinationName: "match",
+				OrgID:                   defaultOrganizationID,
 			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
@@ -244,8 +245,8 @@ func TestUpdateGrants(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			addGrants := []*models.Grant{
-				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
-				{Subject: models.NewSubjectForUser(1234567), Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", DestinationName: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: models.NewSubjectForUser(1234567), Privilege: "admin", DestinationName: "foo", CreatedBy: uid.ID(1091)},
 			}
 			rmGrants := []*models.Grant{}
 
@@ -263,7 +264,7 @@ func TestUpdateGrants(t *testing.T) {
 					OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
 					Subject:            models.NewSubjectForUser(7654321),
 					Privilege:          "view",
-					Resource:           "foo",
+					DestinationName:    "foo",
 					CreatedBy:          uid.ID(1091),
 					UpdateIndex:        startUpdateIndex + 1,
 				},
@@ -276,32 +277,32 @@ func TestUpdateGrants(t *testing.T) {
 					OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
 					Subject:            models.NewSubjectForUser(1234567),
 					Privilege:          "admin",
-					Resource:           "foo",
+					DestinationName:    "foo",
 					CreatedBy:          uid.ID(1091),
 					UpdateIndex:        startUpdateIndex + 2,
 				},
 			}
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestinationName: "foo"})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, actual, expected, cmpModel)
 
 			// check for idempotency
 			err = UpdateGrants(tx, addGrants, rmGrants)
 			assert.NilError(t, err)
-			actual, err = ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			actual, err = ListGrants(tx, ListGrantsOptions{ByDestinationName: "foo"})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, actual, expected, cmpModel)
 		})
 		t.Run("success delete", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-			grant1 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo"}
-			grant2 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "edit", Resource: "foo"}
-			toKeep := &models.Grant{Subject: models.NewSubjectForUser(6666), Privilege: "view", Resource: "foo"}
+			grant1 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "foo"}
+			grant2 := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "edit", DestinationName: "foo"}
+			toKeep := &models.Grant{Subject: models.NewSubjectForUser(6666), Privilege: "view", DestinationName: "foo"}
 			createGrants(t, tx, grant1, grant2, toKeep)
 
-			otherOrgGrant := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo"}
+			otherOrgGrant := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "foo"}
 			createGrants(t, tx.WithOrgID(otherOrg.ID), otherOrgGrant)
 
 			addGrants := []*models.Grant{}
@@ -310,7 +311,7 @@ func TestUpdateGrants(t *testing.T) {
 			err := UpdateGrants(tx, addGrants, rmGrants)
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestinationName: "foo"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
@@ -321,12 +322,12 @@ func TestUpdateGrants(t *testing.T) {
 			err = UpdateGrants(tx, addGrants, rmGrants)
 			assert.NilError(t, err)
 
-			actual, err = ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			actual, err = ListGrants(tx, ListGrantsOptions{ByDestinationName: "foo"})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 
 			// other org still has the grant
-			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestination: "foo"})
+			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestinationName: "foo"})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
 		})
@@ -334,19 +335,19 @@ func TestUpdateGrants(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			addGrants := []*models.Grant{
-				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
-				{Subject: models.NewSubjectForUser(1234567), Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", DestinationName: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: models.NewSubjectForUser(1234567), Privilege: "admin", DestinationName: "foo", CreatedBy: uid.ID(1091)},
 			}
 			rmGrants := []*models.Grant{
-				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
-				{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "foo"},
-				{Subject: models.NewSubjectForUser(5555), Privilege: "edit", Resource: "foo"},
+				{Subject: models.NewSubjectForUser(7654321), Privilege: "view", DestinationName: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "foo"},
+				{Subject: models.NewSubjectForUser(5555), Privilege: "edit", DestinationName: "foo"},
 			}
 
 			err := UpdateGrants(tx, addGrants, rmGrants)
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestinationName: "foo"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{
@@ -358,7 +359,7 @@ func TestUpdateGrants(t *testing.T) {
 					OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
 					Subject:            models.NewSubjectForUser(1234567),
 					Privilege:          "admin",
-					Resource:           "foo",
+					DestinationName:    "foo",
 					CreatedBy:          uid.ID(1091),
 					UpdateIndex:        startUpdateIndex + 12,
 				},
@@ -380,22 +381,22 @@ func TestGetGrant(t *testing.T) {
 		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 		grant1 := &models.Grant{
-			Subject:   models.NewSubjectForUser(5555),
-			Privilege: "view",
-			Resource:  "any",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForUser(5555),
+			Privilege:       "view",
+			DestinationName: "any",
+			CreatedBy:       uid.ID(777),
 		}
 		grant2 := &models.Grant{
-			Subject:   models.NewSubjectForUser(6666),
-			Privilege: "view",
-			Resource:  "any",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForUser(6666),
+			Privilege:       "view",
+			DestinationName: "any",
+			CreatedBy:       uid.ID(777),
 		}
 		createGrants(t, tx, grant1, grant2)
 
 		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
 		assert.NilError(t, CreateOrganization(tx, otherOrg))
-		other := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", Resource: "any"}
+		other := &models.Grant{Subject: models.NewSubjectForUser(5555), Privilege: "view", DestinationName: "any"}
 		createGrants(t, tx.WithOrgID(otherOrg.ID), other)
 
 		t.Run("default options", func(t *testing.T) {
@@ -412,7 +413,7 @@ func TestGetGrant(t *testing.T) {
 				OrganizationMember: models.OrganizationMember{},
 				Subject:            models.NewSubjectForUser(72422),
 				Privilege:          "view",
-				Resource:           "any",
+				DestinationName:    "any",
 			}
 			deleted.DeletedAt.Time = time.Now()
 			deleted.DeletedAt.Valid = true
@@ -438,7 +439,7 @@ func TestGetGrant(t *testing.T) {
 				OrganizationMember: models.OrganizationMember{OrganizationID: db.DefaultOrg.ID},
 				Subject:            models.NewSubjectForUser(5555),
 				Privilege:          "view",
-				Resource:           "any",
+				DestinationName:    "any",
 				CreatedBy:          uid.ID(777),
 				UpdateIndex:        10001,
 			}
@@ -446,9 +447,9 @@ func TestGetGrant(t *testing.T) {
 		})
 		t.Run("by subject, privilege, resource", func(t *testing.T) {
 			actual, err := GetGrant(tx, GetGrantOptions{
-				BySubject:   models.NewSubjectForUser(5555),
-				ByPrivilege: "view",
-				ByResource:  "any",
+				BySubject:         models.NewSubjectForUser(5555),
+				ByPrivilege:       "view",
+				ByDestinationName: "any",
 			})
 			assert.NilError(t, err)
 
@@ -461,7 +462,7 @@ func TestGetGrant(t *testing.T) {
 				OrganizationMember: models.OrganizationMember{OrganizationID: db.DefaultOrg.ID},
 				Subject:            models.NewSubjectForUser(5555),
 				Privilege:          "view",
-				Resource:           "any",
+				DestinationName:    "any",
 				CreatedBy:          uid.ID(777),
 				UpdateIndex:        10001,
 			}
@@ -477,40 +478,41 @@ func TestListGrants(t *testing.T) {
 		userID := uid.ID(71234)
 
 		grant1 := &models.Grant{
-			Subject:   models.NewSubjectForUser(userID),
-			Privilege: "view",
-			Resource:  "any",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForUser(userID),
+			Privilege:       "view",
+			DestinationName: "any",
+			CreatedBy:       uid.ID(777),
 		}
 		grant2 := &models.Grant{
-			Subject:   models.NewSubjectForUser(8235),
-			Privilege: "view",
-			Resource:  "any",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForUser(8235),
+			Privilege:       "view",
+			DestinationName: "any",
+			CreatedBy:       uid.ID(777),
 		}
 		grant3 := &models.Grant{
-			Subject:   models.NewSubjectForUser(userID),
-			Privilege: "admin",
-			Resource:  "any",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForUser(userID),
+			Privilege:       "admin",
+			DestinationName: "any",
+			CreatedBy:       uid.ID(777),
 		}
 		grant4 := &models.Grant{
-			Subject:   models.NewSubjectForUser(userID),
-			Privilege: "view",
-			Resource:  "infra",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForUser(userID),
+			Privilege:       "view",
+			DestinationName: models.GrantDestinationInfra,
+			CreatedBy:       uid.ID(777),
 		}
 		grant5 := &models.Grant{
-			Subject:   models.NewSubjectForUser(9366),
-			Privilege: "logs",
-			Resource:  "any.namespace",
-			CreatedBy: uid.ID(777),
+			Subject:             models.NewSubjectForUser(9366),
+			Privilege:           "logs",
+			DestinationName:     "any",
+			DestinationResource: "namespace",
+			CreatedBy:           uid.ID(777),
 		}
 		deleted := &models.Grant{
-			Subject:   models.NewSubjectForUser(userID),
-			Privilege: "view",
-			Resource:  "any",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForUser(userID),
+			Privilege:       "view",
+			DestinationName: "any",
+			CreatedBy:       uid.ID(777),
 		}
 		deleted.DeletedAt.Time = time.Now()
 		deleted.DeletedAt.Valid = true
@@ -521,22 +523,22 @@ func TestListGrants(t *testing.T) {
 		assert.NilError(t, AddUsersToGroup(tx, uid.ID(113), []uid.ID{uid.ID(777)}))
 
 		gGrant1 := &models.Grant{
-			Subject:   models.NewSubjectForGroup(111),
-			Privilege: "view",
-			Resource:  "anyother",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForGroup(111),
+			Privilege:       "view",
+			DestinationName: "anyother",
+			CreatedBy:       uid.ID(777),
 		}
 		gGrant2 := &models.Grant{
-			Subject:   models.NewSubjectForGroup(112),
-			Privilege: "admin",
-			Resource:  "shared",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForGroup(112),
+			Privilege:       "admin",
+			DestinationName: "shared",
+			CreatedBy:       uid.ID(777),
 		}
 		gGrant3 := &models.Grant{
-			Subject:   models.NewSubjectForGroup(113),
-			Privilege: "admin",
-			Resource:  "special",
-			CreatedBy: uid.ID(777),
+			Subject:         models.NewSubjectForGroup(113),
+			Privilege:       "admin",
+			DestinationName: "special",
+			CreatedBy:       uid.ID(777),
 		}
 		createGrants(t, tx, gGrant1, gGrant2, gGrant3)
 
@@ -546,7 +548,7 @@ func TestListGrants(t *testing.T) {
 		otherOrgGrant := &models.Grant{
 			Subject:            models.NewSubjectForUser(userID),
 			Privilege:          "view",
-			Resource:           "any",
+			DestinationName:    "any",
 			CreatedBy:          uid.ID(778),
 			OrganizationMember: models.OrganizationMember{OrganizationID: otherOrg.ID},
 		}
@@ -555,9 +557,9 @@ func TestListGrants(t *testing.T) {
 		connectorUser := InfraConnectorIdentity(db)
 
 		connector, err := GetGrant(tx, GetGrantOptions{
-			BySubject:   models.NewSubjectForUser(connectorUser.ID),
-			ByPrivilege: models.InfraConnectorRole,
-			ByResource:  "infra",
+			BySubject:         models.NewSubjectForUser(connectorUser.ID),
+			ByPrivilege:       models.InfraConnectorRole,
+			ByDestinationName: models.GrantDestinationInfra,
 		})
 		assert.NilError(t, err)
 
@@ -586,16 +588,16 @@ func TestListGrants(t *testing.T) {
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 		})
 		t.Run("by resource", func(t *testing.T) {
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestinationName: "any"})
 			assert.NilError(t, err)
 
-			expected := []models.Grant{*grant1, *grant2, *grant3}
+			expected := []models.Grant{*grant1, *grant2, *grant3, *grant5}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 		})
 		t.Run("by resource and privilege", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{
-				ByResource:   "any",
-				ByPrivileges: []string{"view"},
+				ByDestinationName: "any",
+				ByPrivileges:      []string{"view"},
 			})
 			assert.NilError(t, err)
 
@@ -604,8 +606,8 @@ func TestListGrants(t *testing.T) {
 		})
 		t.Run("with multiple privileges", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{
-				ByResource:   "any",
-				ByPrivileges: []string{"view", "admin"},
+				ByDestinationName: "any",
+				ByPrivileges:      []string{"view", "admin"},
 			})
 			assert.NilError(t, err)
 
@@ -652,20 +654,33 @@ func TestListGrants(t *testing.T) {
 		t.Run("by resource with pagination", func(t *testing.T) {
 			pagination := &Pagination{Page: 1, Limit: 2}
 			actual, err := ListGrants(tx, ListGrantsOptions{
-				Pagination: pagination,
-				ByResource: "any",
+				Pagination:        pagination,
+				ByDestinationName: "any",
 			})
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant1, *grant2}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 
-			expectedPagination := &Pagination{Page: 1, Limit: 2, TotalCount: 3}
+			expectedPagination := &Pagination{Page: 1, Limit: 2, TotalCount: 4}
+			assert.DeepEqual(t, pagination, expectedPagination)
+
+			pagination = &Pagination{Page: 2, Limit: 2}
+			actual, err = ListGrants(tx, ListGrantsOptions{
+				Pagination:        pagination,
+				ByDestinationName: "any",
+			})
+			assert.NilError(t, err)
+
+			expected = []models.Grant{*grant3, *grant5}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			expectedPagination = &Pagination{Page: 2, Limit: 2, TotalCount: 4}
 			assert.DeepEqual(t, pagination, expectedPagination)
 		})
 		t.Run("by destination", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{
-				ByDestination: "any",
+				ByDestinationName: "any",
 			})
 			assert.NilError(t, err)
 
@@ -680,7 +695,7 @@ func TestGrantsMaxUpdateIndex(t *testing.T) {
 		t.Run("no results match the query", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-			idx, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "nope"})
+			idx, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestinationName: "nope"})
 			assert.NilError(t, err)
 			assert.Equal(t, idx, int64(1))
 		})
@@ -757,17 +772,17 @@ func TestListenForGrantsNotify(t *testing.T) {
 			{
 				name: "by destination",
 				opts: ListenForNotifyOptions{
-					GrantsByDestination: "mydest",
-					OrgID:               mainOrg.ID,
+					GrantsByDestinationName: "mydest",
+					OrgID:                   mainOrg.ID,
 				},
 				ops: []operation{
 					{
 						name: "grant resource matches exactly",
 						run: func(t *testing.T, tx WriteTxn) {
 							err := CreateGrant(tx, &models.Grant{
-								Subject:   models.NewSubjectForUser(1999),
-								Resource:  "mydest",
-								Privilege: "view",
+								Subject:         models.NewSubjectForUser(1999),
+								DestinationName: "mydest",
+								Privilege:       "view",
 							})
 							assert.NilError(t, err)
 						},
@@ -777,9 +792,9 @@ func TestListenForGrantsNotify(t *testing.T) {
 						name: "grant resource does not match",
 						run: func(t *testing.T, tx WriteTxn) {
 							err := CreateGrant(tx, &models.Grant{
-								Subject:   models.NewSubjectForUser(1999),
-								Resource:  "otherdest",
-								Privilege: "mydest",
+								Subject:         models.NewSubjectForUser(1999),
+								DestinationName: "otherdest",
+								Privilege:       "mydest",
 							})
 							assert.NilError(t, err)
 						},
@@ -788,9 +803,10 @@ func TestListenForGrantsNotify(t *testing.T) {
 						name: "grant resource prefix match",
 						run: func(t *testing.T, tx WriteTxn) {
 							err := CreateGrant(tx, &models.Grant{
-								Subject:   models.NewSubjectForUser(1999),
-								Resource:  "mydest.also.ns1",
-								Privilege: "admin",
+								Subject:             models.NewSubjectForUser(1999),
+								DestinationName:     "mydest",
+								DestinationResource: "also.ns1",
+								Privilege:           "admin",
 							})
 							assert.NilError(t, err)
 						},
@@ -803,9 +819,9 @@ func TestListenForGrantsNotify(t *testing.T) {
 								OrganizationMember: models.OrganizationMember{
 									OrganizationID: otherOrg.ID,
 								},
-								Subject:   models.NewSubjectForUser(1999),
-								Resource:  "mydest",
-								Privilege: "admin",
+								Subject:         models.NewSubjectForUser(1999),
+								DestinationName: "mydest",
+								Privilege:       "admin",
 							})
 							assert.NilError(t, err)
 						},
@@ -846,9 +862,9 @@ func isNotBlocked[T any](t *testing.T, ch chan T) (result T) {
 func TestCountAllGrants(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		createGrants(t, db,
-			&models.Grant{Subject: models.NewSubjectForUser(2002), Privilege: "priv", Resource: "res1"},
-			&models.Grant{Subject: models.NewSubjectForUser(2002), Privilege: "priv", Resource: "res2"},
-			&models.Grant{Subject: models.NewSubjectForUser(2002), Privilege: "priv", Resource: "res3"})
+			&models.Grant{Subject: models.NewSubjectForUser(2002), Privilege: "priv", DestinationName: "res1"},
+			&models.Grant{Subject: models.NewSubjectForUser(2002), Privilege: "priv", DestinationName: "res2"},
+			&models.Grant{Subject: models.NewSubjectForUser(2002), Privilege: "priv", DestinationName: "res3"})
 
 		actual, err := CountAllGrants(db)
 		assert.NilError(t, err)

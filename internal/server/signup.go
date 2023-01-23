@@ -312,10 +312,10 @@ func signupUser(rCtx access.RequestContext, keyExpiresAt time.Time, user *models
 	}
 
 	err = data.CreateGrant(tx, &models.Grant{
-		Subject:   models.NewSubjectForUser(identity.ID),
-		Privilege: models.InfraAdminRole,
-		Resource:  access.ResourceInfraAPI,
-		CreatedBy: identity.ID,
+		Subject:         models.NewSubjectForUser(identity.ID),
+		Privilege:       models.InfraAdminRole,
+		DestinationName: models.GrantDestinationInfra,
+		CreatedBy:       identity.ID,
 	})
 	if err != nil {
 		return nil, "", fmt.Errorf("create grant on sign-up: %w", err)

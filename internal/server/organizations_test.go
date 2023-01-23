@@ -457,9 +457,9 @@ func TestAPI_UpdateOrganization(t *testing.T) {
 	assert.NilError(t, data.CreateIdentity(tx, admin))
 
 	adminGrant := &models.Grant{
-		Subject:   models.NewSubjectForUser(admin.ID),
-		Privilege: "admin",
-		Resource:  "infra",
+		Subject:         models.NewSubjectForUser(admin.ID),
+		Privilege:       "admin",
+		DestinationName: models.GrantDestinationInfra,
 	}
 	assert.NilError(t, data.CreateGrant(tx, adminGrant))
 

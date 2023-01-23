@@ -943,7 +943,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 				}
 				assert.NilError(t, data.CreateGroup(srv.DB(), group))
 				assert.NilError(t, data.AddUsersToGroup(srv.DB(), group.ID, []uid.ID{testUser.ID}))
-				assert.NilError(t, data.CreateGrant(srv.DB(), &models.Grant{Subject: models.NewSubjectForUser(testUser.ID), Privilege: "admin", Resource: "infra"}))
+				assert.NilError(t, data.CreateGrant(srv.DB(), &models.Grant{Subject: models.NewSubjectForUser(testUser.ID), Privilege: "admin", DestinationName: models.GrantDestinationInfra}))
 
 				// nolint:noctx
 				req := httptest.NewRequest(http.MethodDelete, "/api/users/"+testUser.ID.String(), nil)

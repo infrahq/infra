@@ -40,9 +40,9 @@ func setupAccessTestContext(t *testing.T) RequestContext {
 	}
 
 	adminGrant := &models.Grant{
-		Subject:   models.NewSubjectForUser(admin.ID),
-		Privilege: models.InfraAdminRole,
-		Resource:  ResourceInfraAPI,
+		Subject:         models.NewSubjectForUser(admin.ID),
+		Privilege:       models.InfraAdminRole,
+		DestinationName: models.GrantDestinationInfra,
 	}
 	err = data.CreateGrant(tx, adminGrant)
 	assert.NilError(t, err)
@@ -67,11 +67,11 @@ func TestIsAuthorized(t *testing.T) {
 	err := data.CreateIdentity(db, admin)
 	assert.NilError(t, err)
 
-	grant(t, db, admin, models.NewSubjectForUser(888), "read", ResourceInfraAPI)
+	grant(t, db, admin, models.NewSubjectForUser(888), "read", models.GrantDestinationInfra)
 	can(t, db, 888, "read")
 	cant(t, db, 888, "write")
 
-	grant(t, db, admin, models.NewSubjectForUser(777), "write", ResourceInfraAPI)
+	grant(t, db, admin, models.NewSubjectForUser(777), "write", models.GrantDestinationInfra)
 	cant(t, db, 777, "read")
 	can(t, db, 777, "write")
 }
@@ -104,7 +104,7 @@ func TestIsAuthorized_GrantsFromGroupMembership(t *testing.T) {
 	assert.ErrorIs(t, err, ErrNotAuthorized)
 
 	admin := &models.Identity{Model: models.Model{ID: uid.ID(512)}}
-	grant(t, tx, admin, models.NewSubjectForGroup(tomsGroup.ID), models.InfraAdminRole, "infra")
+	grant(t, tx, admin, models.NewSubjectForGroup(tomsGroup.ID), models.InfraAdminRole, models.GrantDestinationInfra)
 
 	err = IsAuthorized(rCtx, models.InfraAdminRole)
 	assert.NilError(t, err)
@@ -120,7 +120,7 @@ func TestIsAuthorized_MoreCases(t *testing.T) {
 		err := data.CreateIdentity(db, testIdentity)
 		assert.NilError(t, err)
 
-		err = data.CreateGrant(db, &models.Grant{Subject: models.NewSubjectForUser(testIdentity.ID), Privilege: infraRole, Resource: ResourceInfraAPI})
+		err = data.CreateGrant(db, &models.Grant{Subject: models.NewSubjectForUser(testIdentity.ID), Privilege: infraRole, DestinationName: models.GrantDestinationInfra})
 		assert.NilError(t, err)
 
 		tx := txnForTestCase(t, db)
@@ -159,12 +159,12 @@ func TestIsAuthorized_MoreCases(t *testing.T) {
 	})
 }
 
-func grant(t *testing.T, db data.WriteTxn, createdBy *models.Identity, subject models.Subject, privilege, resource string) {
+func grant(t *testing.T, db data.WriteTxn, createdBy *models.Identity, subject models.Subject, privilege, destinationName string) {
 	err := data.CreateGrant(db, &models.Grant{
-		Subject:   subject,
-		Privilege: privilege,
-		Resource:  resource,
-		CreatedBy: createdBy.ID,
+		Subject:         subject,
+		Privilege:       privilege,
+		DestinationName: destinationName,
+		CreatedBy:       createdBy.ID,
 	})
 	assert.NilError(t, err)
 }

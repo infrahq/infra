@@ -72,17 +72,17 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	assert.NilError(t, err)
 
 	grantInfra := &models.Grant{
-		Subject:   models.NewSubjectForUser(identity.ID),
-		Resource:  "infra",
-		Privilege: "admin",
+		Subject:         models.NewSubjectForUser(identity.ID),
+		DestinationName: models.GrantDestinationInfra,
+		Privilege:       "admin",
 	}
 	err = data.CreateGrant(db, grantInfra)
 	assert.NilError(t, err)
 
 	grantDestination := &models.Grant{
-		Subject:   models.NewSubjectForUser(identity.ID),
-		Resource:  "example",
-		Privilege: "cluster-admin",
+		Subject:         models.NewSubjectForUser(identity.ID),
+		DestinationName: "example",
+		Privilege:       "cluster-admin",
 	}
 	err = data.CreateGrant(db, grantDestination)
 	assert.NilError(t, err)

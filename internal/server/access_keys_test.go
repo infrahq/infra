@@ -417,9 +417,9 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 	assert.NilError(t, err)
 	provider := data.InfraProvider(db)
 	err = data.CreateGrant(db, &models.Grant{
-		Subject:   models.NewSubjectForUser(user.ID),
-		Privilege: "admin",
-		Resource:  "infra",
+		Subject:         models.NewSubjectForUser(user.ID),
+		Privilege:       "admin",
+		DestinationName: models.GrantDestinationInfra,
 	})
 	assert.NilError(t, err)
 
@@ -650,9 +650,9 @@ func TestAPI_DeleteAccessKey(t *testing.T) {
 	assert.NilError(t, err)
 	provider := data.InfraProvider(db)
 	err = data.CreateGrant(db, &models.Grant{
-		Subject:   models.NewSubjectForUser(user.ID),
-		Privilege: "admin",
-		Resource:  "infra",
+		Subject:         models.NewSubjectForUser(user.ID),
+		Privilege:       "admin",
+		DestinationName: models.GrantDestinationInfra,
 	})
 	assert.NilError(t, err)
 

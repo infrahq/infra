@@ -76,9 +76,9 @@ func TestCreateOrganization(t *testing.T) {
 		assert.DeepEqual(t, connector, expectedConnector, anyValidToken)
 
 		connectorGrant, err := GetGrant(tx, GetGrantOptions{
-			BySubject:   models.NewSubjectForUser(connector.ID),
-			ByPrivilege: models.InfraConnectorRole,
-			ByResource:  "infra",
+			BySubject:         models.NewSubjectForUser(connector.ID),
+			ByPrivilege:       models.InfraConnectorRole,
+			ByDestinationName: models.GrantDestinationInfra,
 		})
 		assert.NilError(t, err)
 		expectedConnectorGrant := &models.Grant{
@@ -86,7 +86,7 @@ func TestCreateOrganization(t *testing.T) {
 			OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 			Subject:            models.NewSubjectForUser(connector.ID),
 			Privilege:          models.InfraConnectorRole,
-			Resource:           "infra",
+			DestinationName:    models.GrantDestinationInfra,
 			CreatedBy:          models.CreatedBySystem,
 			UpdateIndex:        10001,
 		}

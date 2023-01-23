@@ -15,7 +15,6 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
@@ -645,9 +644,9 @@ func validateSuccessfulSignup(t *testing.T, db *data.Transaction, testSignup val
 	// check the user is an admin
 	db = db.WithOrgID(respBody.Organization.ID)
 	_, err = data.GetGrant(db, data.GetGrantOptions{
-		BySubject:   models.NewSubjectForUser(userID),
-		ByResource:  access.ResourceInfraAPI,
-		ByPrivilege: api.InfraAdminRole,
+		BySubject:         models.NewSubjectForUser(userID),
+		ByDestinationName: models.GrantDestinationInfra,
+		ByPrivilege:       api.InfraAdminRole,
 	})
 	assert.NilError(t, err)
 

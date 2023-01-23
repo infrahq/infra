@@ -504,7 +504,7 @@ func TestDeleteIdentities(t *testing.T) {
 				err = AddUsersToGroup(tx, group.ID, []uid.ID{bond.ID})
 				assert.NilError(t, err)
 
-				err = CreateGrant(tx, &models.Grant{Subject: models.NewSubjectForUser(bond.ID), Privilege: "admin", Resource: "infra"})
+				err = CreateGrant(tx, &models.Grant{Subject: models.NewSubjectForUser(bond.ID), Privilege: "admin", DestinationName: "infra"})
 				assert.NilError(t, err)
 
 				return DeleteIdentitiesOptions{

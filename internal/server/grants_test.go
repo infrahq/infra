@@ -17,7 +17,6 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -339,7 +338,6 @@ func TestAPI_ListGrants(t *testing.T) {
 			urlPath: "/api/grants?resource=res1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-				req.Header.Add("Infra-Version", apiVersionLatest)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
@@ -352,6 +350,16 @@ func TestAPI_ListGrants(t *testing.T) {
 						User:      idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
+					},
+					{
+						User:      idOther,
+						Privilege: "custom2",
+						Resource:  "res1.ns1",
+					},
+					{
+						User:      idOther,
+						Privilege: "connector",
+						Resource:  "res1.ns2",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
@@ -604,16 +612,16 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	}
 
 	err := data.CreateGrant(srv.DB(), &models.Grant{
-		Resource:  "infra",
-		Privilege: "view",
-		Subject:   models.NewSubjectForUser(idInGroup),
+		DestinationName: models.GrantDestinationInfra,
+		Privilege:       "view",
+		Subject:         models.NewSubjectForUser(idInGroup),
 	})
 	assert.NilError(t, err)
 
 	err = data.CreateGrant(srv.DB(), &models.Grant{
-		Subject:   models.NewSubjectForGroup(zoologistsID),
-		Privilege: "examine",
-		Resource:  "butterflies",
+		Subject:         models.NewSubjectForGroup(zoologistsID),
+		Privilege:       "examine",
+		DestinationName: "butterflies",
 	})
 	assert.NilError(t, err)
 
@@ -832,18 +840,18 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 
 	// unrelated grant
 	err := data.CreateGrant(srv.db, &models.Grant{
-		Subject:   models.NewSubjectForUser(222242),
-		Privilege: "view",
-		Resource:  "somethingelse",
+		Subject:         models.NewSubjectForUser(222242),
+		Privilege:       "view",
+		DestinationName: "somethingelse",
 	})
 	assert.NilError(t, err)
 	isBlocked(t, respCh)
 
 	// matching grant
 	err = data.CreateGrant(srv.db, &models.Grant{
-		Subject:   models.NewSubjectForUser(222242),
-		Privilege: "view",
-		Resource:  "infra",
+		Subject:         models.NewSubjectForUser(222242),
+		Privilege:       "view",
+		DestinationName: models.GrantDestinationInfra,
 	})
 	assert.NilError(t, err)
 
@@ -904,18 +912,19 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 
 	// unrelated grant
 	err := data.CreateGrant(srv.db, &models.Grant{
-		Subject:   models.NewSubjectForUser(222242),
-		Privilege: "view",
-		Resource:  "somethingelse",
+		Subject:         models.NewSubjectForUser(222242),
+		Privilege:       "view",
+		DestinationName: "somethingelse",
 	})
 	assert.NilError(t, err)
 	isBlocked(t, respCh)
 
 	// matching grant
 	err = data.CreateGrant(srv.db, &models.Grant{
-		Subject:   models.NewSubjectForUser(222242),
-		Privilege: "view",
-		Resource:  "deferred.ns1",
+		Subject:             models.NewSubjectForUser(222242),
+		Privilege:           "view",
+		DestinationName:     "deferred",
+		DestinationResource: "ns1",
 	})
 	assert.NilError(t, err)
 
@@ -961,9 +970,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	supportAdminGrant := models.Grant{
-		Subject:   models.NewSubjectForUser(supportAdmin.ID),
-		Privilege: models.InfraSupportAdminRole,
-		Resource:  "infra",
+		Subject:         models.NewSubjectForUser(supportAdmin.ID),
+		Privilege:       models.InfraSupportAdminRole,
+		DestinationName: models.GrantDestinationInfra,
 	}
 	err = data.CreateGrant(srv.DB(), &supportAdminGrant)
 	assert.NilError(t, err)
@@ -1269,8 +1278,8 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	t.Run("last infra admin is deleted", func(t *testing.T) {
 		infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-			ByPrivileges: []string{models.InfraAdminRole},
-			ByResource:   "infra",
+			ByPrivileges:      []string{models.InfraAdminRole},
+			ByDestinationName: models.GrantDestinationInfra,
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, len(infraAdminGrants) == 1)
@@ -1286,9 +1295,9 @@ func TestAPI_DeleteGrant(t *testing.T) {
 	})
 	t.Run("admin for wrong organization", func(t *testing.T) {
 		grant := &models.Grant{
-			Subject:   models.NewSubjectForUser(user.ID),
-			Privilege: models.InfraViewRole,
-			Resource:  "something",
+			Subject:         models.NewSubjectForUser(user.ID),
+			Privilege:       models.InfraViewRole,
+			DestinationName: "something",
 		}
 		err := data.CreateGrant(srv.DB(), grant)
 		assert.NilError(t, err)
@@ -1305,9 +1314,9 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	t.Run("not last infra admin is deleted", func(t *testing.T) {
 		grant2 := &models.Grant{
-			Subject:   models.NewSubjectForUser(user.ID),
-			Privilege: models.InfraAdminRole,
-			Resource:  "infra",
+			Subject:         models.NewSubjectForUser(user.ID),
+			Privilege:       models.InfraAdminRole,
+			DestinationName: models.GrantDestinationInfra,
 		}
 
 		err := data.CreateGrant(srv.DB(), grant2)
@@ -1325,9 +1334,9 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	t.Run("last infra non-admin is deleted", func(t *testing.T) {
 		grant2 := &models.Grant{
-			Subject:   models.NewSubjectForUser(user.ID),
-			Privilege: models.InfraViewRole,
-			Resource:  "infra",
+			Subject:         models.NewSubjectForUser(user.ID),
+			Privilege:       models.InfraViewRole,
+			DestinationName: models.GrantDestinationInfra,
 		}
 
 		err := data.CreateGrant(srv.DB(), grant2)
@@ -1345,9 +1354,9 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	t.Run("last non-infra admin is deleted", func(t *testing.T) {
 		grant2 := &models.Grant{
-			Subject:   models.NewSubjectForUser(user.ID),
-			Privilege: "admin",
-			Resource:  "example",
+			Subject:         models.NewSubjectForUser(user.ID),
+			Privilege:       "admin",
+			DestinationName: "example",
 		}
 
 		err := data.CreateGrant(srv.DB(), grant2)
@@ -1443,7 +1452,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				GrantsToAdd: []api.GrantRequest{
 					{
 						UserName:  user.Name,
-						Resource:  access.ResourceInfraAPI,
+						Resource:  "infra",
 						Privilege: models.InfraSupportAdminRole,
 					},
 				},
@@ -1469,8 +1478,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "some-cluster",
+					ByPrivileges:      []string{models.InfraAdminRole},
+					ByDestinationName: "some-cluster",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 1)
@@ -1493,8 +1502,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "some-cluster2",
+					ByPrivileges:      []string{models.InfraAdminRole},
+					ByDestinationName: "some-cluster2",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 1)
@@ -1517,8 +1526,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "some-cluster3",
+					ByPrivileges:      []string{models.InfraAdminRole},
+					ByDestinationName: "some-cluster3",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 1)
@@ -1541,8 +1550,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "some-cluster4",
+					ByPrivileges:      []string{models.InfraAdminRole},
+					ByDestinationName: "some-cluster4",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 1)
@@ -1553,9 +1562,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 				grantToAdd := models.Grant{
-					Subject:   models.NewSubjectForUser(user.ID),
-					Privilege: models.InfraAdminRole,
-					Resource:  "another-cluster",
+					Subject:         models.NewSubjectForUser(user.ID),
+					Privilege:       models.InfraAdminRole,
+					DestinationName: "another-cluster",
 				}
 
 				err := data.CreateGrant(srv.DB(), &grantToAdd)
@@ -1574,8 +1583,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "another-cluster",
+					ByPrivileges:      []string{models.InfraAdminRole},
+					ByDestinationName: "another-cluster",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 0)
@@ -1586,9 +1595,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 				grantToAdd := models.Grant{
-					Subject:   models.NewSubjectForUser(user.ID),
-					Privilege: models.InfraAdminRole,
-					Resource:  "another-cluster2",
+					Subject:         models.NewSubjectForUser(user.ID),
+					Privilege:       models.InfraAdminRole,
+					DestinationName: "another-cluster2",
 				}
 
 				err := data.CreateGrant(srv.DB(), &grantToAdd)
@@ -1607,8 +1616,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "another-cluster2",
+					ByPrivileges:      []string{models.InfraAdminRole},
+					ByDestinationName: "another-cluster2",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 0)
@@ -1619,9 +1628,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 				grantToAdd := models.Grant{
-					Subject:   models.NewSubjectForGroup(group.ID),
-					Privilege: models.InfraAdminRole,
-					Resource:  "another-cluster3",
+					Subject:         models.NewSubjectForGroup(group.ID),
+					Privilege:       models.InfraAdminRole,
+					DestinationName: "another-cluster3",
 				}
 
 				err := data.CreateGrant(srv.DB(), &grantToAdd)
@@ -1640,8 +1649,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "another-cluster3",
+					ByPrivileges:      []string{models.InfraAdminRole},
+					ByDestinationName: "another-cluster3",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 0)
