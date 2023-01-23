@@ -780,7 +780,7 @@ function Authentication() {
           >
             {allowedDomains.map(domain => (
               <span
-                className='bg-transparents group mr-1 flex items-center rounded-md border-[1.5px] border-gray-400/50 bg-transparent py-1 pl-2.5 pr-1 text-xs font-medium text-gray-600 hover:border-2 hover:bg-gray-100 hover:text-gray-900'
+                className='group mr-1 flex items-center rounded-md border border-gray-400/50 bg-transparent py-1 pl-2.5 pr-1 text-xs font-medium text-gray-600 hover:border-2 hover:bg-gray-100 hover:text-gray-900'
                 key={domain}
               >
                 {domain}
