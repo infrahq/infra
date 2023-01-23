@@ -14,7 +14,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	openapi3b "github.com/infrahq/infra/internal/openapi3"
+	"github.com/infrahq/infra/internal/openapi3"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -24,7 +24,7 @@ import (
 type API struct {
 	t          *Telemetry
 	server     *Server
-	openAPIDoc openapi3b.Doc
+	openAPIDoc openapi3.Doc
 	versions   map[routeIdentifier][]routeVersion
 }
 

@@ -69,7 +69,7 @@ func TestIntRule_DescribeSchema(t *testing.T) {
 
 	expected := openapi3.Schema{
 		Properties: map[string]*openapi3.SchemaRef{
-			"count": &openapi3.SchemaRef{
+			"count": {
 				Schema: &openapi3.Schema{
 					Min: float64Ptr(3),
 					Max: float64Ptr(5),

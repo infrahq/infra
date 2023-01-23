@@ -97,7 +97,7 @@ func TestEmail_DescribeSchema(t *testing.T) {
 	e.DescribeSchema(&schema)
 	expected := openapi3.Schema{
 		Properties: map[string]*openapi3.SchemaRef{
-			"addrField": &openapi3.SchemaRef{
+			"addrField": {
 				Schema: &openapi3.Schema{Format: "email"},
 			},
 		},

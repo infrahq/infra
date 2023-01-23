@@ -18,7 +18,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
-	openapi3b "github.com/infrahq/infra/internal/openapi3"
+	"github.com/infrahq/infra/internal/openapi3"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
@@ -26,7 +26,7 @@ import (
 // Routes is the return value of GenerateRoutes.
 type Routes struct {
 	http.Handler
-	OpenAPIDocument openapi3b.Doc
+	OpenAPIDocument openapi3.Doc
 	api             *API
 }
 
