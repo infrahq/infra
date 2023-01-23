@@ -42,8 +42,8 @@ type Operation struct {
 	OperationID string                `json:"operationId,omitempty" yaml:"operationId,omitempty"`
 	Parameters  []*Parameter          `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	RequestBody *RequestBody          `json:"requestBody,omitempty" yaml:"requestBody,omitempty"`
-	Responses   openapi3.Responses    `json:"responses" yaml:"responses"` // Required
-	Callbacks   openapi3.Callbacks    `json:"callbacks,omitempty" yaml:"callbacks,omitempty"`
+	Responses   map[string]Response   `json:"responses" yaml:"responses"` // Required
+	Callbacks   map[string]Callback   `json:"callbacks,omitempty" yaml:"callbacks,omitempty"`
 	Deprecated  bool                  `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 	Security    []SecurityRequirement `json:"security,omitempty" yaml:"security,omitempty"`
 	Servers     []Server              `json:"servers,omitempty" yaml:"servers,omitempty"`
@@ -54,6 +54,8 @@ type Operation struct {
 func (o *Operation) AddParameter(p *Parameter) {
 	o.Parameters = append(o.Parameters, p)
 }
+
+type Callback map[string]*PathItem
 
 // RequestBody is specified by OpenAPI/Swagger 3.0 standard.
 // See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#request-body-object
@@ -88,6 +90,15 @@ type Parameter struct {
 	Schema          *openapi3.SchemaRef `json:"schema,omitempty" yaml:"schema,omitempty"`
 	Style           string              `json:"style,omitempty" yaml:"style,omitempty"`
 	Content         openapi3.Content    `json:"content,omitempty" yaml:"content,omitempty"`
+}
+
+// Response is specified by OpenAPI/Swagger 3.0 standard.
+// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#response-object
+type Response struct {
+	Content     map[string]*MediaType `json:"content,omitempty" yaml:"content,omitempty"`
+	Description string                `json:"description,omitempty" yaml:"description,omitempty"`
+	Headers     map[string]*Parameter `json:"headers,omitempty" yaml:"headers,omitempty"`
+	// Links are not used yet
 }
 
 // Info is specified by OpenAPI/Swagger standard version 3.

@@ -316,11 +316,7 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 	}
 }
 
-func pstr(s string) *string {
-	return &s
-}
-
-func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Responses {
+func buildResponse(schemas openapi3.Schemas, rst reflect.Type) map[string]openapi3b.Response {
 	schema := &openapi3.SchemaRef{
 		Value: &openapi3.Schema{Type: "object"},
 	}
@@ -329,57 +325,40 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 		schema = createComponent(schemas, rst)
 	}
 
-	resp := openapi3.NewResponses()
-	resp["default"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Success"),
-			Content: openapi3.Content{
-				"application/json": &openapi3.MediaType{
-					Schema: schema,
-				},
+	content := map[string]*openapi3b.MediaType{
+		"application/json": {
+			Schema: createComponent(schemas, reflect.TypeOf(api.Error{})),
+		},
+	}
+
+	resp := map[string]openapi3b.Response{
+		"default": {
+			Description: "Success",
+			Content: map[string]*openapi3b.MediaType{
+				"application/json": {Schema: schema},
 			},
 		},
-	}
-
-	content := openapi3.Content{"application/json": &openapi3.MediaType{
-		Schema: createComponent(schemas, reflect.TypeOf(api.Error{})),
-	}}
-
-	resp["400"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Bad Request"),
+		"400": {
+			Description: "Bad Request",
+			Content:     content,
+		},
+		"401": {
+			Description: "Unauthorized: Requestor is not authenticated",
+			Content:     content,
+		},
+		"403": {
+			Description: "Forbidden: Requestor does not have the right permissions",
+			Content:     content,
+		},
+		"409": {
+			Description: "Duplicate Record",
+			Content:     content,
+		},
+		"404": {
+			Description: "Not Found",
 			Content:     content,
 		},
 	}
-
-	resp["401"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Unauthorized: Requestor is not authenticated"),
-			Content:     content,
-		},
-	}
-
-	resp["403"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Forbidden: Requestor does not have the right permissions"),
-			Content:     content,
-		},
-	}
-
-	resp["409"] = &openapi3.ResponseRef{ // also used for Conflict
-		Value: &openapi3.Response{
-			Description: pstr("Duplicate Record"),
-			Content:     content,
-		},
-	}
-
-	resp["404"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Not Found"),
-			Content:     content,
-		},
-	}
-
 	return resp
 }
 
