@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
@@ -83,24 +83,22 @@ func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
 // CreateUser creates a user with the Infra provider
 func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	rCtx := getRequestContext(c)
-	user := &models.Identity{Name: r.Name}
 
-	// infra identity creation should be attempted even if an identity is already known
-	identities, err := access.ListIdentities(rCtx, data.ListIdentityOptions{ByName: r.Name})
-	if err != nil {
-		return nil, fmt.Errorf("list identities: %w", err)
-	}
-
-	switch len(identities) {
-	case 0:
+	user, err := access.GetIdentity(rCtx, data.GetIdentityOptions{ByName: r.Name, LoadProviders: true})
+	switch {
+	case errors.Is(err, internal.ErrNotFound):
+		user = &models.Identity{Name: r.Name}
 		if err := access.CreateIdentity(rCtx, user); err != nil {
 			return nil, fmt.Errorf("create identity: %w", err)
 		}
-	case 1:
-		user.ID = identities[0].ID
+	case err != nil:
+		return nil, fmt.Errorf("get identities: %w", err)
 	default:
-		logging.Errorf("Multiple identities match name %q. DB is missing unique index on user names", r.Name)
-		return nil, fmt.Errorf("multiple identities match specified name") // should not happen
+		for _, provider := range user.Providers {
+			if provider.ID == data.InfraProvider(rCtx.DBTxn).ID {
+				return nil, fmt.Errorf("%w: user already exists", internal.ErrBadRequest)
+			}
+		}
 	}
 
 	resp := &api.CreateUserResponse{

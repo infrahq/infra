@@ -26,6 +26,8 @@ func patchEmailTestMode(t *testing.T, testKey string) {
 		email.TestData = make([]any, 0)
 		email.SendgridAPIKey = originalSendgridAPIKey
 	})
+
+	assert.Assert(t, email.IsConfigured())
 }
 
 func TestPasswordResetFlow(t *testing.T) {

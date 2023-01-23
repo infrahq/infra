@@ -779,15 +779,13 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 }
 
 func TestAPI_CreateUser_EmailInvite(t *testing.T) {
-	patchEmailTestMode(t, "fakekey")
-
-	assert.Assert(t, email.IsConfigured())
-
 	s := setupServer(t, withAdminUser)
 	routes := s.GenerateRoutes()
 
 	var token string
 	runStep(t, "request user invite", func(t *testing.T) {
+		patchEmailTestMode(t, "fakekey")
+
 		body := jsonBody(t, &api.CreateUserRequest{Name: "deckard@example.com"})
 		r := httptest.NewRequest(http.MethodPost, "/api/users", body)
 		r.Header.Add("Infra-Version", apiVersionLatest)
@@ -838,6 +836,19 @@ func TestAPI_CreateUser_EmailInvite(t *testing.T) {
 
 		_, err = data.GetProviderUser(s.DB(), data.InfraProvider(s.DB()).ID, user.ID)
 		assert.NilError(t, err)
+	})
+
+	runStep(t, "no duplicates", func(t *testing.T) {
+		patchEmailTestMode(t, "fakekey")
+
+		body := jsonBody(t, &api.CreateUserRequest{Name: "deckard@example.com"})
+		r := httptest.NewRequest(http.MethodPost, "/api/users", body)
+		r.Header.Add("Infra-Version", apiVersionLatest)
+		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey(s)))
+
+		w := httptest.NewRecorder()
+		routes.ServeHTTP(w, r)
+		assert.Equal(t, w.Code, http.StatusBadRequest, w.Body.String())
 	})
 }
 
