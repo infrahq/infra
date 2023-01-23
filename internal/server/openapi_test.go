@@ -38,5 +38,4 @@ func patchProductVersion(t *testing.T, version string) {
 	t.Cleanup(func() {
 		productVersion = orig
 	})
-
 }

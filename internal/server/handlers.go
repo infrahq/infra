@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/square/go-jose.v2"
+
+	openapi3b "github.com/infrahq/infra/internal/openapi3"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -24,7 +25,7 @@ import (
 type API struct {
 	t          *Telemetry
 	server     *Server
-	openAPIDoc openapi3.T
+	openAPIDoc openapi3b.Doc
 	versions   map[routeIdentifier][]routeVersion
 }
 

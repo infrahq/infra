@@ -11,9 +11,10 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+
+	openapi3b "github.com/infrahq/infra/internal/openapi3"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -26,7 +27,7 @@ import (
 // Routes is the return value of GenerateRoutes.
 type Routes struct {
 	http.Handler
-	OpenAPIDocument openapi3.T
+	OpenAPIDocument openapi3b.Doc
 	api             *API
 }
 

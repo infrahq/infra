@@ -17,10 +17,11 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	openapi3b "github.com/infrahq/infra/internal/openapi3"
 	"github.com/infrahq/infra/internal/validate"
 )
 
-func GenerateOpenAPIDoc() openapi3.T {
+func GenerateOpenAPIDoc() openapi3b.Doc {
 	srv := newServer(Options{})
 	srv.metricsRegistry = prometheus.NewRegistry()
 	return srv.GenerateRoutes().OpenAPIDocument
@@ -214,8 +215,8 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	return &openapi3.SchemaRef{Value: s}
 }
 
-func newOpenAPIDoc(version string) openapi3.T {
-	doc := openapi3.T{}
+func newOpenAPIDoc(version string) openapi3b.Doc {
+	doc := openapi3b.Doc{}
 	doc.OpenAPI = "3.0.0"
 	doc.Info = &openapi3.Info{
 		Title:       "Infra API",
@@ -229,7 +230,7 @@ func newOpenAPIDoc(version string) openapi3.T {
 	return doc
 }
 
-func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
+func writeOpenAPISpec(spec openapi3b.Doc, out io.Writer) error {
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
 
@@ -239,7 +240,7 @@ func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
 	return nil
 }
 
-func WriteOpenAPIDocToFile(openAPIDoc openapi3.T, filename string) error {
+func WriteOpenAPIDocToFile(openAPIDoc openapi3b.Doc, filename string) error {
 	fh, err := os.Create(filename)
 	if err != nil {
 		return err
