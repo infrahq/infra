@@ -5,12 +5,6 @@
   </picture>
 </div>
 
-<div align="center">
-
-[![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCft1MzQs2BJdW8BIUu6WJkw?style=social)](https://www.youtube.com/channel/UCft1MzQs2BJdW8BIUu6WJkw) [![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social)](https://github.com/infrahq/infra/stargazers) [![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)](https://twitter.com/infrahq)
-
-</div>
-
 [Infra](https://infrahq.com) provides authentication and access management to servers, clusters, and databases.
 
 ## Getting Started
@@ -30,7 +24,7 @@ scoop install infra
 
 #### Linux
 
-Download the [latest](https://github.com/infrahq/infra/releases/latest) packages from GitHub and install it with `dpkg`,  `apt`, `rpm`, or `dnf`.
+Download the [latest](https://github.com/infrahq/infra/releases/latest) packages from GitHub and install it with `dpkg`, `apt`, `rpm`, or `dnf`.
 
 ```
 sudo dpkg -i infra_*.deb
@@ -53,7 +47,7 @@ export INFRA_SERVER=<org>.infrahq.com
 ```
 
 ```
-infra login 
+infra login
 ```
 
 You'll be prompted for the Infra URL you created when you signed up. (e.g. `<org>.infrahq.com`).
