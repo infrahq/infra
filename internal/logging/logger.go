@@ -4,6 +4,7 @@ package logging
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -67,6 +68,35 @@ func UseFileLogger(filepath string) {
 	}
 
 	L = newLogger(writer)
+}
+
+type logWriter struct {
+	logger interface {
+		WithLevel(level zerolog.Level) *zerolog.Event
+	}
+	level zerolog.Level
+}
+
+func (w logWriter) Write(p []byte) (n int, err error) {
+	n = len(p)
+	p = trimTrailingNewline(p)
+	w.logger.WithLevel(w.level).CallerSkipFrame(1).Msg(string(p))
+	return n, nil
+}
+
+func trimTrailingNewline(p []byte) []byte {
+	n := len(p)
+	if n > 0 && p[n-1] == '\n' {
+		// Trim CR added by stdlog.
+		p = p[0 : n-1]
+	}
+	return p
+}
+
+// HTTPErrorLog returns a stdlib log.Logger configured to write logs at
+// level to L. The intended use of this logger is for http.Server.ErrorLog.
+func HTTPErrorLog(level zerolog.Level) *log.Logger {
+	return log.New(logWriter{logger: L, level: level}, "", 0)
 }
 
 func Debugf(format string, v ...interface{}) {

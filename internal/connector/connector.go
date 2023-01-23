@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -17,6 +16,7 @@ import (
 	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -257,7 +257,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		MinVersion: tls.VersionTLS12,
 	}
 
-	httpErrorLog := log.New(logging.L, "", 0)
+	httpErrorLog := logging.HTTPErrorLog(zerolog.WarnLevel)
 
 	proxy := httputil.NewSingleHostReverseProxy(kubeAPIAddr)
 	proxy.Transport = proxyTransport
