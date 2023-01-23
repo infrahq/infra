@@ -56,6 +56,7 @@ export default function Callback() {
       // redirect to the new org subdomain
       let created = await jsonBody(res)
 
+      window.localStorage.removeItem('redirectURL')
       window.location = `${window.location.protocol}//${created?.organization?.domain}`
     } catch (e) {
       setError(e.message)
