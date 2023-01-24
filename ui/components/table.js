@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useLayoutEffect, useRef, useState, useMemo } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 import { TrashIcon } from '@heroicons/react/24/outline'
 import {
