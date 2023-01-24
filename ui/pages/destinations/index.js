@@ -6,7 +6,7 @@ import { useState } from 'react'
 
 import { useUser } from '../../lib/hooks'
 import { CommandLineIcon } from '@heroicons/react/24/solid'
-import { TrashIcon } from '@heroicons/react/24/outline'
+import { TrashIcon, PlusIcon } from '@heroicons/react/24/outline'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'

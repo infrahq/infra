@@ -6,6 +6,7 @@ import useSWR from 'swr'
 import dayjs from 'dayjs'
 import {
   TrashIcon,
+  PlusIcon,
   CheckIcon,
   ChevronDownIcon,
   AdjustmentsHorizontalIcon,
@@ -583,7 +584,7 @@ export default function AccessControl() {
               onClick={() => setOpenCreateAccess(true)}
               className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
             >
-              Grant access
+              <PlusIcon className='mr-1 h-3 w-3' /> Grant Access
             </button>
             <Transition.Root show={openCreateAccess} as={Fragment}>
               <Dialog as='div' className='relative z-50' onClose={() => {}}>
