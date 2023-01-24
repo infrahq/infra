@@ -6,6 +6,7 @@ import (
 	"path"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/data"
@@ -99,13 +100,15 @@ func TestResetCredentials(t *testing.T) {
 	})
 }
 
-func TestCheckPasswordRequirements(t *testing.T) {
-	rCtx := setupAccessTestContext(t)
+func TestGenerateFromPassword(t *testing.T) {
 	t.Run("default password requirements", func(t *testing.T) {
-		err := checkPasswordRequirements(rCtx.DBTxn, "password")
+		hash, err := GenerateFromPassword("password")
 		assert.NilError(t, err)
 
-		err = checkPasswordRequirements(rCtx.DBTxn, "passwor")
+		err = bcrypt.CompareHashAndPassword(hash, []byte("password"))
+		assert.NilError(t, err)
+
+		_, err = GenerateFromPassword("passwor")
 		assert.DeepEqual(t, err, validate.Error{
 			"password": []string{"8 characters"},
 		})
