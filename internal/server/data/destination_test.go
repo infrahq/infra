@@ -497,7 +497,7 @@ func TestListDestinationAccess(t *testing.T) {
 				Resource:         "destination1",
 			},
 		}
-		assert.DeepEqual(t, actual, expected)
+		assert.DeepEqual(t, actual.Items, expected)
 	})
 }
 
@@ -526,9 +526,9 @@ func TestDestinationAccessMaxUpdateIndex(t *testing.T) {
 		run := func(t *testing.T, tc testStep) {
 			tc.setup(t)
 
-			actual, err := DestinationAccessMaxUpdateIndex(tx, dest.Name)
+			actual, err := ListDestinationAccess(tx, dest.Name)
 			assert.NilError(t, err)
-			assert.Equal(t, actual, tc.expected)
+			assert.Equal(t, actual.MaxUpdateIndex, tc.expected)
 		}
 
 		var startIndex int64 = 10001

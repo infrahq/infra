@@ -230,8 +230,20 @@ type DestinationAccess struct {
 	Resource         string
 }
 
-func ListDestinationAccess(tx ReadTxn, destination string) ([]DestinationAccess, error) {
-	// IMPORTANT: changes to this query likely also need to be applied to DestinationAccessMaxUpdateIndex
+type ListDestinationAccessResult struct {
+	// Items is the list of items that match the query, excluding soft-deleted rows.
+	Items []DestinationAccess
+
+	// MaxUpdateIndex is the maximum update_index from all the grants and groups
+	// that match the query. This MUST include soft-deleted rows as well.
+	// The value will be 1 if no records match the query, so that the caller can
+	// block until a record exists.
+	MaxUpdateIndex int64
+}
+
+func ListDestinationAccess(tx ReadTxn, destination string) (*ListDestinationAccessResult, error) {
+	// IMPORTANT: changes to this query likely also need to be applied to
+	// destinationAccessMaxUpdateIndex.
 	query := querybuilder.New("SELECT")
 	query.B("identities.id, identities.ssh_login_name, grants.privilege, grants.resource")
 	query.B("FROM grants")
@@ -262,6 +274,11 @@ func ListDestinationAccess(tx ReadTxn, destination string) ([]DestinationAccess,
 		return nil, err
 	}
 
+	maxUpdateIndex, err := destinationAccessMaxUpdateIndex(tx, destination)
+	if err != nil {
+		return nil, err
+	}
+
 	// Sort after the query to avoid creating a temporary DB table
 	sort.Slice(userAccess, func(i, j int) bool {
 		if userAccess[i].UserID == userAccess[j].UserID {
@@ -269,10 +286,13 @@ func ListDestinationAccess(tx ReadTxn, destination string) ([]DestinationAccess,
 		}
 		return userAccess[i].UserID < userAccess[j].UserID
 	})
-	return userAccess, nil
+	return &ListDestinationAccessResult{
+		Items:          userAccess,
+		MaxUpdateIndex: maxUpdateIndex,
+	}, nil
 }
 
-// DestinationAccessMaxUpdateIndex returns the maximum update_index from all
+// destinationAccessMaxUpdateIndex returns the maximum update_index from all
 // the grants and groups that match the query.
 // This MUST include soft-deleted rows as well, so that deleted rows increase
 // the update index.
@@ -281,7 +301,7 @@ func ListDestinationAccess(tx ReadTxn, destination string) ([]DestinationAccess,
 // a record exists.
 //
 // TODO: any way to assert this tx has the right isolation level?
-func DestinationAccessMaxUpdateIndex(tx ReadTxn, destination string) (int64, error) {
+func destinationAccessMaxUpdateIndex(tx ReadTxn, destination string) (int64, error) {
 	// IMPORTANT: changes to this query likely also need to be applied to ListDestinationAccess
 	query := querybuilder.New("SELECT max(idx) FROM (")
 	query.B("SELECT max(grants.update_index) as idx FROM grants")
