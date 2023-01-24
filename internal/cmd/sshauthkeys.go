@@ -160,9 +160,9 @@ func authorizeUserForDestination(
 	name string,
 ) error {
 	grants, err := client.ListGrants(ctx, api.ListGrantsRequest{
-		User:          user.ID,
-		Destination:   name,
-		ShowInherited: true,
+		User:            user.ID,
+		DestinationName: name,
+		ShowInherited:   true,
 	})
 	if err != nil {
 		return err

@@ -150,9 +150,9 @@ func TestTrimWhitespace(t *testing.T) {
 	userID := uid.New()
 	// nolint:noctx
 	req := httptest.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.GrantRequest{
-		User:      userID,
-		Privilege: "admin   ",
-		Resource:  " kubernetes.production.*",
+		User:            userID,
+		Privilege:       "admin   ",
+		DestinationName: "production",
 	}))
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", apiVersionLatest)
@@ -176,9 +176,9 @@ func TestTrimWhitespace(t *testing.T) {
 
 	assert.Equal(t, len(rb.Items), 2, rb.Items)
 	expected := api.Grant{
-		User:      userID,
-		Privilege: "admin",
-		Resource:  "kubernetes.production.*",
+		User:            userID,
+		Privilege:       "admin",
+		DestinationName: "production",
 	}
 	assert.DeepEqual(t, rb.Items[1], expected, cmpAPIGrantShallow)
 }

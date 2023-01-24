@@ -97,9 +97,9 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		createReq := <-ch
 		expected := api.GrantRequest{
-			User:      3000,
-			Privilege: "connect",
-			Resource:  "the-destination",
+			User:            3000,
+			Privilege:       "connect",
+			DestinationName: "the-destination",
 		}
 		assert.DeepEqual(t, createReq, expected)
 	})
@@ -111,9 +111,10 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		createReq := <-ch
 		expected := api.GrantRequest{
-			User:      3000,
-			Privilege: "connect",
-			Resource:  "the-destination.default",
+			User:                3000,
+			Privilege:           "connect",
+			DestinationName:     "the-destination",
+			DestinationResource: "default",
 		}
 		assert.DeepEqual(t, createReq, expected)
 	})
@@ -125,9 +126,9 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		createReq := <-ch
 		expected := api.GrantRequest{
-			User:      3000,
-			Privilege: "role",
-			Resource:  "the-destination",
+			User:            3000,
+			Privilege:       "role",
+			DestinationName: "the-destination",
 		}
 		assert.DeepEqual(t, createReq, expected)
 	})
@@ -141,9 +142,9 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		createReq := <-ch
 		expected := api.GrantRequest{
-			Group:     4000,
-			Privilege: "role",
-			Resource:  "the-destination",
+			Group:           4000,
+			Privilege:       "role",
+			DestinationName: "the-destination",
 		}
 		assert.DeepEqual(t, createReq, expected)
 	})
@@ -167,9 +168,9 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		actual := <-ch
 		expected := api.GrantRequest{
-			User:      3002,
-			Privilege: "connect",
-			Resource:  "destination",
+			User:            3002,
+			Privilege:       "connect",
+			DestinationName: "destination",
 		}
 
 		assert.DeepEqual(t, actual, expected)
@@ -182,9 +183,9 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		actual := <-ch
 		expected := api.GrantRequest{
-			Group:     4001,
-			Privilege: "connect",
-			Resource:  "destination",
+			Group:           4001,
+			Privilege:       "connect",
+			DestinationName: "destination",
 		}
 
 		assert.DeepEqual(t, actual, expected)
@@ -218,9 +219,9 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		actual := <-ch
 		expected := api.GrantRequest{
-			User:      3000,
-			Privilege: "connect",
-			Resource:  "nonexistent",
+			User:            3000,
+			Privilege:       "connect",
+			DestinationName: "nonexistent",
 		}
 
 		assert.DeepEqual(t, actual, expected)
@@ -233,9 +234,10 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		actual := <-ch
 		expected := api.GrantRequest{
-			User:      3000,
-			Privilege: "connect",
-			Resource:  "the-destination.nonexistent",
+			User:                3000,
+			Privilege:           "connect",
+			DestinationName:     "the-destination",
+			DestinationResource: "nonexistent",
 		}
 
 		assert.DeepEqual(t, actual, expected)
@@ -248,9 +250,9 @@ func TestGrantsAddCmd(t *testing.T) {
 
 		actual := <-ch
 		expected := api.GrantRequest{
-			User:      3000,
-			Privilege: "nonexistent",
-			Resource:  "the-destination",
+			User:            3000,
+			Privilege:       "nonexistent",
+			DestinationName: "the-destination",
 		}
 
 		assert.DeepEqual(t, actual, expected)
@@ -296,7 +298,7 @@ func TestGrantRemoveCmd(t *testing.T) {
 
 			if requestMatches(req, http.MethodGet, "/api/grants") {
 				resp.WriteHeader(http.StatusOK)
-				if query.Get("resource") != "the-destination" {
+				if query.Get("destinationName") != "the-destination" {
 					writeResponse(t, resp, api.ListResponse[api.Grant]{})
 					return
 				}

@@ -329,7 +329,7 @@ func validateGrant(grant *models.Grant) error {
 	case grant.Privilege == "":
 		return fmt.Errorf("privilege is required")
 	case grant.DestinationName == "":
-		return fmt.Errorf("resource name is required")
+		return fmt.Errorf("destination name is required")
 	}
 	return nil
 }

@@ -409,10 +409,10 @@ func isUserSelf(name string) (bool, error) {
 func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientHostConfig) (bool, error) {
 	ctx := context.TODO()
 	grants, err := client.ListGrants(ctx, api.ListGrantsRequest{
-		User:          config.UserID,
-		Privilege:     api.InfraAdminRole,
-		Resource:      "infra",
-		ShowInherited: true,
+		User:            config.UserID,
+		Privilege:       api.InfraAdminRole,
+		DestinationName: "infra",
+		ShowInherited:   true,
 	})
 	if err != nil {
 		return false, err

@@ -57,10 +57,9 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			ctx := context.Background()
 
 			listReq := api.ListGrantsRequest{
-				Privilege:     options.Role,
-				Resource:      options.Resource,
-				Destination:   options.Destination,
-				ShowInherited: options.Inherited,
+				Privilege:       options.Role,
+				DestinationName: options.Destination,
+				ShowInherited:   options.Inherited,
 			}
 
 			if options.UserName != "" && options.GroupName != "" {
@@ -115,7 +114,6 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&options.Destination, "destination", "", "Filter by destination")
-	cmd.Flags().StringVar(&options.Resource, "resource", "", "Filter by resource")
 	cmd.Flags().StringVar(&options.GroupName, "group", "", "Filter by group name or id")
 	cmd.Flags().StringVar(&options.UserName, "user", "", "Filter by user name or id")
 	cmd.Flags().BoolVar(&options.Inherited, "inherited", false, "Include grants a user inherited through a group")
@@ -142,9 +140,9 @@ func userGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]api
 	}
 
 	type row struct {
-		User     string `header:"USER"`
-		Role     string `header:"ROLE"`
-		Resource string `header:"DESTINATION"`
+		User        string `header:"USER"`
+		Role        string `header:"ROLE"`
+		Destination string `header:"DESTINATION"`
 	}
 
 	rows := make([]row, 0, len(items))
@@ -152,9 +150,9 @@ func userGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]api
 		user, ok := mapUsers[item.User]
 		if ok {
 			rows = append(rows, row{
-				User:     user.Name,
-				Role:     item.Privilege,
-				Resource: item.Resource,
+				User:        user.Name,
+				Role:        item.Privilege,
+				Destination: api.FormatResourceURN(item.DestinationName, item.DestinationResource),
 			})
 		}
 	}
@@ -185,9 +183,9 @@ func groupGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]ap
 	}
 
 	type row struct {
-		Group    string `header:"GROUP"`
-		Role     string `header:"ROLE"`
-		Resource string `header:"DESTINATION"`
+		Group       string `header:"GROUP"`
+		Role        string `header:"ROLE"`
+		Destination string `header:"DESTINATION"`
 	}
 
 	rows := make([]row, 0, len(items))
@@ -195,9 +193,9 @@ func groupGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]ap
 		group, ok := mapGroups[item.Group]
 		if ok {
 			rows = append(rows, row{
-				Group:    group.Name,
-				Role:     item.Privilege,
-				Resource: item.Resource,
+				Group:       group.Name,
+				Role:        item.Privilege,
+				Destination: api.FormatResourceURN(item.DestinationName, item.DestinationResource),
 			})
 		}
 	}
@@ -267,11 +265,13 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
+	destinationName, destinationResource := api.ParseResourceURN(cmdOptions.Resource)
 	listGrantsReq := api.ListGrantsRequest{
-		User:      user,
-		Group:     group,
-		Privilege: cmdOptions.Role,
-		Resource:  cmdOptions.Resource,
+		User:                user,
+		Group:               group,
+		Privilege:           cmdOptions.Role,
+		DestinationName:     destinationName,
+		DestinationResource: destinationResource,
 	}
 
 	logging.Debugf("call server: list grants %#v", listGrantsReq)
@@ -309,10 +309,11 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 			return err
 		}
 
+		resource := api.FormatResourceURN(g.DestinationName, g.DestinationResource)
 		if g.Group > 0 {
-			cli.Output("Revoked %q access from group %q for resource %q", g.Privilege, cmdOptions.GroupName, g.Resource)
+			cli.Output("Revoked %q access from group %q for resource %q", g.Privilege, cmdOptions.GroupName, resource)
 		} else if g.User > 0 {
-			cli.Output("Revoked %q access from user %q for resource %q", g.Privilege, cmdOptions.UserName, g.Resource)
+			cli.Output("Revoked %q access from user %q for resource %q", g.Privilege, cmdOptions.UserName, resource)
 		}
 	}
 
@@ -414,11 +415,13 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		}
 	}
 
+	destinationName, destinationResource := api.ParseResourceURN(cmdOptions.Resource)
 	createGrantReq := &api.GrantRequest{
-		User:      userID,
-		Group:     groupID,
-		Privilege: cmdOptions.Role,
-		Resource:  cmdOptions.Resource,
+		User:                userID,
+		Group:               groupID,
+		Privilege:           cmdOptions.Role,
+		DestinationName:     destinationName,
+		DestinationResource: destinationResource,
 	}
 	logging.Debugf("call server: create grant %#v", createGrantReq)
 	response, err := client.CreateGrant(ctx, createGrantReq)

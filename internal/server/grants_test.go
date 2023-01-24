@@ -46,13 +46,14 @@ func TestAPI_ListGrants(t *testing.T) {
 		return respObj.ID
 	}
 
-	createGrant := func(t *testing.T, user uid.ID, privilege, resource string) {
+	createGrant := func(t *testing.T, user uid.ID, privilege, destinationName, destinationResource string) {
 		t.Helper()
 		var buf bytes.Buffer
 		body := api.GrantRequest{
-			User:      user,
-			Privilege: privilege,
-			Resource:  resource,
+			User:                user,
+			Privilege:           privilege,
+			DestinationName:     destinationName,
+			DestinationResource: destinationResource,
 		}
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
@@ -83,9 +84,9 @@ func TestAPI_ListGrants(t *testing.T) {
 	idInGroup := createID(t, "inagroup@example.com")
 	idOther := createID(t, "other@example.com")
 
-	createGrant(t, idInGroup, "custom1", "res1")
-	createGrant(t, idOther, "custom2", "res1.ns1")
-	createGrant(t, idOther, "connector", "res1.ns2")
+	createGrant(t, idInGroup, "custom1", "res1", "")
+	createGrant(t, idOther, "custom2", "res1", "ns1")
+	createGrant(t, idOther, "connector", "res1", "ns2")
 
 	groupID := createGroup(t, "humans", idInGroup)
 	otherGroup := createGroup(t, "others", idOther)
@@ -148,13 +149,13 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"not authorized, no subject in query": {
-			urlPath: "/api/grants?resource=res1",
+			urlPath: "/api/grants?destinationName=res1",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
 		"not authorized, admin for wrong org": {
-			urlPath: "/api/grants?resource=res1",
+			urlPath: "/api/grants?destinationName=res1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Host = "example.com"
 				req.Header.Set("Authorization", "Bearer "+otherOrg.AdminAccessKey)
@@ -164,7 +165,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"authorized by grant": {
-			urlPath: "/api/grants?resource=none",
+			urlPath: "/api/grants?destinationName=none",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -185,9 +186,9 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.NilError(t, err)
 				expected := []api.Grant{
 					{
-						User:      idInGroup,
-						Privilege: "custom1",
-						Resource:  "res1",
+						User:            idInGroup,
+						Privilege:       "custom1",
+						DestinationName: "res1",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
@@ -235,29 +236,31 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						User:      connector.ID,
-						Privilege: "connector",
-						Resource:  "infra",
+						User:            connector.ID,
+						Privilege:       "connector",
+						DestinationName: "infra",
 					},
 					{
-						User:      admin.ID,
-						Privilege: "admin",
-						Resource:  "infra",
+						User:            admin.ID,
+						Privilege:       "admin",
+						DestinationName: "infra",
 					},
 					{
-						User:      idInGroup,
-						Privilege: "custom1",
-						Resource:  "res1",
+						User:            idInGroup,
+						Privilege:       "custom1",
+						DestinationName: "res1",
 					},
 					{
-						User:      idOther,
-						Privilege: "custom2",
-						Resource:  "res1.ns1",
+						User:                idOther,
+						Privilege:           "custom2",
+						DestinationName:     "res1",
+						DestinationResource: "ns1",
 					},
 					{
-						User:      idOther,
-						Privilege: "connector",
-						Resource:  "res1.ns2",
+						User:                idOther,
+						Privilege:           "connector",
+						DestinationName:     "res1",
+						DestinationResource: "ns2",
 					},
 				}
 				// check sort
@@ -280,14 +283,15 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						User:      idInGroup,
-						Privilege: "custom1",
-						Resource:  "res1",
+						User:            idInGroup,
+						Privilege:       "custom1",
+						DestinationName: "res1",
 					},
 					{
-						User:      idOther,
-						Privilege: "custom2",
-						Resource:  "res1.ns1",
+						User:                idOther,
+						Privilege:           "custom2",
+						DestinationName:     "res1",
+						DestinationResource: "ns1",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
@@ -307,24 +311,26 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						User:      admin.ID,
-						Privilege: "admin",
-						Resource:  "infra",
+						User:            admin.ID,
+						Privilege:       "admin",
+						DestinationName: "infra",
 					},
 					{
-						User:      idInGroup,
-						Privilege: "custom1",
-						Resource:  "res1",
+						User:            idInGroup,
+						Privilege:       "custom1",
+						DestinationName: "res1",
 					},
 					{
-						User:      idOther,
-						Privilege: "custom2",
-						Resource:  "res1.ns1",
+						User:                idOther,
+						Privilege:           "custom2",
+						DestinationName:     "res1",
+						DestinationResource: "ns1",
 					},
 					{
-						User:      idOther,
-						Privilege: "connector",
-						Resource:  "res1.ns2",
+						User:                idOther,
+						Privilege:           "connector",
+						DestinationName:     "res1",
+						DestinationResource: "ns2",
 					},
 				}
 				// check sort
@@ -335,7 +341,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"filter by resource": {
-			urlPath: "/api/grants?resource=res1",
+			urlPath: "/api/grants?destinationName=res1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -347,26 +353,28 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						User:      idInGroup,
-						Privilege: "custom1",
-						Resource:  "res1",
+						User:            idInGroup,
+						Privilege:       "custom1",
+						DestinationName: "res1",
 					},
 					{
-						User:      idOther,
-						Privilege: "custom2",
-						Resource:  "res1.ns1",
+						User:                idOther,
+						Privilege:           "custom2",
+						DestinationName:     "res1",
+						DestinationResource: "ns1",
 					},
 					{
-						User:      idOther,
-						Privilege: "connector",
-						Resource:  "res1.ns2",
+						User:                idOther,
+						Privilege:           "connector",
+						DestinationName:     "res1",
+						DestinationResource: "ns2",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"filter by resource and privilege": {
-			urlPath: "/api/grants?resource=res1&privilege=custom1",
+			urlPath: "/api/grants?destinationName=res1&privilege=custom1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -378,40 +386,9 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						User:      idInGroup,
-						Privilege: "custom1",
-						Resource:  "res1",
-					},
-				}
-				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-			},
-		},
-		"filter by destination": {
-			urlPath: "/api/grants?destination=res1",
-			setup: func(t *testing.T, req *http.Request) {
-				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				var grants api.ListResponse[api.Grant]
-				err = json.NewDecoder(resp.Body).Decode(&grants)
-				assert.NilError(t, err)
-
-				expected := []api.Grant{
-					{
-						User:      idInGroup,
-						Privilege: "custom1",
-						Resource:  "res1",
-					},
-					{
-						User:      idOther,
-						Privilege: "custom2",
-						Resource:  "res1.ns1",
-					},
-					{
-						User:      idOther,
-						Privilege: "connector",
-						Resource:  "res1.ns2",
+						User:            idInGroup,
+						Privilege:       "custom1",
+						DestinationName: "res1",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
@@ -433,7 +410,7 @@ func TestAPI_ListGrants(t *testing.T) {
 							"id": "<any-valid-uid>",
 							"createdBy": "%[1]v",
 							"privilege": "custom1",
-							"resource": "res1",
+							"destinationName": "res1",
 							"user": "%[2]v",
 							"created": "%[3]v",
 							"updated": "%[3]v"
@@ -448,7 +425,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"unsupported filter with update index": {
-			urlPath: "/api/grants?destination=res1&lastUpdateIndex=1&user=1234",
+			urlPath: "/api/grants?destinationName=res1&lastUpdateIndex=1&user=1234",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -490,7 +467,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"with stale update index": {
-			urlPath: "/api/grants?destination=res1&lastUpdateIndex=1",
+			urlPath: "/api/grants?destinationName=res1&lastUpdateIndex=1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -502,9 +479,9 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := api.ListResponse[api.Grant]{
 					Items: []api.Grant{
-						{User: idInGroup, Privilege: "custom1", Resource: "res1"},
-						{User: idOther, Privilege: "custom2", Resource: "res1.ns1"},
-						{User: idOther, Privilege: "connector", Resource: "res1.ns2"},
+						{User: idInGroup, Privilege: "custom1", DestinationName: "res1"},
+						{User: idOther, Privilege: "custom2", DestinationName: "res1", DestinationResource: "ns1"},
+						{User: idOther, Privilege: "connector", DestinationName: "res1", DestinationResource: "ns2"},
 					},
 					Count: 3,
 				}
@@ -543,6 +520,60 @@ func TestAPI_ListGrants(t *testing.T) {
 					time.Now().UTC().Format(time.RFC3339),
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"migration from <= 0.21.0": {
+			urlPath: "/api/grants?destination=res1",
+			setup: func(t *testing.T, r *http.Request) {
+				r.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				r.Header.Set("Infra-Version", "0.21.0")
+			},
+			expected: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, w.Code, http.StatusOK, w.Body.String())
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+					{
+						"count": 3,
+						"limit": 100,
+						"page": 1,
+						"totalPages": 1,
+						"totalCount": 3,
+						"items": [
+							{
+								"id": "<any-valid-uid>",
+								"created_by": "%[1]v",
+								"privilege": "custom1",
+								"resource": "res1",
+								"user": "%[2]v",
+								"created": "%[4]v",
+								"updated": "%[4]v"
+							},
+							{
+								"id": "<any-valid-uid>",
+								"created_by": "%[1]v",
+								"privilege": "custom2",
+								"resource": "res1.ns1",
+								"user": "%[3]v",
+								"created": "%[4]v",
+								"updated": "%[4]v"
+							},
+							{
+								"id": "<any-valid-uid>",
+								"created_by": "%[1]v",
+								"privilege": "connector",
+								"resource": "res1.ns2",
+								"user": "%[3]v",
+								"created": "%[4]v",
+								"updated": "%[4]v"
+							}
+						]
+					}`,
+					admin.ID,
+					idInGroup.String(),
+					idOther.String(),
+					time.Now().UTC().Format(time.RFC3339)))
+
+				actual := jsonUnmarshal(t, w.Body.String())
 				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 			},
 		},
@@ -647,7 +678,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"authorized by inherited group matching subject": {
-			urlPath: "/api/grants?resource=butterflies&showInherited=1&user=" + mikhail.String(),
+			urlPath: "/api/grants?destinationName=butterflies&showInherited=1&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				loginAs(t, idInGroup, req)
 			},
@@ -658,16 +689,16 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 				assert.NilError(t, err)
 				expected := []api.Grant{
 					{
-						Group:     zoologistsID,
-						Privilege: "examine",
-						Resource:  "butterflies",
+						Group:           zoologistsID,
+						Privilege:       "examine",
+						DestinationName: "butterflies",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"requires a userID with showInherited": {
-			urlPath: "/api/grants?showInherited=1&resource=dinosaurs",
+			urlPath: "/api/grants?showInherited=1&destinationName=dinosaurs",
 			setup: func(t *testing.T, req *http.Request) {
 				loginAs(t, idInGroup, req)
 			},
@@ -685,7 +716,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 			},
 		},
 		"user can select grants for groups they are a member of": {
-			urlPath: "/api/grants?resource=butterflies&group=" + zoologistsID.String(),
+			urlPath: "/api/grants?destinationName=butterflies&group=" + zoologistsID.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				loginAs(t, mikhail, req)
 			},
@@ -696,16 +727,16 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 				assert.NilError(t, err)
 				expected := []api.Grant{
 					{
-						Group:     zoologistsID,
-						Privilege: "examine",
-						Resource:  "butterflies",
+						Group:           zoologistsID,
+						Privilege:       "examine",
+						DestinationName: "butterflies",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"user can select their own inherited grants without any special permissions": {
-			urlPath: "/api/grants?showInherited=1&resource=butterflies&user=" + mikhail.String(),
+			urlPath: "/api/grants?showInherited=1&destinationName=butterflies&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				loginAs(t, mikhail, req)
 			},
@@ -716,9 +747,9 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 				assert.NilError(t, err)
 				expected := []api.Grant{
 					{
-						Group:     zoologistsID,
-						Privilege: "examine",
-						Resource:  "butterflies",
+						Group:           zoologistsID,
+						Privilege:       "examine",
+						DestinationName: "butterflies",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
@@ -733,7 +764,11 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 }
 
 var cmpAPIGrantShallow = gocmp.Comparer(func(x, y api.Grant) bool {
-	return x.User == y.User && x.Privilege == y.Privilege && x.Resource == y.Resource
+	return x.User == y.User &&
+		x.Group == y.Group &&
+		x.Privilege == y.Privilege &&
+		x.DestinationName == y.DestinationName &&
+		x.DestinationResource == y.DestinationResource
 })
 
 var cmpAPIGrantJSON = gocmp.Options{
@@ -753,7 +788,7 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withShortRequestTimeout)
 	routes := srv.GenerateRoutes()
 
-	urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+	urlPath := "/api/grants?destinationName=infra&lastUpdateIndex=10001"
 	req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", apiVersionLatest)
@@ -781,7 +816,7 @@ func TestAPI_ListGrants_ExtendedRequestTimeout_CancelledByClient(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withShortRequestTimeout)
 	routes := srv.GenerateRoutes()
 
-	urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+	urlPath := "/api/grants?destinationName=infra&lastUpdateIndex=10001"
 	req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", apiVersionLatest)
@@ -825,7 +860,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 	g := errgroup.Group{}
 	respCh := make(chan *httptest.ResponseRecorder)
 	g.Go(func() error {
-		urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+		urlPath := "/api/grants?destinationName=infra&lastUpdateIndex=10001"
 		req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", apiVersionLatest)
@@ -897,7 +932,7 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 	g := errgroup.Group{}
 	respCh := make(chan *httptest.ResponseRecorder)
 	g.Go(func() error {
-		urlPath := "/api/grants?destination=deferred&lastUpdateIndex=1"
+		urlPath := "/api/grants?destinationName=deferred&lastUpdateIndex=1"
 		req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", apiVersionLatest)
@@ -991,7 +1026,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
-		body     api.GrantRequest
+		body     any
 	}
 
 	run := func(t *testing.T, tc testCase) {
@@ -1024,8 +1059,8 @@ func TestAPI_CreateGrant(t *testing.T) {
 
 				expected := []api.FieldError{
 					{Errors: []string{"one of (user, userName, group, groupName) is required"}},
+					{FieldName: "destinationName", Errors: []string{"is required"}},
 					{FieldName: "privilege", Errors: []string{"is required"}},
-					{FieldName: "resource", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -1036,9 +1071,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+otherOrg.AdminAccessKey)
 			},
 			body: api.GrantRequest{
-				User:      someUser.ID,
-				Privilege: models.InfraAdminRole,
-				Resource:  "some-cluster",
+				User:            someUser.ID,
+				Privilege:       models.InfraAdminRole,
+				DestinationName: "some-cluster",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
@@ -1049,9 +1084,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			body: api.GrantRequest{
-				User:      someUser.ID,
-				Privilege: models.InfraAdminRole,
-				Resource:  "some-cluster",
+				User:            someUser.ID,
+				Privilege:       models.InfraAdminRole,
+				DestinationName: "some-cluster",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusCreated)
@@ -1061,7 +1096,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"id": "<any-valid-uid>",
 					"createdBy": "%[1]v",
 					"privilege": "%[2]v",
-					"resource": "some-cluster",
+					"destinationName": "some-cluster",
 					"user": "%[3]v",
 					"created": "%[4]v",
 					"updated": "%[4]v"
@@ -1080,9 +1115,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			body: api.GrantRequest{
-				UserName:  someUser.Name,
-				Privilege: models.InfraAdminRole,
-				Resource:  "some-big-cluster",
+				UserName:        someUser.Name,
+				Privilege:       models.InfraAdminRole,
+				DestinationName: "some-big-cluster",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusCreated)
@@ -1092,7 +1127,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"id": "<any-valid-uid>",
 					"createdBy": "%[1]v",
 					"privilege": "%[2]v",
-					"resource": "some-big-cluster",
+					"destinationName": "some-big-cluster",
 					"user": "%[3]v",
 					"created": "%[4]v",
 					"updated": "%[4]v"
@@ -1111,9 +1146,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			body: api.GrantRequest{
-				UserName:  "someone@random.org",
-				Privilege: models.InfraAdminRole,
-				Resource:  "random-cluster",
+				UserName:        "someone@random.org",
+				Privilege:       models.InfraAdminRole,
+				DestinationName: "random-cluster",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest)
@@ -1132,9 +1167,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			body: api.GrantRequest{
-				GroupName: "awesome-group",
-				Privilege: models.InfraViewRole,
-				Resource:  "some-resource",
+				GroupName:       "awesome-group",
+				Privilege:       models.InfraViewRole,
+				DestinationName: "some-resource",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusCreated)
@@ -1144,7 +1179,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"id": "<any-valid-uid>",
 					"createdBy": "%[1]v",
 					"privilege": "%[2]v",
-					"resource": "some-resource",
+					"destinationName": "some-resource",
 					"group": "%[3]v",
 					"created": "%[4]v",
 					"updated": "%[4]v"
@@ -1163,9 +1198,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			body: api.GrantRequest{
-				GroupName: "fake-group",
-				Privilege: models.InfraAdminRole,
-				Resource:  "random-cluster",
+				GroupName:       "fake-group",
+				Privilege:       models.InfraAdminRole,
+				DestinationName: "random-cluster",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest)
@@ -1184,9 +1219,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			body: api.GrantRequest{
-				User:      someUser.ID,
-				Privilege: models.InfraSupportAdminRole,
-				Resource:  "infra",
+				User:            someUser.ID,
+				Privilege:       models.InfraSupportAdminRole,
+				DestinationName: "infra",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden)
@@ -1197,9 +1232,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+supportAccessKeyStr)
 			},
 			body: api.GrantRequest{
-				User:      someUser.ID,
-				Privilege: models.InfraSupportAdminRole,
-				Resource:  "infra",
+				User:            someUser.ID,
+				Privilege:       models.InfraSupportAdminRole,
+				DestinationName: "infra",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusCreated)
@@ -1209,7 +1244,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"id": "<any-valid-uid>",
 					"createdBy": "%[1]v",
 					"privilege": "%[2]v",
-					"resource": "infra",
+					"destinationName": "infra",
 					"user": "%[3]v",
 					"created": "%[4]v",
 					"updated": "%[4]v"
@@ -1228,13 +1263,13 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 				req.Header.Set("Infra-Version", "0.15.0")
 			},
-			body: api.GrantRequest{
-				User:      someUser.ID,
-				Privilege: models.InfraAdminRole,
-				Resource:  "some-other-cluster",
+			body: map[string]any{
+				"user":      someUser.ID,
+				"privilege": models.InfraAdminRole,
+				"resource":  "some-other-cluster",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusCreated)
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 				{
@@ -1246,6 +1281,38 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"created": "%[4]v",
 					"updated": "%[4]v",
 					"wasCreated": true
+				}`,
+					accessKey.IssuedForID,
+					models.InfraAdminRole,
+					someUser.ID.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"migration from <= 0.21.0": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Infra-Version", "0.21.0")
+			},
+			body: map[string]any{
+				"user":      someUser.ID,
+				"privilege": models.InfraAdminRole,
+				"resource":  "some-other-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+				{
+					"id": "<any-valid-uid>",
+					"created_by": "%[1]v",
+					"privilege": "%[2]v",
+					"resource": "some-other-cluster",
+					"user": "%[3]v",
+					"created": "%[4]v",
+					"updated": "%[4]v"
 				}`,
 					accessKey.IssuedForID,
 					models.InfraAdminRole,
@@ -1394,7 +1461,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
-		body     api.UpdateGrantsRequest
+		body     any
 	}
 
 	run := func(t *testing.T, tc testCase) {
@@ -1417,9 +1484,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						UserName:  user.Name,
-						Resource:  "infra",
-						Privilege: models.InfraAdminRole,
+						UserName:        user.Name,
+						DestinationName: "infra",
+						Privilege:       models.InfraAdminRole,
 					},
 				},
 			},
@@ -1434,9 +1501,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						UserName:  user.Name,
-						Resource:  "infra",
-						Privilege: models.InfraConnectorRole,
+						UserName:        user.Name,
+						DestinationName: "infra",
+						Privilege:       models.InfraConnectorRole,
 					},
 				},
 			},
@@ -1451,9 +1518,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						UserName:  user.Name,
-						Resource:  "infra",
-						Privilege: models.InfraSupportAdminRole,
+						UserName:        user.Name,
+						DestinationName: "infra",
+						Privilege:       models.InfraSupportAdminRole,
 					},
 				},
 			},
@@ -1468,9 +1535,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						User:      user.ID,
-						Privilege: models.InfraAdminRole,
-						Resource:  "some-cluster",
+						User:            user.ID,
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "some-cluster",
 					},
 				},
 			},
@@ -1492,9 +1559,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						UserName:  "admin@example.com",
-						Privilege: models.InfraAdminRole,
-						Resource:  "some-cluster2",
+						UserName:        "admin@example.com",
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "some-cluster2",
 					},
 				},
 			},
@@ -1516,9 +1583,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						UserName:  user.Name,
-						Privilege: models.InfraAdminRole,
-						Resource:  "some-cluster3",
+						UserName:        user.Name,
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "some-cluster3",
 					},
 				},
 			},
@@ -1540,9 +1607,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						GroupName: group.Name,
-						Privilege: models.InfraAdminRole,
-						Resource:  "some-cluster4",
+						GroupName:       group.Name,
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "some-cluster4",
 					},
 				},
 			},
@@ -1573,9 +1640,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToRemove: []api.GrantRequest{
 					{
-						User:      user.ID,
-						Privilege: models.InfraAdminRole,
-						Resource:  "another-cluster",
+						User:            user.ID,
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "another-cluster",
 					},
 				},
 			},
@@ -1606,9 +1673,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToRemove: []api.GrantRequest{
 					{
-						UserName:  user.Name,
-						Privilege: models.InfraAdminRole,
-						Resource:  "another-cluster2",
+						UserName:        user.Name,
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "another-cluster2",
 					},
 				},
 			},
@@ -1639,9 +1706,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToRemove: []api.GrantRequest{
 					{
-						GroupName: group.Name,
-						Privilege: models.InfraAdminRole,
-						Resource:  "another-cluster3",
+						GroupName:       group.Name,
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "another-cluster3",
 					},
 				},
 			},
@@ -1663,8 +1730,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						Privilege: models.InfraAdminRole,
-						Resource:  "some-cluster",
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "some-cluster",
 					},
 				},
 			},
@@ -1672,7 +1739,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest)
 			},
 		},
-		"failure missing resource": {
+		"failure missing destination": {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -1695,8 +1762,8 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						UserName: user.Name,
-						Resource: "some-cluster",
+						UserName:        user.Name,
+						DestinationName: "some-cluster",
 					},
 				},
 			},
@@ -1711,9 +1778,9 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						UserName:  "unknown@example.com",
-						Privilege: models.InfraAdminRole,
-						Resource:  "some-cluster",
+						UserName:        "unknown@example.com",
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "some-cluster",
 					},
 				},
 			},
@@ -1728,14 +1795,69 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						GroupName: "unknowngroup",
-						Privilege: models.InfraAdminRole,
-						Resource:  "some-cluster",
+						GroupName:       "unknowngroup",
+						Privilege:       models.InfraAdminRole,
+						DestinationName: "some-cluster",
 					},
 				},
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest)
+			},
+		},
+		"migration from <= 0.21.0": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Infra-Version", "0.21.0")
+			},
+			body: map[string]any{
+				"grantsToAdd": []map[string]any{
+					{
+						"userName":  user.Name,
+						"privilege": "edit",
+						"resource":  "mycluster",
+					},
+					{
+						"userName":  user.Name,
+						"privilege": "edit",
+						"resource":  "mycluster.mynamespace",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				expected, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByDestinationName: "mycluster",
+				})
+				assert.NilError(t, err)
+
+				actual := []models.Grant{
+					{
+						Subject: models.Subject{
+							ID:   user.ID,
+							Kind: models.SubjectKindUser,
+						},
+						Privilege:       "edit",
+						DestinationName: "mycluster",
+					},
+					{
+						Subject: models.Subject{
+							ID:   user.ID,
+							Kind: models.SubjectKindUser,
+						},
+						Privilege:           "edit",
+						DestinationName:     "mycluster",
+						DestinationResource: "mynamespace",
+					},
+				}
+				assert.DeepEqual(t, expected, actual, gocmp.Comparer(func(x, y models.Grant) bool {
+					return x.Subject.ID == y.Subject.ID &&
+						x.Subject.Kind == y.Subject.Kind &&
+						x.Privilege == y.Privilege &&
+						x.DestinationName == y.DestinationName &&
+						x.DestinationResource == y.DestinationResource
+				}))
 			},
 		},
 	}

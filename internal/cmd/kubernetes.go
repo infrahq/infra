@@ -82,26 +82,19 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 	infraContexts := make(map[string]clusterContext)
 
 	for _, g := range grants {
-		parts := strings.Split(g.Resource, ".")
-		cluster := parts[0]
-
-		var namespace string
-		if len(parts) > 1 {
-			namespace = parts[1]
-		}
-
+		namespace := g.DestinationResource
 		if namespace == "default" {
 			namespace = ""
 		}
 
-		contextName := "infra:" + cluster
+		contextName := "infra:" + g.DestinationName
 		if _, ok := infraContexts[contextName]; ok && namespace != "" {
 			continue
 		}
 
 		var infraContext clusterContext
 		for _, d := range destinations {
-			if !isResourceForDestination(g.Resource, d.Name) {
+			if g.DestinationName != d.Name {
 				continue
 			}
 

@@ -56,16 +56,17 @@ func TestUse(t *testing.T) {
 				grants := api.ListResponse[api.Grant]{
 					Items: []api.Grant{
 						{
-							ID:        uid.New(),
-							User:      userID,
-							Resource:  "cluster",
-							Privilege: "admin",
+							ID:              uid.New(),
+							User:            userID,
+							DestinationName: "cluster",
+							Privilege:       "admin",
 						},
 						{
-							ID:        uid.New(),
-							User:      userID,
-							Resource:  "cluster.namespace",
-							Privilege: "admin",
+							ID:                  uid.New(),
+							User:                userID,
+							DestinationName:     "cluster",
+							DestinationResource: "namespace",
+							Privilege:           "admin",
 						},
 					},
 				}

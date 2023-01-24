@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -32,18 +31,10 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = models.NewSubjectForGroup(r.Group)
 	}
 
-	var destinationName, destinationResource string
-	switch {
-	case r.Destination != "":
-		destinationName = r.Destination
-	case r.Resource != "":
-		destinationName, destinationResource, _ = strings.Cut(r.Resource, ".")
-	}
-
 	var p data.Pagination
 	opts := data.ListGrantsOptions{
-		ByDestinationName:          destinationName,
-		ByDestinationResource:      destinationResource,
+		ByDestinationName:          r.DestinationName,
+		ByDestinationResource:      r.DestinationResource,
 		BySubject:                  subject,
 		ExcludeConnectorGrant:      !r.ShowSystem,
 		IncludeInheritedFromGroups: r.ShowInherited,
@@ -203,19 +194,17 @@ func getGrantFromGrantRequest(rCtx access.RequestContext, r api.GrantRequest) (*
 	switch {
 	case subject.ID == 0 || subject.Kind == 0:
 		return nil, fmt.Errorf("%w: must specify userName, user, or group", internal.ErrBadRequest)
-	case r.Resource == "":
-		return nil, fmt.Errorf("%w: must specify resource", internal.ErrBadRequest)
 	case r.Privilege == "":
 		return nil, fmt.Errorf("%w: must specify privilege", internal.ErrBadRequest)
+	case r.DestinationName == "":
+		return nil, fmt.Errorf("%w: must specify destination name", internal.ErrBadRequest)
 	}
-
-	destinationName, destinationResource, _ := strings.Cut(r.Resource, ".")
 
 	return &models.Grant{
 		Subject:             subject,
 		Privilege:           r.Privilege,
-		DestinationName:     destinationName,
-		DestinationResource: destinationResource,
+		DestinationName:     r.DestinationName,
+		DestinationResource: r.DestinationResource,
 	}, nil
 }
 
@@ -236,6 +225,7 @@ func (a *API) addPreviousVersionHandlersGrants() {
 		if latest == nil {
 			return nil
 		}
+
 		return &grantV0_18_1{
 			ID:        latest.ID,
 			Created:   latest.Created,
@@ -244,10 +234,64 @@ func (a *API) addPreviousVersionHandlersGrants() {
 			User:      latest.User,
 			Group:     latest.Group,
 			Privilege: latest.Privilege,
-			Resource:  latest.Resource,
+			Resource:  api.FormatResourceURN(latest.DestinationName, latest.DestinationResource),
 		}
 	}
 
+	type grantV0_21_0 grantV0_18_1
+
+	newGrantV0_21_0FromLatest := func(latest *api.Grant) *grantV0_21_0 {
+		if latest == nil {
+			return nil
+		}
+
+		return &grantV0_21_0{
+			ID:        latest.ID,
+			Created:   latest.Created,
+			CreatedBy: latest.CreatedBy,
+			Updated:   latest.Updated,
+			User:      latest.User,
+			Group:     latest.Group,
+			Privilege: latest.Privilege,
+			Resource:  api.FormatResourceURN(latest.DestinationName, latest.DestinationResource),
+		}
+	}
+
+	type listGrantsRequestV0_21_0 struct {
+		User          uid.ID `form:"user"`
+		Group         uid.ID `form:"group"`
+		Resource      string `form:"resource"`
+		Destination   string `form:"destination"`
+		Privilege     string `form:"privilege"`
+		ShowInherited bool   `form:"showInherited"`
+		ShowSystem    bool   `form:"showSystem"`
+		api.BlockingRequest
+		api.PaginationRequest
+	}
+
+	newListGrantsRequestFromV0_21_0 := func(req *listGrantsRequestV0_21_0) (*api.ListGrantsRequest, error) {
+		var destinationName, destinationResource string
+		switch {
+		case req.Destination != "":
+			destinationName = req.Destination
+		case req.Resource != "":
+			destinationName, destinationResource = api.ParseResourceURN(req.Resource)
+		}
+
+		return &api.ListGrantsRequest{
+			User:                req.User,
+			Group:               req.Group,
+			Privilege:           req.Privilege,
+			DestinationName:     destinationName,
+			DestinationResource: destinationResource,
+			ShowInherited:       req.ShowInherited,
+			ShowSystem:          req.ShowSystem,
+			BlockingRequest:     req.BlockingRequest,
+			PaginationRequest:   req.PaginationRequest,
+		}, nil
+	}
+
+	// ListGrants
 	addVersionHandler(a, http.MethodGet, "/api/grants", "0.18.1",
 		route[api.ListGrantsRequest, *api.ListResponse[grantV0_18_1]]{
 			routeSettings: defaultRouteSettingsGet,
@@ -259,6 +303,27 @@ func (a *API) addPreviousVersionHandlersGrants() {
 			},
 		})
 
+	addVersionHandler(a, http.MethodGet, "/api/grants", "0.21.0",
+		route[listGrantsRequestV0_21_0, *api.ListResponse[grantV0_21_0]]{
+			routeSettings: defaultRouteSettingsGet,
+			handler: func(c *gin.Context, req *listGrantsRequestV0_21_0) (*api.ListResponse[grantV0_21_0], error) {
+				latest, err := newListGrantsRequestFromV0_21_0(req)
+				if err != nil {
+					return nil, err
+				}
+
+				resp, err := a.ListGrants(c, latest)
+				if err != nil {
+					return nil, err
+				}
+
+				return api.CopyListResponse(resp, func(item api.Grant) grantV0_21_0 {
+					return *newGrantV0_21_0FromLatest(&item)
+				}), err
+			},
+		})
+
+	// GetGrants
 	addVersionHandler(a, http.MethodGet, "/api/grants/:id", "0.18.1",
 		route[api.Resource, *grantV0_18_1]{
 			routeSettings: defaultRouteSettingsGet,
@@ -268,14 +333,57 @@ func (a *API) addPreviousVersionHandlersGrants() {
 			},
 		})
 
+	addVersionHandler(a, http.MethodGet, "/api/grants/:id", "0.21.0",
+		route[api.Resource, *grantV0_21_0]{
+			routeSettings: defaultRouteSettingsGet,
+			handler: func(c *gin.Context, req *api.Resource) (*grantV0_21_0, error) {
+				resp, err := a.GetGrant(c, req)
+				if err != nil {
+					return nil, err
+				}
+
+				return newGrantV0_21_0FromLatest(resp), nil
+			},
+		},
+	)
+
 	type createGrantResponseV0_18_1 struct {
 		*grantV0_18_1 `json:",inline"`
 		WasCreated    bool `json:"wasCreated"`
 	}
+
+	type grantRequestV0_21_0 struct {
+		User      uid.ID `json:"user"`
+		Group     uid.ID `json:"group"`
+		UserName  string `json:"userName"`
+		GroupName string `json:"groupName"`
+		Privilege string `json:"privilege"`
+		Resource  string `json:"resource"`
+	}
+
+	newGrantRequestFromV0_21_0 := func(req *grantRequestV0_21_0) *api.GrantRequest {
+		destinationName, destinationResource := api.ParseResourceURN(req.Resource)
+		return &api.GrantRequest{
+			User:                req.User,
+			Group:               req.Group,
+			UserName:            req.UserName,
+			GroupName:           req.GroupName,
+			Privilege:           req.Privilege,
+			DestinationName:     destinationName,
+			DestinationResource: destinationResource,
+		}
+	}
+
+	type createGrantResponseV0_21_0 struct {
+		*grantV0_21_0 `json:",inline"`
+		WasCreated    bool `json:"-"`
+	}
+
+	// CreateGrant
 	addVersionHandler(a, http.MethodPost, "/api/grants", "0.18.1",
-		route[api.GrantRequest, *createGrantResponseV0_18_1]{
-			handler: func(c *gin.Context, req *api.GrantRequest) (*createGrantResponseV0_18_1, error) {
-				resp, err := a.CreateGrant(c, req)
+		route[grantRequestV0_21_0, *createGrantResponseV0_18_1]{
+			handler: func(c *gin.Context, req *grantRequestV0_21_0) (*createGrantResponseV0_18_1, error) {
+				resp, err := a.CreateGrant(c, newGrantRequestFromV0_21_0(req))
 				if err != nil {
 					return nil, err
 				}
@@ -285,4 +393,48 @@ func (a *API) addPreviousVersionHandlersGrants() {
 				}, nil
 			},
 		})
+
+	addVersionHandler(a, http.MethodPost, "/api/grants", "0.21.0",
+		route[grantRequestV0_21_0, *createGrantResponseV0_21_0]{
+			handler: func(c *gin.Context, req *grantRequestV0_21_0) (*createGrantResponseV0_21_0, error) {
+				resp, err := a.CreateGrant(c, newGrantRequestFromV0_21_0(req))
+				if err != nil {
+					return nil, err
+				}
+
+				return &createGrantResponseV0_21_0{
+					grantV0_21_0: newGrantV0_21_0FromLatest(resp.Grant),
+					WasCreated:   resp.WasCreated,
+				}, nil
+			},
+		},
+	)
+
+	type updateGrantsRequestV0_21_0 struct {
+		GrantsToAdd    []grantRequestV0_21_0 `json:"grantsToAdd"`
+		GrantsToRemove []grantRequestV0_21_0 `json:"grantsToRemove"`
+	}
+
+	// UpdateGrants
+	addVersionHandler(a, http.MethodPatch, "/api/grants", "0.21.0",
+		route[updateGrantsRequestV0_21_0, *api.EmptyResponse]{
+			handler: func(c *gin.Context, req *updateGrantsRequestV0_21_0) (*api.EmptyResponse, error) {
+				var latest api.UpdateGrantsRequest
+				for i := range req.GrantsToAdd {
+					latest.GrantsToAdd = append(latest.GrantsToAdd, *newGrantRequestFromV0_21_0(&req.GrantsToAdd[i]))
+				}
+
+				for i := range req.GrantsToRemove {
+					latest.GrantsToRemove = append(latest.GrantsToRemove, *newGrantRequestFromV0_21_0(&req.GrantsToRemove[i]))
+				}
+
+				resp, err := a.UpdateGrants(c, &latest)
+				if err != nil {
+					return nil, err
+				}
+
+				return resp, nil
+			},
+		},
+	)
 }

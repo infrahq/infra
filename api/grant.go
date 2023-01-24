@@ -19,7 +19,9 @@ type Grant struct {
 	User      uid.ID `json:"user,omitempty" note:"UserID for a user being granted access" example:"6hNnjfjVcc"`
 	Group     uid.ID `json:"group,omitempty" note:"GroupID for a group being granted access" example:"3zMaadcd2U"`
 	Privilege string `json:"privilege" note:"a role or permission" example:"admin"`
-	Resource  string `json:"resource" note:"a resource name in Infra's Universal Resource Notation" example:"production.namespace"`
+
+	DestinationName     string `json:"destinationName"`
+	DestinationResource string `json:"destinationResource,omitempty"`
 }
 
 type CreateGrantResponse struct {
@@ -35,31 +37,23 @@ func (r *CreateGrantResponse) StatusCode() int {
 }
 
 type ListGrantsRequest struct {
-	User          uid.ID `form:"user" note:"ID of user granted access" example:"6TjWTAgYYu"`
-	Group         uid.ID `form:"group" note:"ID of group granted access" example:"6k3Eqcqu6B"`
-	Resource      string `form:"resource" example:"production.namespace" note:"a resource name"`
-	Destination   string `form:"destination" example:"production" note:"name of the destination where a connector is installed"`
-	Privilege     string `form:"privilege" example:"view" note:"a role or permission"`
-	ShowInherited bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups" example:"true"`
-	ShowSystem    bool   `form:"showSystem" note:"if true, this shows the connector and other internal grants" example:"false"`
+	User                uid.ID `form:"user" note:"ID of user granted access" example:"6TjWTAgYYu"`
+	Group               uid.ID `form:"group" note:"ID of group granted access" example:"6k3Eqcqu6B"`
+	DestinationName     string `form:"destinationName"`
+	DestinationResource string `form:"destinationResource"`
+	Privilege           string `form:"privilege" example:"view" note:"a role or permission"`
+	ShowInherited       bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups" example:"true"`
+	ShowSystem          bool   `form:"showSystem" note:"if true, this shows the connector and other internal grants" example:"false"`
 	BlockingRequest
 	PaginationRequest
 }
 
 func (r ListGrantsRequest) ValidationRules() []validate.ValidationRule {
-	destNameRule := validateDestinationName(r.Destination)
-	destNameRule.Name = "destination"
-
 	return []validate.ValidationRule{
 		validate.MutuallyExclusive(
 			validate.Field{Name: "user", Value: r.User},
 			validate.Field{Name: "group", Value: r.Group},
 		),
-		validate.MutuallyExclusive(
-			validate.Field{Name: "resource", Value: r.Resource},
-			validate.Field{Name: "destination", Value: r.Destination},
-		),
-		destNameRule,
 		validate.ValidatorFunc(func() *validate.Failure {
 			if r.ShowInherited && r.User == 0 {
 				return validate.Fail("showInherited", "requires a user ID")
@@ -78,8 +72,8 @@ func (r ListGrantsRequest) validateLastUpdateIndex() *validate.Failure {
 	// At least one of the supported query parameters must be set, and no other
 	// query parameters can be set
 	switch {
-	case r.Destination != "":
-		if fields := r.fieldsWithValues("destination", "lastUpdateIndex"); len(fields) > 0 {
+	case r.DestinationName != "":
+		if fields := r.fieldsWithValues("destinationName", "lastUpdateIndex"); len(fields) > 0 {
 			return validate.Fail("lastUpdateIndex",
 				fmt.Sprintf("can not be used with %v parameter(s)", strings.Join(fields, ",")))
 		}
@@ -110,11 +104,11 @@ func (r ListGrantsRequest) fieldsWithValues(ignored ...string) []string {
 	if r.Group != 0 && !ignore("group") {
 		add("group")
 	}
-	if r.Resource != "" && !ignore("resource") {
-		add("resource")
+	if r.DestinationName != "" && !ignore("destinationName") {
+		add("destinationName")
 	}
-	if r.Destination != "" && !ignore("destination") {
-		add("destination")
+	if r.DestinationResource != "" && !ignore("destinationResource") {
+		add("destinationResource")
 	}
 	if r.Privilege != "" && !ignore("privilege") {
 		add("privilege")
@@ -144,12 +138,13 @@ func (r ListGrantsRequest) SetPage(page int) Paginatable {
 
 // GrantRequest defines a grant request which can be used for creating or deleting grants
 type GrantRequest struct {
-	User      uid.ID `json:"user" note:"ID of the user granted access" example:"6kdoMDd6PA"`
-	Group     uid.ID `json:"group" note:"ID of the group granted access" example:"6Ti2p7r1h7"`
-	UserName  string `json:"userName" note:"Name of the user granted access" example:"admin@example.com"`
-	GroupName string `json:"groupName" note:"Name of the group granted access" example:"dev"`
-	Privilege string `json:"privilege" example:"view" note:"a role or permission"`
-	Resource  string `json:"resource" example:"production" note:"a resource name in Infra's Universal Resource Notation"`
+	User                uid.ID `json:"user" note:"ID of the user granted access" example:"6kdoMDd6PA"`
+	Group               uid.ID `json:"group" note:"ID of the group granted access" example:"6Ti2p7r1h7"`
+	UserName            string `json:"userName" note:"Name of the user granted access" example:"admin@example.com"`
+	GroupName           string `json:"groupName" note:"Name of the group granted access" example:"dev"`
+	Privilege           string `json:"privilege" example:"view" note:"a role or permission"`
+	DestinationName     string `json:"destinationName"`
+	DestinationResource string `json:"destinationResource"`
 }
 
 func (r GrantRequest) ValidationRules() []validate.ValidationRule {
@@ -161,11 +156,25 @@ func (r GrantRequest) ValidationRules() []validate.ValidationRule {
 			validate.Field{Name: "groupName", Value: r.GroupName},
 		),
 		validate.Required("privilege", r.Privilege),
-		validate.Required("resource", r.Resource),
+		validate.Required("destinationName", r.DestinationName),
 	}
 }
 
 type UpdateGrantsRequest struct {
 	GrantsToAdd    []GrantRequest `json:"grantsToAdd" note:"List of grant objects. See POST api/grants for more"`
 	GrantsToRemove []GrantRequest `json:"grantsToRemove" note:"List of grant objects. See POST api/grants for more"`
+}
+
+func ParseResourceURN(urn string) (name, resource string) {
+	name, resource, _ = strings.Cut(urn, ".")
+	return name, resource
+}
+
+func FormatResourceURN(name, resource string) string {
+	urn := name
+	if resource != "" {
+		urn = fmt.Sprintf("%s.%s", name, resource)
+	}
+
+	return urn
 }

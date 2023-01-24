@@ -205,7 +205,7 @@ func TestListGrants(t *testing.T) {
 
 	t.Run("sets value from Last-Update-Index header", func(t *testing.T) {
 		resp, err := c.ListGrants(ctx, ListGrantsRequest{
-			Resource:        "anything",
+			DestinationName: "anything",
 			BlockingRequest: BlockingRequest{LastUpdateIndex: 1234},
 		})
 		assert.NilError(t, err)
@@ -217,7 +217,7 @@ func TestListGrants(t *testing.T) {
 	})
 	t.Run("not modified", func(t *testing.T) {
 		_, err := c.ListGrants(ctx, ListGrantsRequest{
-			Resource:        "anything",
+			DestinationName: "anything",
 			BlockingRequest: BlockingRequest{LastUpdateIndex: 70000},
 		})
 		var apiError Error

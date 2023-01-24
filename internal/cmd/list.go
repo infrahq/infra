@@ -38,20 +38,21 @@ func list(cli *CLI) error {
 	grantsByResource := make(map[string]map[string]struct{})
 	resources := []string{}
 	for _, g := range grants {
-		if isResourceForDestination(g.Resource, "infra") {
+		if g.DestinationName == "infra" {
 			continue
 		}
 
-		if !destinationForResourceExists(g.Resource, destinations) {
+		if !destinationForResourceExists(g.DestinationName, destinations) {
 			continue
 		}
 
-		if grantsByResource[g.Resource] == nil {
-			grantsByResource[g.Resource] = make(map[string]struct{})
-			resources = append(resources, g.Resource)
+		resource := api.FormatResourceURN(g.DestinationName, g.DestinationResource)
+		if grantsByResource[resource] == nil {
+			grantsByResource[resource] = make(map[string]struct{})
+			resources = append(resources, resource)
 		}
 
-		grantsByResource[g.Resource][g.Privilege] = struct{}{}
+		grantsByResource[resource][g.Privilege] = struct{}{}
 	}
 	sort.Strings(resources)
 

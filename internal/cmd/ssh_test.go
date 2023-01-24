@@ -50,7 +50,7 @@ func TestSSHHostsCmd(t *testing.T) {
 	runAndWait(ctx, t, srv.Run)
 
 	createGrants(t, srv.DB(),
-		api.GrantRequest{UserName: "anyuser@example.com", Resource: "prodhost", Privilege: "connect"})
+		api.GrantRequest{UserName: "anyuser@example.com", DestinationName: "prodhost", Privilege: "connect"})
 
 	client, err := NewAPIClient(&APIClientOpts{
 		AccessKey: "0000000001.adminadminadminadmin1234",

@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strconv"
-	"strings"
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
@@ -477,7 +476,7 @@ func syncGrantsToDestination(
 		defer cancel()
 
 		grants, err := con.client.ListGrants(ctx, api.ListGrantsRequest{
-			Destination:     con.destination.Name, // TODO: use options.Name when that is required
+			DestinationName: con.destination.Name, // TODO: use options.Name when that is required
 			BlockingRequest: api.BlockingRequest{LastUpdateIndex: latestIndex},
 		})
 		var apiError api.Error
@@ -561,25 +560,11 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 			Name:     name,
 		}
 
-		parts := strings.Split(g.Resource, ".")
-
-		var crn kubernetes.ClusterRoleNamespace
-
-		switch len(parts) {
-		// <cluster>
-		case 1:
-			crn.ClusterRole = g.Privilege
-			crSubjects[g.Privilege] = append(crSubjects[g.Privilege], subj)
-
-		// <cluster>.<namespace>
-		case 2:
-			crn.ClusterRole = g.Privilege
-			crn.Namespace = parts[1]
+		if g.DestinationResource != "" {
+			crn := kubernetes.ClusterRoleNamespace{ClusterRole: g.Privilege, Namespace: g.DestinationResource}
 			crnSubjects[crn] = append(crnSubjects[crn], subj)
-
-		default:
-			logging.Warnf("invalid grant resource: %s", g.Resource)
-			continue
+		} else {
+			crSubjects[g.Privilege] = append(crSubjects[g.Privilege], subj)
 		}
 	}
 

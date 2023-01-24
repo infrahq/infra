@@ -38,9 +38,9 @@ func TestListCmd(t *testing.T) {
 	runAndWait(ctx, t, srv.Run)
 
 	createGrants(t, srv.DB(),
-		api.GrantRequest{UserName: "manygrants@example.com", Resource: "space", Privilege: "explorer"},
-		api.GrantRequest{UserName: "manygrants@example.com", Resource: "moon", Privilege: "inhabitant"},
-		api.GrantRequest{UserName: "manygrants@example.com", Resource: "infra-this-is-not", Privilege: "view"},
+		api.GrantRequest{UserName: "manygrants@example.com", DestinationName: "space", Privilege: "explorer"},
+		api.GrantRequest{UserName: "manygrants@example.com", DestinationName: "moon", Privilege: "inhabitant"},
+		api.GrantRequest{UserName: "manygrants@example.com", DestinationName: "infra-this-is-not", Privilege: "view"},
 	)
 
 	clientOpts := &APIClientOpts{

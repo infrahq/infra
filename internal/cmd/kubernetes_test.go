@@ -35,8 +35,8 @@ func TestUpdateKubeconfig(t *testing.T) {
 	assert.NilError(t, err)
 
 	createGrants(t, srv.DB(),
-		api.GrantRequest{UserName: "admin@local", Resource: "my-first-kubernetes-cluster", Privilege: "connect"},
-		api.GrantRequest{UserName: "admin@local", Resource: "my-first-ssh-server", Privilege: "connect"})
+		api.GrantRequest{UserName: "admin@local", DestinationName: "my-first-kubernetes-cluster", Privilege: "connect"},
+		api.GrantRequest{UserName: "admin@local", DestinationName: "my-first-ssh-server", Privilege: "connect"})
 
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
@@ -177,7 +177,7 @@ func TestWriteKubeconfig(t *testing.T) {
 			},
 		}
 
-		actual := run(t, api.Grant{Resource: "connected.namespace"})
+		actual := run(t, api.Grant{DestinationName: "connected", DestinationResource: "namespace"})
 
 		assert.DeepEqual(t, actual.Contexts, expectedContexts, cmpKubeconfig)
 		assert.DeepEqual(t, actual.Clusters, expectedClusters, cmpKubeconfig)
@@ -194,9 +194,9 @@ func TestWriteKubeconfig(t *testing.T) {
 		}
 
 		grants := []api.Grant{
-			{Resource: "connected.namespace"},
-			{Resource: "connected.namespace2"},
-			{Resource: "connected.namespace3"},
+			{DestinationName: "connected", DestinationResource: "namespace"},
+			{DestinationName: "connected", DestinationResource: "namespace2"},
+			{DestinationName: "connected", DestinationResource: "namespace3"},
 		}
 
 		actual := run(t, grants...)
@@ -215,7 +215,7 @@ func TestWriteKubeconfig(t *testing.T) {
 		}
 
 		grants := []api.Grant{
-			{Resource: "connected.default"},
+			{DestinationName: "connected", DestinationResource: "default"},
 		}
 
 		actual := run(t, grants...)
@@ -234,10 +234,10 @@ func TestWriteKubeconfig(t *testing.T) {
 		}
 
 		grants := []api.Grant{
-			{Resource: "connected.namespace"},
-			{Resource: "connected.namespace2"},
-			{Resource: "connected.default"},
-			{Resource: "connected.namespace3"},
+			{DestinationName: "connected", DestinationResource: "namespace"},
+			{DestinationName: "connected", DestinationResource: "namespace2"},
+			{DestinationName: "connected", DestinationResource: "default"},
+			{DestinationName: "connected", DestinationResource: "namespace3"},
 		}
 
 		actual := run(t, grants...)
@@ -255,7 +255,7 @@ func TestWriteKubeconfig(t *testing.T) {
 			},
 		}
 
-		actual := run(t, api.Grant{Resource: "connected"})
+		actual := run(t, api.Grant{DestinationName: "connected"})
 
 		assert.DeepEqual(t, actual.Contexts, expectedContexts, cmpKubeconfig)
 		assert.DeepEqual(t, actual.Clusters, expectedClusters, cmpKubeconfig)
@@ -271,8 +271,8 @@ func TestWriteKubeconfig(t *testing.T) {
 		}
 
 		grants := []api.Grant{
-			{Resource: "connected.default"},
-			{Resource: "connected"},
+			{DestinationName: "connected", DestinationResource: "default"},
+			{DestinationName: "connected"},
 		}
 
 		actual := run(t, grants...)
@@ -291,10 +291,10 @@ func TestWriteKubeconfig(t *testing.T) {
 		}
 
 		grants := []api.Grant{
-			{Resource: "connected.namespace"},
-			{Resource: "connected.namespace2"},
-			{Resource: "connected.namespace3"},
-			{Resource: "connected"},
+			{DestinationName: "connected", DestinationResource: "namespace"},
+			{DestinationName: "connected", DestinationResource: "namespace2"},
+			{DestinationName: "connected", DestinationResource: "namespace3"},
+			{DestinationName: "connected"},
 		}
 
 		actual := run(t, grants...)
@@ -313,9 +313,9 @@ func TestWriteKubeconfig(t *testing.T) {
 		}
 
 		grants := []api.Grant{
-			{Resource: "connected"},
-			{Resource: "disconnected"},
-			{Resource: "pending"},
+			{DestinationName: "connected"},
+			{DestinationName: "disconnected"},
+			{DestinationName: "pending"},
 		}
 
 		actual := run(t, grants...)
@@ -369,7 +369,7 @@ func TestWriteKubeconfig_UserNamespaceOverride(t *testing.T) {
 	}
 	grants := []api.Grant{
 		{
-			Resource: "cluster",
+			DestinationName: "cluster",
 		},
 	}
 

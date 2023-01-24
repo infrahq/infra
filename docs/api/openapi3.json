@@ -66,6 +66,12 @@
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+          "destinationName": {
+            "type": "string"
+          },
+          "destinationResource": {
+            "type": "string"
+          },
           "group": {
             "description": "GroupID for a group being granted access",
             "example": "3zMaadcd2U",
@@ -83,11 +89,6 @@
           "privilege": {
             "description": "a role or permission",
             "example": "admin",
-            "type": "string"
-          },
-          "resource": {
-            "description": "a resource name in Infra's Universal Resource Notation",
-            "example": "production.namespace",
             "type": "string"
           },
           "updated": {
@@ -345,6 +346,12 @@
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+          "destinationName": {
+            "type": "string"
+          },
+          "destinationResource": {
+            "type": "string"
+          },
           "group": {
             "description": "GroupID for a group being granted access",
             "example": "3zMaadcd2U",
@@ -362,11 +369,6 @@
           "privilege": {
             "description": "a role or permission",
             "example": "admin",
-            "type": "string"
-          },
-          "resource": {
-            "description": "a resource name in Infra's Universal Resource Notation",
-            "example": "production.namespace",
             "type": "string"
           },
           "updated": {
@@ -680,6 +682,12 @@
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
+                "destinationName": {
+                  "type": "string"
+                },
+                "destinationResource": {
+                  "type": "string"
+                },
                 "group": {
                   "description": "GroupID for a group being granted access",
                   "example": "3zMaadcd2U",
@@ -697,11 +705,6 @@
                 "privilege": {
                   "description": "a role or permission",
                   "example": "admin",
-                  "type": "string"
-                },
-                "resource": {
-                  "description": "a resource name in Infra's Universal Resource Notation",
-                  "example": "production.namespace",
                   "type": "string"
                 },
                 "updated": {
@@ -3229,27 +3232,16 @@
             }
           },
           {
-            "description": "a resource name",
-            "example": "production.namespace",
             "in": "query",
-            "name": "resource",
+            "name": "destinationName",
             "schema": {
-              "description": "a resource name",
-              "example": "production.namespace",
               "type": "string"
             }
           },
           {
-            "description": "name of the destination where a connector is installed",
-            "example": "production",
             "in": "query",
-            "name": "destination",
+            "name": "destinationResource",
             "schema": {
-              "description": "name of the destination where a connector is installed",
-              "example": "production",
-              "format": "[a-zA-Z0-9\\-_]",
-              "maxLength": 256,
-              "minLength": 2,
               "type": "string"
             }
           },
@@ -3450,6 +3442,12 @@
                         }
                       ],
                       "properties": {
+                        "destinationName": {
+                          "type": "string"
+                        },
+                        "destinationResource": {
+                          "type": "string"
+                        },
                         "group": {
                           "description": "ID of the group granted access",
                           "example": "6Ti2p7r1h7",
@@ -3467,11 +3465,6 @@
                           "example": "view",
                           "type": "string"
                         },
-                        "resource": {
-                          "description": "a resource name in Infra's Universal Resource Notation",
-                          "example": "production",
-                          "type": "string"
-                        },
                         "user": {
                           "description": "ID of the user granted access",
                           "example": "6kdoMDd6PA",
@@ -3487,7 +3480,7 @@
                       },
                       "required": [
                         "privilege",
-                        "resource"
+                        "destinationName"
                       ],
                       "type": "object"
                     },
@@ -3520,6 +3513,12 @@
                         }
                       ],
                       "properties": {
+                        "destinationName": {
+                          "type": "string"
+                        },
+                        "destinationResource": {
+                          "type": "string"
+                        },
                         "group": {
                           "description": "ID of the group granted access",
                           "example": "6Ti2p7r1h7",
@@ -3537,11 +3536,6 @@
                           "example": "view",
                           "type": "string"
                         },
-                        "resource": {
-                          "description": "a resource name in Infra's Universal Resource Notation",
-                          "example": "production",
-                          "type": "string"
-                        },
                         "user": {
                           "description": "ID of the user granted access",
                           "example": "6kdoMDd6PA",
@@ -3557,7 +3551,7 @@
                       },
                       "required": [
                         "privilege",
-                        "resource"
+                        "destinationName"
                       ],
                       "type": "object"
                     },
@@ -3690,6 +3684,12 @@
                   }
                 ],
                 "properties": {
+                  "destinationName": {
+                    "type": "string"
+                  },
+                  "destinationResource": {
+                    "type": "string"
+                  },
                   "group": {
                     "description": "ID of the group granted access",
                     "example": "6Ti2p7r1h7",
@@ -3707,11 +3707,6 @@
                     "example": "view",
                     "type": "string"
                   },
-                  "resource": {
-                    "description": "a resource name in Infra's Universal Resource Notation",
-                    "example": "production",
-                    "type": "string"
-                  },
                   "user": {
                     "description": "ID of the user granted access",
                     "example": "6kdoMDd6PA",
@@ -3727,7 +3722,7 @@
                 },
                 "required": [
                   "privilege",
-                  "resource"
+                  "destinationName"
                 ],
                 "type": "object"
               }

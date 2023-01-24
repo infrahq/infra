@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
@@ -59,18 +57,13 @@ const (
 
 func (r *Grant) ToAPI() *api.Grant {
 	grant := &api.Grant{
-		ID:        r.ID,
-		Created:   api.Time(r.CreatedAt),
-		Updated:   api.Time(r.UpdatedAt),
-		CreatedBy: r.CreatedBy,
-		Privilege: r.Privilege,
-	}
-
-	switch {
-	case r.DestinationResource != "":
-		grant.Resource = fmt.Sprintf("%s.%s", r.DestinationName, r.DestinationResource)
-	default:
-		grant.Resource = r.DestinationName
+		ID:                  r.ID,
+		Created:             api.Time(r.CreatedAt),
+		Updated:             api.Time(r.UpdatedAt),
+		CreatedBy:           r.CreatedBy,
+		Privilege:           r.Privilege,
+		DestinationName:     r.DestinationName,
+		DestinationResource: r.DestinationResource,
 	}
 
 	switch r.Subject.Kind {

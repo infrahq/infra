@@ -78,9 +78,9 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 	assert.NilError(t, err)
 
 	createGrants(t, srv.DB(),
-		api.GrantRequest{UserName: "user1@example.com", Resource: "testing.ns1", Privilege: "admin"},
-		api.GrantRequest{UserName: "user2@example.com", Resource: "testing", Privilege: "view"},
-		api.GrantRequest{GroupName: "group1@example.com", Resource: "testing.ns1", Privilege: "logs"},
+		api.GrantRequest{UserName: "user1@example.com", DestinationName: "testing", DestinationResource: "ns1", Privilege: "admin"},
+		api.GrantRequest{UserName: "user2@example.com", DestinationName: "testing", Privilege: "view"},
+		api.GrantRequest{GroupName: "group1@example.com", DestinationName: "testing", DestinationResource: "ns1", Privilege: "logs"},
 	)
 
 	kubeconfig := path.Join(dir, "kubeconfig")

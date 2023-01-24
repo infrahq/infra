@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/infrahq/infra/api"
 )
 
 func newUseCmd(cli *CLI) *cobra.Command {
@@ -60,7 +62,8 @@ func getUseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]s
 	resources := make(map[string]struct{}, len(grants))
 
 	for _, g := range grants {
-		resources[g.Resource] = struct{}{}
+		resource := api.FormatResourceURN(g.DestinationName, g.DestinationResource)
+		resources[resource] = struct{}{}
 	}
 
 	validArgs := make([]string, 0, len(resources))

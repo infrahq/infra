@@ -291,8 +291,8 @@ func TestSyncGrantsToDestination_KubeBindings(t *testing.T) {
 			fakeAPI: &fakeAPIClient{
 				listGrantsResult: &api.ListResponse[api.Grant]{
 					Items: []api.Grant{
-						{User: uid.ID(123), Resource: "the-test", Privilege: "view"},
-						{User: uid.ID(124), Resource: "the-test.ns1", Privilege: "logs"},
+						{User: uid.ID(123), DestinationName: "the-test", Privilege: "view"},
+						{User: uid.ID(124), DestinationName: "the-test", DestinationResource: "ns1", Privilege: "logs"},
 					},
 					LastUpdateIndex: api.LastUpdateIndex{Index: 42},
 				},
@@ -320,7 +320,7 @@ func TestSyncGrantsToDestination_KubeBindings(t *testing.T) {
 			fakeAPI: &fakeAPIClient{
 				listGrantsResult: &api.ListResponse[api.Grant]{
 					Items: []api.Grant{
-						{User: uid.ID(123), Resource: "the-test", Privilege: "view"},
+						{User: uid.ID(123), DestinationName: "the-test", Privilege: "view"},
 					},
 					LastUpdateIndex: api.LastUpdateIndex{Index: 42},
 				},
