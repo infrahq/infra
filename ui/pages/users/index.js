@@ -11,6 +11,7 @@ import {
   CheckIcon,
   DocumentDuplicateIcon,
   TrashIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
@@ -217,7 +218,7 @@ export default function Users() {
           onClick={() => setOpen(true)}
           className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
         >
-          Add user
+          <PlusIcon className='mr-1 h-3 w-3' /> User
         </button>
 
         {/* Add dialog */}

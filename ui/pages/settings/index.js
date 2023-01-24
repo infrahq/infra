@@ -9,6 +9,7 @@ import {
   ChevronDownIcon,
   CheckIcon,
   PlusIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { Menu } from '@headlessui/react'
 
@@ -135,17 +136,23 @@ function PersonalKeys() {
                 const { name, id } = info.row.original
 
                 return (
-                  <div className='flex justify-end'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setOpenDeleteModal(true)
-                      }}
-                      className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                      <span className='hidden sm:block'>Remove</span>
-                    </button>
+                  <div className='text-right'>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setOpenDeleteModal(true)
+                        }}
+                        className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <div className='flex flex-row items-center'>
+                          <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                          Remove
+                        </div>
+                        <span className='sr-only'>{name}</span>
+                      </button>
+                    </div>
+
                     <DeleteModal
                       open={openDeleteModal}
                       setOpen={setOpenDeleteModal}
@@ -162,7 +169,7 @@ function PersonalKeys() {
                         setOpenDeleteModal(false)
                         mutate()
                       }}
-                      title='Remove Access Key'
+                      title='Remove personal key'
                       message={
                         <div>
                           Are you sure you want to remove access key:{' '}
@@ -291,17 +298,21 @@ function ConnectorKeys() {
                 const { name, id } = info.row.original
 
                 return (
-                  <div className='flex justify-end'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setOpenDeleteModal(true)
-                      }}
-                      className='group flex w-full items-center rounded-md bg-white px-2 py-1.5 text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                      <span className='hidden sm:block'>Remove</span>
-                    </button>
+                  <div className='text-right'>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        type='button'
+                        onClick={() => setOpenDeleteModal(true)}
+                        className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <div className='flex flex-row items-center'>
+                          <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                          Remove
+                        </div>
+                        <span className='sr-only'>{name}</span>
+                      </button>
+                    </div>
+
                     <DeleteModal
                       open={openDeleteModal}
                       setOpen={setOpenDeleteModal}
@@ -313,7 +324,7 @@ function ConnectorKeys() {
                         setOpenDeleteModal(false)
                         mutate()
                       }}
-                      title='Remove Access Key'
+                      title='Remove connector key'
                       message={
                         <div>
                           Are you sure you want to remove access key:{' '}
@@ -444,7 +455,7 @@ function Password() {
             required
             name={'old-password'}
             type='password'
-            autoComplete='off'
+            autoComplete='current-password'
             value={oldPassword}
             onChange={e => {
               setOldPassword(e.target.value)
@@ -470,7 +481,7 @@ function Password() {
             required
             name='newPassword'
             type='password'
-            autoComplete='off'
+            autoComplete='new-password'
             value={password}
             onChange={e => {
               setPassword(e.target.value)
@@ -496,7 +507,7 @@ function Password() {
             required
             name='confirmPassword'
             type='password'
-            autoComplete='off'
+            autoComplete='new-password'
             value={confirmPassword}
             onChange={e => {
               setConfirmPassword(e.target.value)
@@ -626,19 +637,23 @@ function Admins() {
               return (
                 grants?.length > 1 && (
                   <div className='text-right'>
-                    <button
-                      onClick={() => {
-                        setDeleteId(info.row.original.id)
-                        setOpen(true)
-                      }}
-                      className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <div className='flex flex-row items-center'>
-                        <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
-                        Revoke
-                      </div>
-                      <span className='sr-only'>{info.row.original.name}</span>
-                    </button>
+                    <div className='group invisible rounded-md bg-white group-hover:visible'>
+                      <button
+                        onClick={() => {
+                          setDeleteId(info.row.original.id)
+                          setOpen(true)
+                        }}
+                        className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
+                      >
+                        <div className='flex flex-row items-center'>
+                          <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                          Revoke
+                        </div>
+                        <span className='sr-only'>
+                          {info.row.original.name}
+                        </span>
+                      </button>
+                    </div>
                     <DeleteModal
                       open={open}
                       setOpen={setOpen}
@@ -652,7 +667,7 @@ function Admins() {
 
                         setOpen(false)
                       }}
-                      title='Revoke Admin'
+                      title='Revoke admin'
                       message={
                         !grantsList?.find(grant => grant.id === deleteId)
                           ?.message ? (
@@ -695,10 +710,9 @@ function Authentication() {
   const [newDomain, setNewDomain] = useState('')
   const [error, setError] = useState('')
 
-  async function removeDomain(e) {
+  async function removeDomain(e, domain) {
     e.preventDefault()
-    let toRemove = e.target.value
-    const newAllowedDomains = allowedDomains.filter(d => d !== toRemove)
+    const newAllowedDomains = allowedDomains.filter(d => d !== domain)
     updateAllowedDomains(newAllowedDomains)
   }
 
@@ -730,13 +744,16 @@ function Authentication() {
   }
 
   function onKeyDown(e) {
-    const { key } = e
+    const { key, keyCode } = e
 
     if (key === 'Backspace' && newDomain === '' && allowedDomains.length > 0) {
       e.preventDefault()
       const newAllowedDomains = [...allowedDomains]
       newAllowedDomains.pop()
       updateAllowedDomains(newAllowedDomains)
+    }
+    if (keyCode === 32) {
+      addDomain(e)
     }
   }
 
@@ -771,29 +788,28 @@ function Authentication() {
             </div>
           </header>
           <form
-            className='group form-input flex w-full flex-wrap rounded border-gray-300 py-2 px-3 leading-tight focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
+            className='group form-input flex w-full flex-wrap rounded-md border-gray-300 leading-tight shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'
             onSubmit={addDomain}
           >
-            {allowedDomains.map(d => (
+            {allowedDomains.map(domain => (
               <span
-                className='my-1 mr-1 inline-block rounded-md bg-gray-200 py-1 pl-2.5 pr-1 text-xs font-medium'
-                key={d}
+                className='group mr-1 flex items-center rounded-md border border-gray-400/50 bg-transparent py-1 pl-2.5 pr-1 text-xs font-medium text-gray-600 hover:border-2 hover:bg-gray-100 hover:text-gray-900'
+                key={domain}
               >
-                {d}
+                {domain}
                 <button
-                  className='px-1.5 font-normal hover:text-gray-600'
+                  className='items-center px-1.5 font-normal group-hover:text-gray-600'
                   type='button'
-                  value={d}
-                  onClick={removeDomain}
+                  onClick={e => removeDomain(e, domain)}
                 >
-                  ✕
+                  <XMarkIcon className='h-4 w-4' />
                 </button>
               </span>
             ))}
             <input
-              className='peer mt-1 grow bg-transparent py-1 text-sm focus:outline-none'
+              className='peer grow bg-transparent py-1 text-sm focus:outline-none'
               value={newDomain}
-              placeholder={'enter a domain...'}
+              placeholder={allowedDomains.length === 0 ? ' Enter domains' : ''}
               onChange={e => {
                 setNewDomain(e.target.value)
               }}
@@ -818,7 +834,7 @@ function Authentication() {
           href='/settings/providers/add'
           className='inline-flex items-center self-end whitespace-nowrap rounded-md border border-transparent bg-black px-3 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
         >
-          <PlusIcon className='mr-1 h-3 w-3' /> Connect provider
+          <PlusIcon className='mr-1 h-3 w-3' /> Connect Provider
         </Link>
       </header>
       <div className='mt-3 flex min-h-0 flex-1 flex-col'>

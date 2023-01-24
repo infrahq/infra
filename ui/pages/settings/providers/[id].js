@@ -258,7 +258,7 @@ export default function ProvidersEditDetails() {
 
                 router.replace('/settings?tab=authentication')
               }}
-              modalTitle='Remove Identity Provider'
+              modalTitle='Remove identity provider'
               modalMessage={
                 <>
                   Are you sure you want to remove{' '}

@@ -783,7 +783,7 @@ export default function DestinationDetail() {
 
                   router.replace('/destinations')
                 }}
-                modalTitle='Remove Cluster'
+                modalTitle='Remove cluster'
                 modalMessage={
                   <>
                     Are you sure you want to remove{' '}
