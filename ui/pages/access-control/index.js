@@ -479,7 +479,7 @@ export default function AccessControl() {
   const router = useRouter()
   const page =
     router.query.p === undefined ||
-    Number(router.query.p) === NaN ||
+    isNaN(Number(router.query.p)) ||
     Number(router.query.p) < 1
       ? 1
       : router.query.p
