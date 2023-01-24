@@ -78,12 +78,6 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
     setRoles(sortByRole(selectedResource?.roles))
   }, [selectedResource])
 
-  useEffect(() => {
-    if (roles.length > 0) {
-      setSelectedRoles([roles[0]])
-    }
-  }, [roles])
-
   async function onSubmit(e) {
     e.preventDefault()
     try {
@@ -301,7 +295,7 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
                       multiple
                     >
                       <div className='relative'>
-                        <Listbox.Button className='relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
+                        <Listbox.Button className='relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:border-blue-500 focus:ring-blue-500'>
                           <div className='flex space-x-1 truncate'>
                             <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
                               <ChevronDownIcon
@@ -377,9 +371,6 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
                       value={selectedRoles}
                       onChange={v => {
                         setError({})
-                        if (selectedRoles.length === 1 && v.length === 0) {
-                          return
-                        }
 
                         const add = v.filter(x => !selectedRoles.includes(x))
                         const remove = selectedRoles.filter(x => !v.includes(x))
@@ -395,7 +386,7 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
                       multiple
                     >
                       <div className='relative'>
-                        <Listbox.Button className='relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
+                        <Listbox.Button className='relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:border-blue-500 focus:ring-blue-50'>
                           <div className='flex space-x-1 truncate'>
                             <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
                               <ChevronDownIcon
@@ -404,7 +395,9 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
                               />
                             </span>
                             <span className='text-gray-700'>
-                              {selectedRoles.join(', ')}
+                              {selectedRoles.length > 0
+                                ? selectedRoles.join(', ')
+                                : 'Select roles'}
                             </span>
                           </div>
                         </Listbox.Button>
@@ -469,7 +462,9 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
           </button>
           <button
             type='submit'
-            disabled={!selected || !selectedResource}
+            disabled={
+              !selected || !selectedResource || selectedRoles.length === 0
+            }
             className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
           >
             Add
@@ -482,7 +477,12 @@ function CreateAccessDialog({ setOpen, onCreated = () => {} }) {
 
 export default function AccessControl() {
   const router = useRouter()
-  const page = router.query.p === undefined ? 1 : router.query.p
+  const page =
+    router.query.p === undefined ||
+    Number(router.query.p) === NaN ||
+    Number(router.query.p) < 1
+      ? 1
+      : router.query.p
   const limit = 10
 
   const { user, isAdmin } = useUser()
@@ -516,12 +516,21 @@ export default function AccessControl() {
       allGrants
         ?.map(g => {
           if (newCreatedGrants.length > 0) {
-            const result = newCreatedGrants.filter(
-              ng =>
+            const result = newCreatedGrants.filter(ng => {
+              if (g.group) {
+                return (
+                  ng.privilege === g.privilege &&
+                  ng.resource === g.resource &&
+                  ng.group === g.group
+                )
+              }
+
+              return (
                 ng.privilege === g.privilege &&
                 ng.resource === g.resource &&
-                (ng.group === g.group || ng.user === g.user)
-            )
+                ng.user === g.user
+              )
+            })
 
             return { ...g, newCreate: result.length > 0 }
           }
@@ -551,6 +560,7 @@ export default function AccessControl() {
     columns.push({
       header: <span>User / Group </span>,
       id: 'identity',
+      maxSize: 60,
       accessorKey: 'identityId',
       cell: function Cell(info) {
         const name =
@@ -646,9 +656,11 @@ export default function AccessControl() {
         onDelete={() => {
           setOpenSelectedDeleteModal(true)
         }}
+        type='detail'
         columns={[
           {
             id: 'infrastructure',
+            minSize: 250,
             cell: function Cell(info) {
               const { kind, connected, connection } = destinations?.find(
                 d => d.name === info.getValue().split('.')[0]
@@ -674,7 +686,7 @@ export default function AccessControl() {
                       <AdjustmentsHorizontalIcon className='h-4 text-blue-500' />
                     )}
                     {kind === 'ssh' && (
-                      <CommandLineIcon className='h-5 text-black' />
+                      <CommandLineIcon className='h-[18px] text-black' />
                     )}
                     {kind === 'kubernetes' && (
                       <img
@@ -709,11 +721,11 @@ export default function AccessControl() {
           },
           {
             cell: info => (
-              <div className='hidden sm:table-cell'>
+              <div className='hidden lg:table-cell'>
                 {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
               </div>
             ),
-            header: () => <span className='hidden sm:table-cell'>Created</span>,
+            header: () => <span className='hidden lg:table-cell'>Created</span>,
             accessorKey: 'created',
           },
           {
@@ -731,7 +743,7 @@ export default function AccessControl() {
                       className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
                     >
                       <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                      <span className='hidden sm:block'>Remove</span>
+                      <span>Remove</span>
                     </button>
                   </div>
                 )
