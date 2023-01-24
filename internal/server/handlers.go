@@ -63,7 +63,7 @@ func CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse,
 	if rCtx.Authenticated.User == nil {
 		return nil, fmt.Errorf("no authenticated user")
 	}
-	token, err := data.CreateIdentityToken(rCtx.DBTxn, rCtx.Authenticated.User.ID)
+	token, err := data.CreateIdentityToken(rCtx.DBTxn, rCtx.Authenticated.Organization, rCtx.Authenticated.User)
 	if err != nil {
 		return nil, err
 	}
@@ -92,17 +92,16 @@ func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResp
 }
 
 func getPublicJWK(rCtx access.RequestContext) ([]jose.JSONWebKey, error) {
-	settings, err := data.GetSettings(rCtx.DBTxn)
-	if err != nil {
-		return nil, fmt.Errorf("could not get JWKs: %w", err)
+	if rCtx.Authenticated.Organization == nil {
+		return nil, fmt.Errorf("require organization")
 	}
 
-	var pubKey jose.JSONWebKey
-	if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
-		return nil, fmt.Errorf("could not get JWKs: %w", err)
+	var pub jose.JSONWebKey
+	if err := pub.UnmarshalJSON(rCtx.Authenticated.Organization.PublicJWK); err != nil {
+		return nil, err
 	}
 
-	return []jose.JSONWebKey{pubKey}, nil
+	return []jose.JSONWebKey{pub}, nil
 }
 
 type WellKnownJWKResponse struct {

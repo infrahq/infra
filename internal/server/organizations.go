@@ -45,8 +45,9 @@ func (a *API) GetOrganization(c *gin.Context, r *api.GetOrganizationRequest) (*a
 func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationRequest) (*api.Organization, error) {
 	rCtx := getRequestContext(c)
 	org := &models.Organization{
-		Name:   r.Name,
-		Domain: r.Domain,
+		Name:      r.Name,
+		Domain:    r.Domain,
+		InstallID: rCtx.DataDB.DefaultOrg.InstallID,
 	}
 
 	authIdent := rCtx.Authenticated.User

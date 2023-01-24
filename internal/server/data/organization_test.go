@@ -1,11 +1,13 @@
 package data
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
@@ -18,6 +20,7 @@ func TestCreateOrganization(t *testing.T) {
 			Domain:         "syndicate-123",
 			CreatedBy:      777,
 			AllowedDomains: models.CommaSeparatedStrings{"example.com", "infrahq.com"},
+			InstallID:      999,
 		}
 
 		err := CreateOrganization(db, org)
@@ -38,8 +41,11 @@ func TestCreateOrganization(t *testing.T) {
 			Domain:         "syndicate-123",
 			CreatedBy:      777,
 			AllowedDomains: models.CommaSeparatedStrings{"example.com", "infrahq.com"},
+			PrivateJWK:     models.EncryptedAtRest("<any-value>"),
+			PublicJWK:      []byte("<any-value>"),
+			InstallID:      999,
 		}
-		assert.DeepEqual(t, expected, actual, cmpModel)
+		assert.DeepEqual(t, expected, actual, cmpOrganizationModel)
 
 		// infra provider is created
 		orgInfraIDP := InfraProvider(tx)
@@ -160,6 +166,7 @@ func TestUpdateOrganization(t *testing.T) {
 			Name:           "second",
 			Domain:         "second.example.com",
 			AllowedDomains: []string{},
+			InstallID:      999,
 		}
 		err := CreateOrganization(db, org)
 		assert.NilError(t, err)
@@ -186,10 +193,43 @@ func TestUpdateOrganization(t *testing.T) {
 			Domain:         "third.example.com",
 			CreatedBy:      7123,
 			AllowedDomains: []string{"example.com"},
+			PrivateJWK:     models.EncryptedAtRest("<any-value>"),
+			PublicJWK:      []byte("<any-value>"),
+			InstallID:      999,
 		}
-		assert.DeepEqual(t, expected, actual, cmpModel)
+		assert.DeepEqual(t, expected, actual, cmpOrganizationModel)
 	})
 }
+
+var cmpOrganizationModel = cmp.Options{
+	cmpModel,
+	cmp.FilterPath(opt.PathField(models.Organization{}, "PrivateJWK"), anyEncryptedAtRestValue),
+	cmp.FilterPath(opt.PathField(models.Organization{}, "PublicJWK"), anyByteValue),
+}
+
+var anyEncryptedAtRestValue = cmp.Comparer(func(x, y models.EncryptedAtRest) bool {
+	if x == "" || y == "" {
+		return false
+	}
+
+	if x == "<any-value>" || y == "<any-value>" {
+		return true
+	}
+
+	return x == y
+})
+
+var anyByteValue = cmp.Comparer(func(x, y []byte) bool {
+	if x == nil || y == nil {
+		return false
+	}
+
+	if string(x) == "<any-value>" || string(y) == "<any-value>" {
+		return true
+	}
+
+	return bytes.Equal(x, y)
+})
 
 func TestListOrganizations(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {

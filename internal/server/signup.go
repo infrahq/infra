@@ -220,6 +220,9 @@ func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomai
 		details.Org.AllowedDomains = []string{allowedLoginDomain}
 	}
 
+	// inherit install_id from default organization
+	details.Org.InstallID = rCtx.DataDB.DefaultOrg.InstallID
+
 	if err := data.CreateOrganization(db, details.Org); err != nil {
 		return nil, fmt.Errorf("create org on sign-up: %w", err)
 	}

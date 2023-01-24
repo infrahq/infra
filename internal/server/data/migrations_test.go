@@ -487,12 +487,17 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				}
 				assert.DeepEqual(t, p, expectedProvider)
 
+				type modelsSettings struct {
+					models.Model
+					models.OrganizationMember
+				}
+
 				stmt = `SELECT id, organization_id FROM settings;`
-				s := &models.Settings{}
+				s := &modelsSettings{}
 				err = db.QueryRow(stmt).Scan(&s.ID, &s.OrganizationID)
 				assert.NilError(t, err)
 
-				expectedSettings := &models.Settings{
+				expectedSettings := &modelsSettings{
 					Model:              models.Model{ID: 555111},
 					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 				}
@@ -557,12 +562,17 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				}
 				assert.DeepEqual(t, p, expectedProvider)
 
+				type modelsSettings struct {
+					models.Model
+					models.OrganizationMember
+				}
+
 				stmt = `SELECT id, organization_id FROM settings;`
-				s := &models.Settings{}
+				s := &modelsSettings{}
 				err = tx.QueryRow(stmt).Scan(&s.ID, &s.OrganizationID)
 				assert.NilError(t, err)
 
-				expectedSettings := &models.Settings{
+				expectedSettings := &modelsSettings{
 					Model:              models.Model{ID: 555111},
 					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 				}
@@ -1058,6 +1068,69 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2023-01-18T10:26"),
+			setup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`
+					INSERT INTO
+						organizations(id, created_at, updated_at, deleted_at, name, created_by, domain, allowed_domains)
+					VALUES
+						(1001, '2023-01-18 11:29:42.875+00', '2023-01-18 11:29:42.875+00', null, '202301181129', 1, '202301181129.example.com', ''),
+						(2001, '2023-01-18 11:30:42.875+00', '2023-01-18 11:30:42.875+00', null, '202301181130', 1, '202301181130.example.com', '')`)
+				assert.NilError(t, err)
+
+				_, err = tx.Exec(`
+					INSERT INTO
+						settings(id, created_at, updated_at, deleted_at, private_jwk, public_jwk, organization_id)
+					VALUES
+						(1002, '2023-01-18 11:29:42.875+00', '2023-01-18 11:29:42.875+00', null, ?, ?, 1001),
+						(2002, '2023-01-18 11:30:42.875+00', '2023-01-18 11:30:42.875+00', null, ?, ?, 2001)`,
+					models.EncryptedAtRest("superman"), []byte("clark-kent"),
+					models.EncryptedAtRest("batman"), []byte("bruce-wayne"))
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE FROM organizations WHERE id IN (1001, 2001)`)
+				assert.NilError(t, err)
+				_, err = tx.Exec(`DELETE FROM settings WHERE id IN (1002, 2002)`)
+				assert.ErrorContains(t, err, "relation \"settings\" does not exist")
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				rows, err := tx.Query(`SELECT id, name, domain, private_jwk, public_jwk, install_id FROM organizations WHERE id IN (1001, 2001)`)
+				assert.NilError(t, err)
+				defer rows.Close()
+
+				actual, err := scanRows(rows, func(o *models.Organization) []any {
+					return []any{&o.ID, &o.Name, &o.Domain, &o.PrivateJWK, &o.PublicJWK, &o.InstallID}
+				})
+				assert.NilError(t, err)
+
+				expected := []models.Organization{
+					{
+						Model: models.Model{
+							ID: 1001,
+						},
+						Name:       "202301181129",
+						Domain:     "202301181129.example.com",
+						PrivateJWK: models.EncryptedAtRest("superman"),
+						PublicJWK:  []byte("clark-kent"),
+						InstallID:  1002,
+					},
+					{
+						Model: models.Model{
+							ID: 2001,
+						},
+						Name:       "202301181130",
+						Domain:     "202301181130.example.com",
+						PrivateJWK: models.EncryptedAtRest("batman"),
+						PublicJWK:  []byte("bruce-wayne"),
+						InstallID:  2002,
+					},
+				}
+
+				assert.DeepEqual(t, actual, expected)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -1132,8 +1205,6 @@ in ./migrations.go, add a test case to this test, and run the tests again.
 	runStep(t, "check test case cleanup", func(t *testing.T) {
 		// delete the default org, that we expect to exist.
 		_, err := db.Exec(` DELETE FROM organizations where id = ?`, defaultOrganizationID)
-		assert.NilError(t, err)
-		_, err = db.Exec(`DELETE FROM settings where organization_id = ?`, defaultOrganizationID)
 		assert.NilError(t, err)
 
 		data := dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"),

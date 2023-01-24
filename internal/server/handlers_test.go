@@ -30,22 +30,17 @@ func TestWellKnownJWKs(t *testing.T) {
 	routes := srv.GenerateRoutes()
 	srv.options.EnableSignup = true
 
+	var defaultKey jose.JSONWebKey
+	err := defaultKey.UnmarshalJSON(srv.db.DefaultOrg.PublicJWK)
+	assert.NilError(t, err)
+
 	otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
 	createOrgs(t, srv.db, otherOrg)
 
-	settings, err := data.GetSettings(srv.db)
-	assert.NilError(t, err)
-
-	var defaultKey jose.JSONWebKey
-	err = defaultKey.UnmarshalJSON(settings.PublicJWK)
-	assert.NilError(t, err)
-
 	otherOrgTx := txnForTestCase(t, srv.db, otherOrg.ID)
-	settings, err = data.GetSettings(otherOrgTx)
-	assert.NilError(t, err)
 
 	var otherOrgKey jose.JSONWebKey
-	err = otherOrgKey.UnmarshalJSON(settings.PublicJWK)
+	err = otherOrgKey.UnmarshalJSON(otherOrg.PublicJWK)
 	assert.NilError(t, err)
 
 	connector := data.InfraConnectorIdentity(otherOrgTx)

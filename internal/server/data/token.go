@@ -9,21 +9,15 @@ import (
 
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 var signatureAlgorithmFromKeyAlgorithm = map[string]string{
 	"ED25519": "EdDSA", // elliptic curve 25519
 }
 
-func createJWT(db ReadTxn, identity *models.Identity, groups []string, expires time.Time) (string, error) {
-	settings, err := GetSettings(db)
-	if err != nil {
-		return "", err
-	}
-
+func createJWT(db ReadTxn, organization *models.Organization, identity *models.Identity, groups []string, expires time.Time) (string, error) {
 	var sec jose.JSONWebKey
-	if err := sec.UnmarshalJSON([]byte(settings.PrivateJWK)); err != nil {
+	if err := sec.UnmarshalJSON([]byte(organization.PrivateJWK)); err != nil {
 		return "", err
 	}
 
@@ -60,13 +54,8 @@ func createJWT(db ReadTxn, identity *models.Identity, groups []string, expires t
 	return raw, nil
 }
 
-func CreateIdentityToken(db ReadTxn, identityID uid.ID) (token *models.Token, err error) {
-	identity, err := GetIdentity(db, GetIdentityOptions{ByID: identityID})
-	if err != nil {
-		return nil, err
-	}
-
-	identityGroups, err := ListGroups(db, ListGroupsOptions{ByGroupMember: identityID})
+func CreateIdentityToken(db ReadTxn, organization *models.Organization, identity *models.Identity) (token *models.Token, err error) {
+	identityGroups, err := ListGroups(db, ListGroupsOptions{ByGroupMember: identity.ID})
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +67,7 @@ func CreateIdentityToken(db ReadTxn, identityID uid.ID) (token *models.Token, er
 
 	expires := time.Now().Add(time.Minute * 5).UTC()
 
-	jwt, err := createJWT(db, identity, groups, expires)
+	jwt, err := createJWT(db, organization, identity, groups, expires)
 	if err != nil {
 		return nil, err
 	}
