@@ -85,24 +85,12 @@ export default function Destinations() {
                   <div className='text-sm font-medium text-gray-700'>
                     {info.getValue()}
                   </div>
-                  {info.row.original.kind !== 'ssh' ? (
-                    <div className='text-2xs text-gray-500'>
-                      {info.row.original.resources?.length > 0 && (
-                        <span>
-                          {info.row.original.resources?.length}&nbsp;
-                          {info.row.original.resources?.length === 1
-                            ? 'namespace'
-                            : 'namespaces'}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className='text-2xs text-gray-500'>
-                      {info.row.original.connection.url === ''
-                        ? '-'
-                        : info.row.original.connection.url}
-                    </div>
-                  )}
+
+                  <div className='text-2xs text-gray-500'>
+                    {info.row.original.connection.url === ''
+                      ? '-'
+                      : info.row.original.connection.url}
+                  </div>
                 </div>
               </div>
             ),

@@ -549,7 +549,7 @@ export default function AccessControl() {
 
   if (isAdmin) {
     columns.push({
-      header: <span>User / group </span>,
+      header: <span>User / Group </span>,
       id: 'identity',
       accessorKey: 'identityId',
       cell: function Cell(info) {
@@ -560,7 +560,7 @@ export default function AccessControl() {
         return (
           <div className='flex flex-col'>
             <div className='text-sm font-medium text-gray-700'>{name}</div>
-            <div className='text-2xs text-gray-500'>
+            <div className='text-2xs capitalize text-gray-500'>
               {info.row.original.type}
             </div>
           </div>
@@ -713,7 +713,7 @@ export default function AccessControl() {
                 {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
               </div>
             ),
-            header: () => <span>Created</span>,
+            header: () => <span className='hidden sm:table-cell'>Created</span>,
             accessorKey: 'created',
           },
           {
