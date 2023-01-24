@@ -1,11 +1,12 @@
+import Link from 'next/link'
+import { useLayoutEffect, useRef, useState } from 'react'
+
 import { TrashIcon } from '@heroicons/react/24/outline'
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import Link from 'next/link'
-import { useLayoutEffect, useRef, useState } from 'react'
 
 import Loader from './loader'
 
@@ -110,7 +111,7 @@ export default function Table({
                   >
                     <input
                       type='checkbox'
-                      className='absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
+                      className='left-4 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
                       ref={el => (checkbox.current = el)}
                       checked={checkedAll}
                       onChange={toggleAll}
@@ -143,6 +144,8 @@ export default function Table({
               return (
                 <tr
                   className={`group truncate ${
+                    row.original.newCreate ? 'bg-yellow-100/50' : ''
+                  } ${
                     href && href(row)
                       ? 'cursor-pointer hover:bg-gray-50/50'
                       : ''
@@ -153,7 +156,7 @@ export default function Table({
                     <th scope='col'>
                       <input
                         type='checkbox'
-                        className='visible left-4 top-1/2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
+                        className='left-4 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
                         value={row.id}
                         checked={selectedRowIds.includes(row.original.id)}
                         disabled={row.original.disabledCheckbox}
@@ -225,7 +228,7 @@ export default function Table({
             of {count} result
             {count === 1 ? '' : 's'}
           </div>
-          <div className='space-x-1 text-2xs text-gray-700'>
+          <div className='flex items-center space-x-1 text-2xs text-gray-700'>
             <button
               className='rounded-md border border-gray-200 px-3 py-1 hover:bg-gray-50 disabled:cursor-default disabled:border-gray-100 disabled:text-gray-300 disabled:hover:bg-white'
               onClick={() => table.previousPage()}
