@@ -40,12 +40,11 @@ type Client struct {
 	HTTP      http.Client
 	// Headers are HTTP headers that will be added to every request made by the Client.
 	Headers http.Header
-	// OnUnauthorized is a callback hook for the client to get notified of a 401 Unauthorized response to any query.
-	// This is useful as clients often need to discard expired access keys.
-	OnUnauthorized func()
 
-	// ObserveFunc is a callback to measure and record the status and duration of the request
-	ObserveFunc func(time.Time, *http.Request, *http.Response, error)
+	// ObserveFunc is called after the Client performs an API request. Callers can
+	// use this hook to emit telemetry about API calls, or to perform some action
+	// based on the response.
+	ObserveFunc func(elapsed time.Time, req *http.Request, resp *http.Response, err error)
 }
 
 // checkError checks the resp for an error code, and returns an api.Error with
@@ -119,10 +118,6 @@ func request[Res any](client Client, req *http.Request) (*Res, error) {
 
 	if client.ObserveFunc != nil {
 		client.ObserveFunc(start, req, resp, err)
-	}
-
-	if resp != nil && resp.StatusCode == 401 && client.OnUnauthorized != nil {
-		defer client.OnUnauthorized()
 	}
 
 	if err != nil {

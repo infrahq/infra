@@ -107,7 +107,11 @@ func NewAPIClient(opts *APIClientOpts) (*api.Client, error) {
 		},
 	}
 	if !opts.SkipLogoutOnUnauthorized {
-		client.OnUnauthorized = logoutCurrent
+		client.ObserveFunc = func(_ time.Time, _ *http.Request, resp *http.Response, _ error) {
+			if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+				logoutCurrent()
+			}
+		}
 	}
 	return client, nil
 }

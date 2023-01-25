@@ -178,14 +178,10 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 	promRegistry.MustRegister(responseDuration, metrics.RequestDuration)
 
 	client := options.APIClient()
-	client.OnUnauthorized = func() {
-		logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
-		cancel()
-	}
-	client.ObserveFunc = func(start time.Time, request *http.Request, response *http.Response, err error) {
+	client.ObserveFunc = func(start time.Time, request *http.Request, resp *http.Response, err error) {
 		statusLabel := ""
-		if response != nil {
-			statusLabel = strconv.Itoa(response.StatusCode)
+		if resp != nil {
+			statusLabel = strconv.Itoa(resp.StatusCode)
 		}
 
 		if err != nil {
@@ -198,6 +194,11 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 			"path":   request.URL.Path,
 			"status": statusLabel,
 		}).Observe(time.Since(start).Seconds())
+
+		if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
+			cancel()
+		}
 	}
 
 	group, ctx := errgroup.WithContext(ctx)
