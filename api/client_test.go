@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal"
 )
 
 func TestErrorStatusCode(t *testing.T) {
@@ -94,8 +96,8 @@ func TestGet(t *testing.T) {
 		"Authorization":   []string{"Bearer the-access-key"},
 		"Content-Type":    []string{"application/json"},
 		"Accept":          []string{"application/json"},
-		"Infra-Version":   []string{apiVersion},
-		"User-Agent":      []string{fmt.Sprintf("Infra/%v (testing version; %v/%v)", apiVersion, runtime.GOOS, runtime.GOARCH)},
+		"Infra-Version":   []string{internal.FullVersion()},
+		"User-Agent":      []string{fmt.Sprintf("Infra/%v (testing version; %v/%v)", internal.FullVersion(), runtime.GOOS, runtime.GOARCH)},
 	}
 
 	ctx := context.Background()
@@ -150,8 +152,8 @@ func TestDelete(t *testing.T) {
 		"Authorization":   {"Bearer access-key"},
 		"Content-Type":    {"application/json"},
 		"Accept":          {"application/json"},
-		"Infra-Version":   {apiVersion},
-		"User-Agent":      {fmt.Sprintf("Infra/%v (testing version; %v/%v)", apiVersion, runtime.GOOS, runtime.GOARCH)},
+		"Infra-Version":   {internal.FullVersion()},
+		"User-Agent":      {fmt.Sprintf("Infra/%v (testing version; %v/%v)", internal.FullVersion(), runtime.GOOS, runtime.GOARCH)},
 	}
 
 	t.Run("headers", func(t *testing.T) {
