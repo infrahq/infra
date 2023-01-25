@@ -1055,8 +1055,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"resource": "some-cluster",
 					"user": "%[3]v",
 					"created": "%[4]v",
-					"updated": "%[4]v",
-					"wasCreated": true
+					"updated": "%[4]v"
 				}`,
 					accessKey.IssuedFor,
 					models.InfraAdminRole,
@@ -1087,8 +1086,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"resource": "some-big-cluster",
 					"user": "%[3]v",
 					"created": "%[4]v",
-					"updated": "%[4]v",
-					"wasCreated": true
+					"updated": "%[4]v"
 				}`,
 					accessKey.IssuedFor,
 					models.InfraAdminRole,
@@ -1140,8 +1138,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"resource": "some-resource",
 					"group": "%[3]v",
 					"created": "%[4]v",
-					"updated": "%[4]v",
-					"wasCreated": true
+					"updated": "%[4]v"
 				}`,
 					accessKey.IssuedFor,
 					models.InfraViewRole,
@@ -1206,8 +1203,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"resource": "infra",
 					"user": "%[3]v",
 					"created": "%[4]v",
-					"updated": "%[4]v",
-					"wasCreated": true
+					"updated": "%[4]v"
 				}`,
 					supportAdmin.ID,
 					models.InfraSupportAdminRole,
