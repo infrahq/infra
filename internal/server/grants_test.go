@@ -36,7 +36,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/api/users", &buf)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -61,7 +61,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodPost, "/api/grants", &buf)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -114,7 +114,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.18.2")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -339,7 +339,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			urlPath: "/api/grants?resource=res1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-				req.Header.Add("Infra-Version", "0.12.3")
+				req.Header.Add("Infra-Version", apiVersionLatest)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
@@ -559,7 +559,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/api/users", &buf)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -625,7 +625,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -988,7 +988,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
 		req := httptest.NewRequest(http.MethodPost, "/api/grants", body)
-		req.Header.Add("Infra-Version", "0.18.2")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)

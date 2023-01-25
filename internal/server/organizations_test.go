@@ -75,7 +75,7 @@ func TestAPI_GetOrganization(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
-		req.Header.Add("Infra-Version", "0.15.2")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -203,7 +203,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
-		req.Header.Add("Infra-Version", "0.14.1")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -276,7 +276,7 @@ func TestAPI_CreateOrganization(t *testing.T) {
 		body := jsonBody(t, tc.body)
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodPost, "/api/organizations", body)
-		req.Header.Add("Infra-Version", "0.14.1")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 		ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
 		*req = *req.WithContext(ctx)
 
@@ -354,7 +354,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodDelete, tc.urlPath, nil)
-		req.Header.Add("Infra-Version", "0.14.1")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
