@@ -139,16 +139,17 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 			handler: func(c *gin.Context, reqOld *createAccessKeysRequestV0_18_0) (*createAccessKeyResponseV0_18_0, error) {
 				req := &api.CreateAccessKeyRequest{
 					IssuedForID:       reqOld.UserID,
+					IssuedForKind:     models.IssuedForKindUser.String(),
 					Name:              reqOld.Name,
 					Expiry:            reqOld.TTL,
 					InactivityTimeout: reqOld.ExtensionDeadline,
 				}
-				if err := validate.Validate(req); err != nil {
-					return nil, err
-				}
 				// check if this is an access key being issued for identity provider scim
 				if strings.HasSuffix(req.Name, "-scim") {
 					req.IssuedForKind = api.KeyIssuedForKindProvider
+				}
+				if err := validate.Validate(req); err != nil {
+					return nil, err
 				}
 				resp, err := a.CreateAccessKey(c, req)
 				if err != nil {
