@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,8 @@ func (a *API) DeleteAccessKeys(c *gin.Context, r *api.DeleteAccessKeyRequest) (*
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
 	rCtx := getRequestContext(c)
 	accessKey := &models.AccessKey{
-		IssuedFor:           r.UserID,
+		IssuedForID:         r.IssuedForID,
+		IssuedForKind:       models.IssuedKind(r.IssuedForKind),
 		Name:                r.Name,
 		ExpiresAt:           time.Now().UTC().Add(time.Duration(r.Expiry)),
 		InactivityExtension: time.Duration(r.InactivityTimeout),
@@ -57,7 +59,8 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		ID:                accessKey.ID,
 		Created:           api.Time(accessKey.CreatedAt),
 		Name:              accessKey.Name,
-		IssuedFor:         accessKey.IssuedFor,
+		IssuedForID:       accessKey.IssuedForID,
+		IssuedForKind:     accessKey.IssuedForKind.String(),
 		Expires:           api.Time(accessKey.ExpiresAt),
 		InactivityTimeout: api.Time(accessKey.InactivityTimeout),
 		AccessKey:         raw,
@@ -90,7 +93,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 			LastUsed:          latest.LastUsed,
 			Name:              latest.Name,
 			IssuedForName:     latest.IssuedForName,
-			IssuedFor:         latest.IssuedFor,
+			IssuedFor:         latest.IssuedForID,
 			ProviderID:        latest.ProviderID,
 			Expires:           latest.Expires,
 			ExtensionDeadline: latest.InactivityTimeout,
@@ -135,10 +138,15 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 		route[createAccessKeysRequestV0_18_0, *createAccessKeyResponseV0_18_0]{
 			handler: func(c *gin.Context, reqOld *createAccessKeysRequestV0_18_0) (*createAccessKeyResponseV0_18_0, error) {
 				req := &api.CreateAccessKeyRequest{
-					UserID:            reqOld.UserID,
+					IssuedForID:       reqOld.UserID,
+					IssuedForKind:     models.IssuedForKindUser.String(),
 					Name:              reqOld.Name,
 					Expiry:            reqOld.TTL,
 					InactivityTimeout: reqOld.ExtensionDeadline,
+				}
+				// check if this is an access key being issued for identity provider scim
+				if strings.HasSuffix(req.Name, "-scim") {
+					req.IssuedForKind = api.KeyIssuedForKindProvider
 				}
 				if err := validate.Validate(req); err != nil {
 					return nil, err
@@ -151,7 +159,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 					ID:                resp.ID,
 					Created:           resp.Created,
 					Name:              resp.Name,
-					IssuedFor:         resp.IssuedFor,
+					IssuedFor:         resp.IssuedForID,
 					ProviderID:        resp.ProviderID,
 					Expires:           resp.Expires,
 					ExtensionDeadline: resp.InactivityTimeout,
@@ -165,6 +173,97 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 			handler: func(c *gin.Context, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_18_0], error) {
 				resp, err := a.ListAccessKeys(c, req)
 				return api.CopyListResponse(resp, newAccessKeyV0_18_0FromLatest), err
+			},
+		})
+
+	type createAccessKeyRequestV0_20_0 struct {
+		UserID            uid.ID       `json:"userID"`
+		IssuedForID       uid.ID       `json:"issuedForID"`
+		Name              string       `json:"name"`
+		Expiry            api.Duration `json:"expiry" note:"maximum time valid"`
+		InactivityTimeout api.Duration `json:"inactivityTimeout" note:"key must be used within this duration to remain valid"`
+	}
+	type createAccessKeyResponseV0_20_0 struct {
+		ID                uid.ID   `json:"id"`
+		Created           api.Time `json:"created"`
+		Name              string   `json:"name"`
+		IssuedFor         uid.ID   `json:"issuedFor"`
+		ProviderID        uid.ID   `json:"providerID"`
+		Expires           api.Time `json:"expires" note:"after this deadline the key is no longer valid"`
+		InactivityTimeout api.Time `json:"inactivityTimeout" note:"the key must be used by this time to remain valid"`
+		AccessKey         string   `json:"accessKey"`
+	}
+	addVersionHandler(a,
+		http.MethodPost, "/api/access-keys", "0.20.0",
+		route[createAccessKeyRequestV0_20_0, *createAccessKeyResponseV0_20_0]{
+			handler: func(c *gin.Context, reqOld *createAccessKeyRequestV0_20_0) (*createAccessKeyResponseV0_20_0, error) {
+				iss := reqOld.UserID
+				if iss == 0 {
+					// try setting this from the new field
+					iss = reqOld.IssuedForID
+				}
+				req := &api.CreateAccessKeyRequest{
+					IssuedForID:       iss,
+					IssuedForKind:     api.KeyIssuedForKindUser,
+					Name:              reqOld.Name,
+					Expiry:            reqOld.Expiry,
+					InactivityTimeout: reqOld.InactivityTimeout,
+				}
+				// check if this is an access key being issued for identity provider scim
+				if strings.HasSuffix(req.Name, "-scim") {
+					req.IssuedForKind = api.KeyIssuedForKindProvider
+				}
+
+				resp, err := a.CreateAccessKey(c, req)
+				if err != nil {
+					return nil, err
+				}
+
+				return &createAccessKeyResponseV0_20_0{
+					ID:                resp.ID,
+					Created:           resp.Created,
+					Name:              resp.Name,
+					IssuedFor:         resp.IssuedForID,
+					ProviderID:        resp.ProviderID,
+					Expires:           resp.Expires,
+					InactivityTimeout: resp.InactivityTimeout,
+					AccessKey:         resp.AccessKey,
+				}, nil
+			},
+		})
+
+	type accessKeyV0_20_0 struct {
+		ID                uid.ID   `json:"id"`
+		Created           api.Time `json:"created"`
+		LastUsed          api.Time `json:"lastUsed"`
+		Name              string   `json:"name"`
+		IssuedForUser     string   `json:"issuedForUser"`
+		IssuedFor         uid.ID   `json:"issuedFor"`
+		ProviderID        uid.ID   `json:"providerID"`
+		Expires           api.Time `json:"expires"`
+		InactivityTimeout api.Time `json:"inactivityTimeout"`
+		Scopes            []string `json:"scopes"`
+	}
+	newAccessKeyV0_20_0FromLatest := func(latest api.AccessKey) accessKeyV0_20_0 {
+		return accessKeyV0_20_0{
+			ID:                latest.ID,
+			Created:           latest.Created,
+			LastUsed:          latest.LastUsed,
+			Name:              latest.Name,
+			IssuedForUser:     latest.IssuedForName,
+			IssuedFor:         latest.IssuedForID,
+			ProviderID:        latest.ProviderID,
+			Expires:           latest.Expires,
+			InactivityTimeout: latest.InactivityTimeout,
+			Scopes:            latest.Scopes,
+		}
+	}
+	addVersionHandler(a,
+		http.MethodGet, "/api/access-keys", "0.20.0",
+		route[api.ListAccessKeysRequest, *api.ListResponse[accessKeyV0_20_0]]{
+			handler: func(c *gin.Context, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_20_0], error) {
+				resp, err := a.ListAccessKeys(c, req)
+				return api.CopyListResponse(resp, newAccessKeyV0_20_0FromLatest), err
 			},
 		})
 }

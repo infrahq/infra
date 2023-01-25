@@ -129,7 +129,7 @@ func TestProvidersAddCmd(t *testing.T) {
 		createKeyRequest := <-keyCh
 
 		expectedKey := api.CreateAccessKeyRequest{
-			UserID:            0,
+			IssuedForID:       0,
 			Name:              "okta-SCIM",
 			Expiry:            api.Duration(time.Hour * 87600),
 			InactivityTimeout: api.Duration(time.Hour * 87600),
@@ -366,7 +366,7 @@ func TestProvidersEditCmd(t *testing.T) {
 		req := <-ch
 
 		expected := api.CreateAccessKeyRequest{
-			UserID:            0,
+			IssuedForID:       0,
 			Name:              "okta-SCIM",
 			Expiry:            api.Duration(time.Hour * 87600),
 			InactivityTimeout: api.Duration(time.Hour * 87600),

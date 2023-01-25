@@ -455,14 +455,14 @@ func TestSyncIdentityInfo(t *testing.T) {
 		ctx := providers.WithOIDCClient(context.Background(), &fakeOIDCImplementation{UserInfoRevoked: true})
 
 		toBeRevoked := &models.AccessKey{
-			IssuedFor:  identity.ID,
-			ProviderID: provider.ID,
+			IssuedForID: identity.ID,
+			ProviderID:  provider.ID,
 		}
 		_, err = data.CreateAccessKey(db, toBeRevoked)
 		assert.NilError(t, err)
 		shouldStayValid := &models.AccessKey{
-			IssuedFor:  identity.ID,
-			ProviderID: infraProvider.ID,
+			IssuedForID: identity.ID,
+			ProviderID:  infraProvider.ID,
 		}
 		_, err = data.CreateAccessKey(db, shouldStayValid)
 		assert.NilError(t, err)
@@ -491,14 +491,14 @@ func TestSyncIdentityInfo(t *testing.T) {
 		ctx := providers.WithOIDCClient(context.Background(), &fakeOIDCImplementation{UserInfoRevoked: true})
 
 		toBeRevoked := &models.AccessKey{
-			IssuedFor:  identity.ID,
-			ProviderID: google.ID,
+			IssuedForID: identity.ID,
+			ProviderID:  google.ID,
 		}
 		_, err = data.CreateAccessKey(db, toBeRevoked)
 		assert.NilError(t, err)
 		shouldStayValid := &models.AccessKey{
-			IssuedFor:  identity.ID,
-			ProviderID: infraProvider.ID,
+			IssuedForID: identity.ID,
+			ProviderID:  infraProvider.ID,
 		}
 		_, err = data.CreateAccessKey(db, shouldStayValid)
 		assert.NilError(t, err)
@@ -527,8 +527,8 @@ func TestSyncIdentityInfo(t *testing.T) {
 		ctx := providers.WithOIDCClient(context.Background(), &fakeOIDCImplementation{})
 
 		key := &models.AccessKey{
-			IssuedFor:  identity.ID,
-			ProviderID: provider.ID,
+			IssuedForID: identity.ID,
+			ProviderID:  provider.ID,
 		}
 		_, err = data.CreateAccessKey(db, key)
 		assert.NilError(t, err)

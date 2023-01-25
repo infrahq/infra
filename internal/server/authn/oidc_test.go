@@ -48,11 +48,10 @@ func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *mo
 }
 
 func TestOIDCAuthenticate(t *testing.T) {
-	// setup
-	db := setupDB(t)
+	tx := setupDB(t)
 
 	mocktaProvider := &models.Provider{Name: "mockta", Kind: models.ProviderKindOkta}
-	err := data.CreateProvider(db, mocktaProvider)
+	err := data.CreateProvider(tx, mocktaProvider)
 	assert.NilError(t, err)
 
 	oidc := &mockOIDCImplementation{
@@ -68,7 +67,7 @@ func TestOIDCAuthenticate(t *testing.T) {
 	t.Run("successful authentication", func(t *testing.T) {
 		oidcAuthn, err := NewOIDCAuthentication(mocktaProvider, "localhost:8031", "1234", oidc, []string{})
 		assert.NilError(t, err)
-		authnIdentity, err := oidcAuthn.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
+		authnIdentity, err := oidcAuthn.Authenticate(context.Background(), tx, time.Now().Add(1*time.Minute))
 
 		assert.NilError(t, err)
 		// user should be created
@@ -252,24 +251,24 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			db := setupDB(t)
+			tx := setupDB(t)
 
 			// setup fake identity provider
 			provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com", Kind: models.ProviderKindOIDC}
-			err := data.CreateProvider(db, provider)
+			err := data.CreateProvider(tx, provider)
 			assert.NilError(t, err)
 
-			mockOIDC := tc.setup(t, db)
+			mockOIDC := tc.setup(t, tx)
 			loginMethod, err := NewOIDCAuthentication(provider, "mockOIDC.example.com/redirect", "AAA", mockOIDC, []string{})
 			assert.NilError(t, err)
 
-			a, err := loginMethod.Authenticate(context.Background(), db, sessionExpiry)
+			a, err := loginMethod.Authenticate(context.Background(), tx, sessionExpiry)
 			assert.NilError(t, err)
 			tc.expected(t, a)
 
 			if err == nil {
 				// make sure the associations are still set when you reload the object.
-				u, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: a.Identity.ID, LoadGroups: true})
+				u, err := data.GetIdentity(tx, data.GetIdentityOptions{ByID: a.Identity.ID, LoadGroups: true})
 				assert.NilError(t, err)
 				a.Identity = u
 				tc.expected(t, a)
@@ -279,12 +278,12 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 }
 
 func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
-	db := setupDB(t)
+	tx := setupDB(t)
 
 	existing := &models.Identity{
 		Name: "existing@infra.app",
 	}
-	assert.NilError(t, data.CreateIdentity(db, existing))
+	assert.NilError(t, data.CreateIdentity(tx, existing))
 
 	// setup fake social login provider
 	provider := &models.Provider{
@@ -349,7 +348,7 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 			loginMethod, err := NewOIDCAuthentication(provider, "mockOIDC.example.com/redirect", "AAA", tc.client, []string{"example.com", "infrahq.com"})
 			assert.NilError(t, err)
 
-			a, err := loginMethod.Authenticate(context.Background(), db, sessionExpiry)
+			a, err := loginMethod.Authenticate(context.Background(), tx, sessionExpiry)
 			tc.expected(t, a, err)
 		})
 	}

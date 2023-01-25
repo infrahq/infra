@@ -92,9 +92,9 @@ func TestAPI_ListGrants(t *testing.T) {
 	otherGroup := createGroup(t, "others", idOther)
 
 	token := &models.AccessKey{
-		IssuedFor:  idInGroup,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Minute),
+		IssuedForID: idInGroup,
+		ProviderID:  data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:   time.Now().Add(10 * time.Minute),
 	}
 
 	accessKey, err := data.CreateAccessKey(srv.DB(), token)
@@ -591,9 +591,9 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	loginAs := func(t *testing.T, userID uid.ID, req *http.Request) {
 		t.Helper()
 		token := &models.AccessKey{
-			IssuedFor:  userID,
-			ProviderID: data.InfraProvider(srv.DB()).ID,
-			ExpiresAt:  time.Now().Add(10 * time.Minute),
+			IssuedForID: userID,
+			ProviderID:  data.InfraProvider(srv.DB()).ID,
+			ExpiresAt:   time.Now().Add(10 * time.Minute),
 		}
 
 		var err error
@@ -969,9 +969,9 @@ func TestAPI_CreateGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	token := &models.AccessKey{
-		IssuedFor:  supportAdmin.ID,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForID: supportAdmin.ID,
+		ProviderID:  data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:   time.Now().Add(10 * time.Second),
 	}
 
 	supportAccessKeyStr, err := data.CreateAccessKey(srv.DB(), token)
@@ -1058,7 +1058,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"updated": "%[4]v",
 					"wasCreated": true
 				}`,
-					accessKey.IssuedFor,
+					accessKey.IssuedForID,
 					models.InfraAdminRole,
 					someUser.ID.String(),
 					time.Now().UTC().Format(time.RFC3339),
@@ -1090,7 +1090,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"updated": "%[4]v",
 					"wasCreated": true
 				}`,
-					accessKey.IssuedFor,
+					accessKey.IssuedForID,
 					models.InfraAdminRole,
 					someUser.ID.String(),
 					time.Now().UTC().Format(time.RFC3339),
@@ -1143,7 +1143,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"updated": "%[4]v",
 					"wasCreated": true
 				}`,
-					accessKey.IssuedFor,
+					accessKey.IssuedForID,
 					models.InfraViewRole,
 					someGroup.String(),
 					time.Now().UTC().Format(time.RFC3339),
@@ -1242,7 +1242,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 					"updated": "%[4]v",
 					"wasCreated": true
 				}`,
-					accessKey.IssuedFor,
+					accessKey.IssuedForID,
 					models.InfraAdminRole,
 					someUser.ID.String(),
 					time.Now().UTC().Format(time.RFC3339),
@@ -1740,5 +1740,4 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			run(t, tc)
 		})
 	}
-
 }

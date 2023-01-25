@@ -79,7 +79,8 @@ func TestKeysAddCmd(t *testing.T) {
 
 		req := <-ch
 		expected := api.CreateAccessKeyRequest{
-			UserID:            uid.ID(12345678),
+			IssuedForID:       uid.ID(12345678),
+			IssuedForKind:     "user",
 			Name:              "the-name",
 			Expiry:            api.Duration(400 * time.Hour),
 			InactivityTimeout: api.Duration(5 * time.Hour),
@@ -165,7 +166,7 @@ func TestKeysListCmd(t *testing.T) {
 					Items: []api.AccessKey{
 						{
 							Name:          "user-key",
-							IssuedFor:     uid.ID(12345678),
+							IssuedForID:   uid.ID(12345678),
 							IssuedForName: "my-user",
 							Created:       api.Time(base.Add(5 * time.Minute)),
 							Expires:       api.Time(base.Add(30 * time.Hour)),
@@ -180,13 +181,13 @@ func TestKeysListCmd(t *testing.T) {
 				Items: []api.AccessKey{
 					{
 						Name:          "front-door",
-						IssuedFor:     uid.ID(12345),
+						IssuedForID:   uid.ID(12345),
 						IssuedForName: "admin",
 						Created:       api.Time(base.Add(time.Minute)),
 					},
 					{
 						Name:              "side-door",
-						IssuedFor:         uid.ID(12345),
+						IssuedForID:       uid.ID(12345),
 						IssuedForName:     "admin",
 						Created:           api.Time(base.Add(time.Minute)),
 						Expires:           api.Time(base.Add(30 * time.Hour)),
@@ -194,7 +195,7 @@ func TestKeysListCmd(t *testing.T) {
 					},
 					{
 						Name:          "storage",
-						IssuedFor:     uid.ID(12349),
+						IssuedForID:   uid.ID(12349),
 						IssuedForName: "clerk",
 						Created:       api.Time(base.Add(4 * time.Hour)),
 						Expires:       api.Time(base.Add(30 * time.Hour)),

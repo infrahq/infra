@@ -35,12 +35,12 @@ func txnForTestCase(t *testing.T, db *data.DB, orgID uid.ID) *data.Transaction {
 
 func TestLogin(t *testing.T) {
 	ctx := context.Background()
-	db := setupDB(t)
+	tx := setupDB(t)
 	// setup with user/pass login
 	// authentication method should not matter for this test
 	username := "gohan@example.com"
 	user := &models.Identity{Name: username}
-	err := data.CreateIdentity(db, user)
+	err := data.CreateIdentity(tx, user)
 	assert.NilError(t, err)
 
 	password := "password123"
@@ -53,12 +53,12 @@ func TestLogin(t *testing.T) {
 		OneTimePassword: false,
 	}
 
-	err = data.CreateCredential(db, &creds)
+	err = data.CreateCredential(tx, &creds)
 	assert.NilError(t, err)
 
 	t.Run("failed login does not create access key", func(t *testing.T) {
 		authn := NewPasswordCredentialAuthentication(username, "invalid password")
-		result, err := Login(ctx, db, authn, time.Now().Add(1*time.Minute), time.Minute)
+		result, err := Login(ctx, tx, authn, time.Now().Add(1*time.Minute), time.Minute)
 
 		assert.ErrorContains(t, err, "failed to login")
 		assert.Equal(t, result.Bearer, "")
@@ -68,10 +68,10 @@ func TestLogin(t *testing.T) {
 		authn := NewPasswordCredentialAuthentication("gohan@example.com", password)
 		exp := time.Now().Add(1 * time.Minute)
 		ext := 1 * time.Minute
-		result, err := Login(ctx, db, authn, exp, ext)
+		result, err := Login(ctx, tx, authn, exp, ext)
 		assert.NilError(t, err)
 		assert.Assert(t, result.Bearer != "")
-		assert.Equal(t, result.AccessKey.IssuedFor, user.ID)
+		assert.Equal(t, result.AccessKey.IssuedForID, user.ID)
 		assert.Equal(t, result.AccessKey.ExpiresAt, exp)
 		assert.Equal(t, result.AccessKey.InactivityExtension, ext)
 		assert.Equal(t, result.User.ID, user.ID)

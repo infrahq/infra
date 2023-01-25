@@ -323,7 +323,8 @@ func signupUser(rCtx access.RequestContext, keyExpiresAt time.Time, user *models
 
 	// grant the user a session on initial sign-up
 	accessKey := &models.AccessKey{
-		IssuedFor:     identity.ID,
+		IssuedForID:   identity.ID,
+		IssuedForKind: models.IssuedForKindUser,
 		IssuedForName: identity.Name,
 		ProviderID:    user.ProviderID,
 		ExpiresAt:     keyExpiresAt,

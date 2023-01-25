@@ -21,12 +21,9 @@ const (
 type AccessKey struct {
 	Model
 	OrganizationMember
-	Name string
-	/* IssuedFor is either:
-	1. The ID of the user that this access key was created for.
-	2. The ID of a provider that is doing SCIM provisioning using this access key.
-	*/
-	IssuedFor     uid.ID
+	Name          string
+	IssuedForID   uid.ID
+	IssuedForKind IssuedForKind
 	IssuedForName string `db:"-"`
 	ProviderID    uid.ID
 
@@ -47,14 +44,49 @@ func (ak *AccessKey) ToAPI() *api.AccessKey {
 		Name:              ak.Name,
 		Created:           api.Time(ak.CreatedAt),
 		LastUsed:          api.Time(ak.UpdatedAt), // this tracks UpdatedAt which requires the InactivityTimeout to be set, otherwise it won't be updated
-		IssuedFor:         ak.IssuedFor,
+		IssuedForID:       ak.IssuedForID,
 		IssuedForName:     ak.IssuedForName,
+		IssuedForKind:     ak.IssuedForKind.String(),
 		ProviderID:        ak.ProviderID,
 		Expires:           api.Time(ak.ExpiresAt),
 		InactivityTimeout: api.Time(ak.InactivityTimeout),
 		Scopes:            ak.Scopes,
 	}
 }
+
+type IssuedForKind int
+
+func IssuedKind(kind string) IssuedForKind {
+	switch kind {
+	case "user":
+		return IssuedForKindUser
+	case "provider":
+		return IssuedForKindProvider
+	case "organization":
+		return IssuedForKindOrganization
+	default:
+		return -1
+	}
+}
+
+func (k IssuedForKind) String() string {
+	switch k {
+	case IssuedForKindUser:
+		return "user"
+	case IssuedForKindProvider:
+		return "provider"
+	case IssuedForKindOrganization:
+		return "organization"
+	default:
+		return ""
+	}
+}
+
+const (
+	IssuedForKindUser         IssuedForKind = 1
+	IssuedForKindProvider     IssuedForKind = 2
+	IssuedForKindOrganization IssuedForKind = 3
+)
 
 // Token is only set when creating a key from CreateAccessKey
 func (ak *AccessKey) Token() string {

@@ -32,7 +32,7 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 		key := &models.AccessKey{
 			Name:               "foo key",
 			OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-			IssuedFor:          user.ID,
+			IssuedForID:        user.ID,
 			ExpiresAt:          time.Now().Add(1 * time.Minute),
 		}
 		_, err = CreateAccessKey(rCtx, key)
@@ -53,7 +53,7 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 		key := &models.AccessKey{
 			Name:               "foo2 key",
 			OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-			IssuedFor:          user.ID,
+			IssuedForID:        user.ID,
 			ExpiresAt:          time.Now().Add(1 * time.Minute),
 		}
 		_, err = CreateAccessKey(rCtx, key)
@@ -84,8 +84,8 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 		err = data.CreateGrant(db, &models.Grant{Subject: models.NewSubjectForUser(user.ID), Privilege: "admin", Resource: "infra", OrganizationMember: orgMember})
 		assert.NilError(t, err)
 
-		key := &models.AccessKey{Name: "admin key", IssuedFor: user.ID, ExpiresAt: time.Now().Add(1 * time.Minute), OrganizationMember: orgMember}
-		_, err = data.CreateAccessKey(db, key)
+		key := &models.AccessKey{Name: "admin key", IssuedForID: user.ID, ExpiresAt: time.Now().Add(1 * time.Minute), OrganizationMember: orgMember}
+		_, err = data.CreateAccessKey(tx, key)
 		assert.NilError(t, err)
 
 		rCtx := RequestContext{
@@ -97,7 +97,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 			key := &models.AccessKey{
 				Name:               "a key",
 				OrganizationMember: orgMember,
-				IssuedFor:          user.ID,
+				IssuedForID:        user.ID,
 				ExpiresAt:          time.Now().Add(1 * time.Minute),
 			}
 			_, err := CreateAccessKey(rCtx, key)
@@ -112,7 +112,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 			key := &models.AccessKey{
 				Name:               "b key",
 				OrganizationMember: orgMember,
-				IssuedFor:          user.ID,
+				IssuedForID:        user.ID,
 				ExpiresAt:          time.Now().Add(1 * time.Minute),
 			}
 			_, err := CreateAccessKey(rCtx, key)
@@ -124,7 +124,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 			key := &models.AccessKey{
 				Name:               "c key",
 				OrganizationMember: orgMember,
-				IssuedFor:          connector.ID,
+				IssuedForID:        connector.ID,
 				ExpiresAt:          time.Now().Add(1 * time.Minute),
 			}
 
@@ -138,8 +138,8 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 		err = data.CreateIdentity(db, user)
 		assert.NilError(t, err)
 
-		key := &models.AccessKey{Name: "user key", IssuedFor: user.ID, ExpiresAt: time.Now().Add(1 * time.Minute), OrganizationMember: orgMember}
-		_, err = data.CreateAccessKey(db, key)
+		key := &models.AccessKey{Name: "user key", IssuedForID: user.ID, ExpiresAt: time.Now().Add(1 * time.Minute), OrganizationMember: orgMember}
+		_, err = data.CreateAccessKey(tx, key)
 		assert.NilError(t, err)
 
 		rCtx := RequestContext{
@@ -151,7 +151,7 @@ func TestAccessKeys_AccessKeyAuthn(t *testing.T) {
 			key := &models.AccessKey{
 				Name:               "d key",
 				OrganizationMember: orgMember,
-				IssuedFor:          user.ID,
+				IssuedForID:        user.ID,
 				ExpiresAt:          time.Now().Add(1 * time.Minute),
 			}
 

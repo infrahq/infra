@@ -46,7 +46,7 @@ func TestDeviceFlow(t *testing.T) {
 	scoped := &models.AccessKey{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 		Name:               "Scoped",
-		IssuedFor:          user.ID,
+		IssuedForID:        user.ID,
 		IssuedForName:      user.Name,
 		ProviderID:         data.InfraProvider(tx).ID,
 		ExpiresAt:          expires,
@@ -56,7 +56,7 @@ func TestDeviceFlow(t *testing.T) {
 	notscoped := &models.AccessKey{
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 		Name:               "Not scoped",
-		IssuedFor:          user.ID,
+		IssuedForID:        user.ID,
 		IssuedForName:      user.Name,
 		ProviderID:         data.InfraProvider(tx).ID,
 		ExpiresAt:          expires,

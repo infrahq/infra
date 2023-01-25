@@ -208,9 +208,9 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	setCookie(rCtx.Request, rCtx.Response.HTTPWriter, cookie)
 
 	key := result.AccessKey
-	a.t.User(key.IssuedFor.String(), result.User.Name)
-	a.t.OrgMembership(key.OrganizationID.String(), key.IssuedFor.String())
-	a.t.Event("login", key.IssuedFor.String(), key.OrganizationID.String(), Properties{
+	a.t.User(key.IssuedForID.String(), result.User.Name)
+	a.t.OrgMembership(key.OrganizationID.String(), key.IssuedForID.String())
+	a.t.Event("login", key.IssuedForID.String(), key.OrganizationID.String(), Properties{
 		"method": loginMethod.Name(),
 		"email":  result.User.Name,
 	})
@@ -220,7 +220,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	rCtx.Response.LoginUserID = result.User.ID
 
 	return &api.LoginResponse{
-		UserID:                 key.IssuedFor,
+		UserID:                 key.IssuedForID,
 		Name:                   key.IssuedForName,
 		AccessKey:              result.Bearer,
 		Expires:                api.Time(key.ExpiresAt),

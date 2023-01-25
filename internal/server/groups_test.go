@@ -44,9 +44,9 @@ func TestAPI_ListGroups(t *testing.T) {
 	createIdentities(t, srv.DB(), &idInGroup, &idOther)
 
 	token := &models.AccessKey{
-		IssuedFor:  idInGroup.ID,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForID: idInGroup.ID,
+		ProviderID:  data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:   time.Now().Add(10 * time.Second),
 	}
 
 	accessKey, err := data.CreateAccessKey(srv.DB(), token)
@@ -187,9 +187,9 @@ func TestAPI_CreateGroup(t *testing.T) {
 	createIdentities(t, srv.DB(), &meUser)
 
 	token := &models.AccessKey{
-		IssuedFor:  meUser.ID,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForID: meUser.ID,
+		ProviderID:  data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:   time.Now().Add(10 * time.Second),
 	}
 
 	accessKey, err := data.CreateAccessKey(srv.DB(), token)
@@ -276,9 +276,9 @@ func TestAPI_DeleteGroup(t *testing.T) {
 	}
 
 	token := &models.AccessKey{
-		IssuedFor:  inGroup.ID,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForID: inGroup.ID,
+		ProviderID:  data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:   time.Now().Add(10 * time.Second),
 	}
 
 	accessKey, err := data.CreateAccessKey(srv.DB(), token)
@@ -351,9 +351,9 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 	}
 
 	token := &models.AccessKey{
-		IssuedFor:  first.ID,
-		ProviderID: data.InfraProvider(srv.DB()).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		IssuedForID: first.ID,
+		ProviderID:  data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:   time.Now().Add(10 * time.Second),
 	}
 
 	accessKey, err := data.CreateAccessKey(srv.DB(), token)
