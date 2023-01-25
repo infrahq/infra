@@ -19,6 +19,7 @@ import (
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
+	"github.com/infrahq/infra/internal/validate"
 )
 
 func (a *API) SignupRoute() route[api.SignupRequest, *api.SignupResponse] {
@@ -356,8 +357,7 @@ func (a *API) addPreviousVersionHandlersSignup() {
 		Org      signupOrgV0_19_0 `json:"org"`
 	}
 
-	addVersionHandler(a,
-		http.MethodPost, "/api/signup", "0.19.0",
+	addVersionHandler(a, http.MethodPost, "/api/signup", "0.19.0",
 		route[signupRequestV0_19_0, *api.SignupResponse]{
 			handler: func(c *gin.Context, reqOld *signupRequestV0_19_0) (*api.SignupResponse, error) {
 				req := &api.SignupRequest{
@@ -367,6 +367,9 @@ func (a *API) addPreviousVersionHandlersSignup() {
 					},
 					OrgName:   reqOld.Org.Name,
 					Subdomain: reqOld.Org.Subdomain,
+				}
+				if err := validate.Validate(req); err != nil {
+					return nil, err
 				}
 				return a.Signup(c, req)
 			},
