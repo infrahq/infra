@@ -9,6 +9,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -96,8 +97,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 		}
 	}
 
-	addVersionHandler(a,
-		http.MethodGet, "/api/access-keys", "0.16.1",
+	addVersionHandler(a, http.MethodGet, "/api/access-keys", "0.16.1",
 		route[listAccessKeysRequestV0_16_1, *api.ListResponse[accessKeyV0_18_0]]{
 			routeSettings: defaultRouteSettingsGet,
 			handler: func(c *gin.Context, reqOld *listAccessKeysRequestV0_16_1) (*api.ListResponse[accessKeyV0_18_0], error) {
@@ -106,6 +106,9 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 					Name:              reqOld.Name,
 					ShowExpired:       reqOld.ShowExpired,
 					PaginationRequest: reqOld.PaginationRequest,
+				}
+				if err := validate.Validate(req); err != nil {
+					return nil, err
 				}
 				resp, err := a.ListAccessKeys(c, req)
 				return api.CopyListResponse(resp, newAccessKeyV0_18_0FromLatest), err
@@ -128,8 +131,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 		ExtensionDeadline api.Time `json:"extensionDeadline"`
 		AccessKey         string   `json:"accessKey"`
 	}
-	addVersionHandler(a,
-		http.MethodPost, "/api/access-keys", "0.18.0",
+	addVersionHandler(a, http.MethodPost, "/api/access-keys", "0.18.0",
 		route[createAccessKeysRequestV0_18_0, *createAccessKeyResponseV0_18_0]{
 			handler: func(c *gin.Context, reqOld *createAccessKeysRequestV0_18_0) (*createAccessKeyResponseV0_18_0, error) {
 				req := &api.CreateAccessKeyRequest{
@@ -137,6 +139,9 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 					Name:              reqOld.Name,
 					Expiry:            reqOld.TTL,
 					InactivityTimeout: reqOld.ExtensionDeadline,
+				}
+				if err := validate.Validate(req); err != nil {
+					return nil, err
 				}
 				resp, err := a.CreateAccessKey(c, req)
 				if err != nil {
@@ -155,8 +160,7 @@ func (a *API) addPreviousVersionHandlersAccessKey() {
 			},
 		})
 
-	addVersionHandler(a,
-		http.MethodGet, "/api/access-keys", "0.18.0",
+	addVersionHandler(a, http.MethodGet, "/api/access-keys", "0.18.0",
 		route[api.ListAccessKeysRequest, *api.ListResponse[accessKeyV0_18_0]]{
 			handler: func(c *gin.Context, req *api.ListAccessKeysRequest) (*api.ListResponse[accessKeyV0_18_0], error) {
 				resp, err := a.ListAccessKeys(c, req)

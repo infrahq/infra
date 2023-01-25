@@ -21,9 +21,13 @@ endpoint.
    as a field in other `api` types will require a versioned handler for all of the
    API endpoints that use the struct. Any existing versioned handlers that reference
    the api struct directly also need to be updated to use the new versioned struct.
-4. Once all the existing handlers have been updated, it's time to create the new
+4. Any handlers that have their request struct changed to a versioned struct also
+   need to now call `validate.Validate` to apply the request validation rules on
+   the struct.
+5. Once all the existing handlers have been updated, it's time to create the new
    versioned handler. Use `addVersionHandler` to register the handler. The version argument to
    `addVersionHandler` must be the current API version (in other words, the last version
-   of the API that used the old types).
-5. Finally, now that the old behaviour of all API endpoints have been preserved by
+   of the API that used the old types). Once again, make sure to call `validate.Validate`
+   if a request struct is being constructed in the versioned handler.
+6. Finally, now that the old behaviour of all API endpoints have been preserved by
    versioned handlers you are free to modify the `api` types and API endpoint behaviour.
