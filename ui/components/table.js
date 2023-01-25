@@ -14,6 +14,7 @@ export default function Table({
   columns,
   data,
   href,
+  type = '',
   empty = 'No data',
   count = data?.length,
   allowDelete = false,
@@ -105,10 +106,7 @@ export default function Table({
             return (
               <tr key={headerGroup.id}>
                 {allowDelete && data?.length > 0 && (
-                  <th
-                    scope='col'
-                    className='relative w-12 px-6 sm:w-16 sm:px-8'
-                  >
+                  <th scope='col' className='relative w-5 px-6'>
                     <input
                       type='checkbox'
                       className='left-4 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-30 disabled:focus:ring-0 sm:left-6'
@@ -123,7 +121,7 @@ export default function Table({
                 )}
                 {headerGroup.headers.map(header => (
                   <th
-                    className='w-auto py-2 px-5 text-left font-medium first:max-w-[40%]'
+                    className='py-2 px-5 text-left font-medium'
                     key={header.id}
                   >
                     {header.isPlaceholder
@@ -149,7 +147,7 @@ export default function Table({
                     href && href(row)
                       ? 'cursor-pointer hover:bg-gray-50/50'
                       : ''
-                  }`}
+                  } ${type === 'detail' ? 'h-[60px]' : ''}`}
                   key={row.id}
                 >
                   {allowDelete && data?.length > 0 && (
@@ -172,32 +170,39 @@ export default function Table({
                       />
                     </th>
                   )}
-                  {row.getVisibleCells().map(cell => (
-                    <td
-                      className={`border-gray-100 text-sm  ${
-                        href && href(row) ? '' : 'px-5 py-2'
-                      }`}
-                      key={cell.id}
-                    >
-                      {href && href(row) ? (
-                        <Link
-                          href={href(row)}
-                          tabIndex='-1'
-                          className='block px-5 py-2'
-                        >
-                          {flexRender(
+                  {row.getVisibleCells().map(cell => {
+                    return (
+                      <td
+                        className={`border-gray-100 text-sm ${
+                          href && href(row) ? '' : 'px-5 py-2'
+                        }`}
+                        key={cell.id}
+                        {...{
+                          style: {
+                            minWidth: cell.column.getSize(),
+                          },
+                        }}
+                      >
+                        {href && href(row) ? (
+                          <Link
+                            href={href(row)}
+                            tabIndex='-1'
+                            className='block px-5 py-2'
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </Link>
+                        ) : (
+                          flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
-                          )}
-                        </Link>
-                      ) : (
-                        flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )
-                      )}
-                    </td>
-                  ))}
+                          )
+                        )}
+                      </td>
+                    )
+                  })}
                 </tr>
               )
             })}
