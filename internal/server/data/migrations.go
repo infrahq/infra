@@ -1359,12 +1359,10 @@ func storeProviderUserGroupsArray() *migrator.Migration {
 			if err != nil {
 				return err
 			}
-			stmt := `
-				ALTER TABLE provider_users 
-				DROP COLUMN IF EXISTS groups
-				ADD COLUMN IF NOT EXISTS groups jsonb;
-			`
-			if _, err := tx.Exec(stmt); err != nil {
+			if _, err := tx.Exec(`ALTER TABLE provider_users DROP COLUMN IF EXISTS groups;`); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(`ALTER TABLE provider_users ADD COLUMN IF NOT EXISTS groups jsonb;`); err != nil {
 				return err
 			}
 			for _, u := range users {
