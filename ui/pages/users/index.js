@@ -342,7 +342,7 @@ export default function Users() {
                     >
                       <div className='flex flex-row items-center'>
                         <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
-                        Remove Infra user
+                        Remove
                       </div>
                       <span className='sr-only'>{info.row.original.name}</span>
                     </button>
