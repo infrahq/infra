@@ -1192,6 +1192,52 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.DeepEqual(t, expectedKey, accessKey)
 			},
 		},
+		{
+			label: testCaseLine(storeProviderUserGroupsArray().ID),
+			setup: func(t *testing.T, db WriteTxn) {
+				stmt := `
+					INSERT INTO provider_users (identity_id, provider_id, email, groups) VALUES(1, 4,'test1@example.com', 'Everyone,Developers');
+					INSERT INTO provider_users (identity_id, provider_id, email, groups) VALUES(2, 5,'test2@example.com', 'Everyone');
+					INSERT INTO provider_users (identity_id, provider_id, email, groups) VALUES(3, 6,'test3@example.com', '');
+				`
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`DELETE FROM provider_users;`)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				var providerUser providerUserTable
+				err := tx.QueryRow(`SELECT identity_id, provider_id, email, groups FROM provider_users WHERE identity_id = 1`).Scan(&providerUser.IdentityID, &providerUser.ProviderID, &providerUser.Email, &providerUser.Groups)
+				assert.NilError(t, err)
+				expectedKey := providerUserTable{
+					IdentityID: 1,
+					ProviderID: 4,
+					Email:      "test1@example.com",
+					Groups:     []string{"Everyone", "Developers"},
+				}
+				assert.DeepEqual(t, expectedKey, providerUser)
+				err = tx.QueryRow(`SELECT identity_id, provider_id, email, groups FROM provider_users WHERE identity_id = 2`).Scan(&providerUser.IdentityID, &providerUser.ProviderID, &providerUser.Email, &providerUser.Groups)
+				assert.NilError(t, err)
+				expectedKey = providerUserTable{
+					IdentityID: 2,
+					ProviderID: 5,
+					Email:      "test2@example.com",
+					Groups:     []string{"Everyone"},
+				}
+				assert.DeepEqual(t, expectedKey, providerUser)
+				err = tx.QueryRow(`SELECT identity_id, provider_id, email, groups FROM provider_users WHERE identity_id = 3`).Scan(&providerUser.IdentityID, &providerUser.ProviderID, &providerUser.Email, &providerUser.Groups)
+				assert.NilError(t, err)
+				expectedKey = providerUserTable{
+					IdentityID: 3,
+					ProviderID: 6,
+					Email:      "test3@example.com",
+					Groups:     []string{},
+				}
+				assert.DeepEqual(t, expectedKey, providerUser)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

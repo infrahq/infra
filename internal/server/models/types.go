@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -35,10 +36,6 @@ func (s *CommaSeparatedStrings) Scan(v interface{}) error {
 	return nil
 }
 
-func (f CommaSeparatedStrings) GormDataType() string {
-	return "text"
-}
-
 func (s *CommaSeparatedStrings) Includes(str string) bool {
 	if s == nil {
 		return false
@@ -51,4 +48,24 @@ func (s *CommaSeparatedStrings) Includes(str string) bool {
 	}
 
 	return false
+}
+
+// JSONB represents a JSON binary stored in Postgres
+type JSONB []string
+
+func (j JSONB) Value() (driver.Value, error) {
+	marshalled, err := json.Marshal(j)
+	if err != nil {
+		return nil, fmt.Errorf("convert object to json")
+	}
+	return string(marshalled), nil
+}
+
+// Scan implements the sql.Scanner interface.
+func (j *JSONB) Scan(src interface{}) error {
+	s, ok := src.([]uint8)
+	if !ok {
+		return fmt.Errorf("cannot scan values which are not a byte array to a JSON blob")
+	}
+	return json.Unmarshal([]byte(s), &j)
 }
