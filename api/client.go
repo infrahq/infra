@@ -15,11 +15,10 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
-
-var apiVersion = "0.18.1"
 
 var (
 	ErrTimeout            = errors.New("client timed out waiting for response from server")
@@ -104,8 +103,8 @@ func (c *Client) buildRequest(
 	req.Header.Add("Authorization", "Bearer "+c.AccessKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Infra-Version", apiVersion)
-	req.Header.Set("User-Agent", fmt.Sprintf("Infra/%v (%s %v; %v/%v)", apiVersion, clientName, clientVersion, runtime.GOOS, runtime.GOARCH))
+	req.Header.Set("Infra-Version", internal.FullVersion())
+	req.Header.Set("User-Agent", fmt.Sprintf("Infra/%v (%s %v; %v/%v)", internal.FullVersion(), clientName, clientVersion, runtime.GOOS, runtime.GOARCH))
 
 	for k, v := range c.Headers {
 		req.Header[k] = v
