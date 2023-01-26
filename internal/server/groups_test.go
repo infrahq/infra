@@ -61,7 +61,7 @@ func TestAPI_ListGroups(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.13.0")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -200,7 +200,7 @@ func TestAPI_CreateGroup(t *testing.T) {
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodPost, "/api/groups", body)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.13.0")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -288,7 +288,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.13.0")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -364,7 +364,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodPatch, tc.urlPath, body)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.13.0")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)

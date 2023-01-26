@@ -30,7 +30,7 @@ func TestServerLimitsAccessWithTemporaryPassword(t *testing.T) {
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodGet, "/api/users/"+loginResp.UserID.String(), nil)
 		req.Header.Add("Authorization", "Bearer "+key)
-		req.Header.Add("Infra-Version", "0.14")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		resp1 := httptest.NewRecorder()
 		routes.ServeHTTP(resp1, req)
@@ -60,7 +60,7 @@ func changePassword(t *testing.T, routes Routes, accessKey string, id uid.ID, ol
 	// nolint:noctx
 	req := httptest.NewRequest(http.MethodPut, "/api/users/"+id.String(), bytes.NewReader(body))
 	req.Header.Add("Authorization", "Bearer "+accessKey)
-	req.Header.Add("Infra-Version", "0.14")
+	req.Header.Add("Infra-Version", apiVersionLatest)
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -79,7 +79,7 @@ func login(t *testing.T, routes Routes, name, pass string) *api.LoginResponse {
 	loginReq := api.LoginRequest{PasswordCredentials: &api.LoginRequestPasswordCredentials{Name: name, Password: pass}}
 	body := jsonBody(t, loginReq)
 	req := httptest.NewRequest(http.MethodPost, "/api/login", body)
-	req.Header.Add("Infra-Version", "0.14.0")
+	req.Header.Add("Infra-Version", apiVersionLatest)
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)

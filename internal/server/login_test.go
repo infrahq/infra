@@ -42,7 +42,7 @@ func TestAPI_Login(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.setup(t))
 		req := httptest.NewRequest(http.MethodPost, "/api/login", body)
-		req.Header.Add("Infra-Version", "0.13.3")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
