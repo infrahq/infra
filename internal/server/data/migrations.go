@@ -1343,9 +1343,6 @@ func storeProviderUserGroupsArray() *migrator.Migration {
 				// this migration has already been performed
 				return nil
 			}
-			if _, err := tx.Exec(`ALTER TABLE provider_users ADD COLUMN IF NOT EXISTS groups_json jsonb;`); err != nil {
-				return err
-			}
 			// copy the groups string to the new groupsArray column, this could be a large operation if there are a lot of users
 			type userGroups struct {
 				IdentityID uid.ID
@@ -1362,20 +1359,19 @@ func storeProviderUserGroupsArray() *migrator.Migration {
 			if err != nil {
 				return err
 			}
-
+			if _, err := tx.Exec(`ALTER TABLE provider_users DROP COLUMN IF EXISTS groups;`); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(`ALTER TABLE provider_users ADD COLUMN IF NOT EXISTS groups jsonb;`); err != nil {
+				return err
+			}
 			for _, u := range users {
 				groups := models.JSONB(u.Groups)
-				if _, err := tx.Exec(`UPDATE provider_users SET groups_json = ? WHERE identity_id = ? AND provider_id = ?`, groups, u.IdentityID, u.ProviderID); err != nil {
+				if _, err := tx.Exec(`UPDATE provider_users SET groups = ? WHERE identity_id = ? AND provider_id = ?`, groups, u.IdentityID, u.ProviderID); err != nil {
 					return err
 				}
 			}
-
-			stmt := `
-				ALTER TABLE provider_users DROP COLUMN IF EXISTS groups;
-				ALTER TABLE provider_users RENAME COLUMN groups_json TO groups;
-			`
-			_, err = tx.Exec(stmt)
-			return err
+			return nil
 		},
 	}
 }
