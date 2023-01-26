@@ -35,6 +35,8 @@
     "@testing-library/user-event": "^14.4.3",
     "@types/node": "^18.14.0",
     "@types/react": "18.0.27",
+    "@typescript-eslint/eslint-plugin": "^5.49.0",
+    "@typescript-eslint/parser": "^5.49.0",
     "autoprefixer": "^10.4.13",
     "concurrently": "^7.6.0",
     "eslint": "^8.34.0",

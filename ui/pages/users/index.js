@@ -17,10 +17,11 @@ import {
 import { useUser } from '../../lib/hooks'
 import { useServerConfig } from '../../lib/serverconfig'
 import { sortByName } from '../../lib/grants'
+import { RemoveButtonType } from '../../lib/type'
 
-import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
+import RemoveButton from '../../components/remove-button'
 
 function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   const [email, setEmail] = useState('')
@@ -283,6 +284,7 @@ export default function Users() {
             ),
             header: <span>Name</span>,
             accessorKey: 'name',
+            minSize: 300,
           },
           {
             cell: info => (
@@ -324,8 +326,6 @@ export default function Users() {
           {
             id: 'delete',
             cell: function Cell(info) {
-              const [open, setOpen] = useState(false)
-
               // cannot delete the currently logged in user
               if (info.row.original.id === user?.id) {
                 return null
@@ -333,25 +333,8 @@ export default function Users() {
 
               return (
                 <div className='flex justify-end'>
-                  <div className='group invisible rounded-md bg-white group-hover:visible'>
-                    <button
-                      onClick={() => {
-                        setOpen(true)
-                      }}
-                      className='group items-center rounded-md bg-white text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
-                      <div className='flex flex-row items-center'>
-                        <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
-                        Remove
-                      </div>
-                      <span className='sr-only'>{info.row.original.name}</span>
-                    </button>
-                  </div>
-                  <DeleteModal
-                    open={open}
-                    setOpen={setOpen}
-                    primaryButtonText='Remove'
-                    onSubmit={async () => {
+                  <RemoveButton
+                    onRemove={async () => {
                       await fetch(`/api/users/${info.row.original.id}`, {
                         method: 'DELETE',
                       })
@@ -359,8 +342,9 @@ export default function Users() {
 
                       mutate()
                     }}
-                    title='Remove user'
-                    message={
+                    type={RemoveButtonType.Link}
+                    modalTitle='Remove user'
+                    modalMessage={
                       <div>
                         Are you sure you want to remove{' '}
                         <span className='break-all font-bold'>
@@ -369,7 +353,13 @@ export default function Users() {
                         ?
                       </div>
                     }
-                  />
+                  >
+                    <div className='flex flex-row items-center'>
+                      <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                      Remove
+                    </div>
+                    <span className='sr-only'>{info.row.original.name}</span>
+                  </RemoveButton>
                 </div>
               )
             },

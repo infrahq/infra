@@ -2,15 +2,16 @@ import useSWR from 'swr'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useState } from 'react'
 
 import { useUser } from '../../lib/hooks'
 import { CommandLineIcon } from '@heroicons/react/24/solid'
 import { TrashIcon, PlusIcon } from '@heroicons/react/24/outline'
 
+import { RemoveButtonType } from '../../lib/type'
+
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
-import DeleteModal from '../../components/delete-modal'
+import RemoveButton from '../../components/remove-button'
 
 export default function Destinations() {
   const router = useRouter()
@@ -21,8 +22,6 @@ export default function Destinations() {
 
   const { data: { items: destinations, totalCount, totalPages } = {}, mutate } =
     useSWR(`/api/destinations?page=${page}&limit=${limit}`)
-  const [openSelectedDeleteModal, setOpenSelectedDeleteModal] = useState(false)
-  const [selectedDeleteId, setSelectedDeleteId] = useState(null)
 
   if (isAdminLoading) {
     return null
@@ -135,39 +134,37 @@ export default function Destinations() {
             cell: function Cell(info) {
               return (
                 info.row.original.kind === 'ssh' && (
-                  <div className='group invisible rounded-md bg-transparent group-hover:visible'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setSelectedDeleteId(info.row.original.id)
-                        setOpenSelectedDeleteModal(true)
-                      }}
-                      className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
+                  <RemoveButton
+                    onRemove={async () => {
+                      await fetch(`/api/destinations/${info.row.original.id}`, {
+                        method: 'DELETE',
+                      })
+
+                      mutate()
+                    }}
+                    type={RemoveButtonType.Link}
+                    modalTitle='Remove destination'
+                    modalMessage={
+                      <div>
+                        Are you sure you want to remove{' '}
+                        <span className='break-all font-bold'>
+                          {info.row.original.name}
+                        </span>
+                        ?
+                      </div>
+                    }
+                  >
+                    <div className='flex flex-row items-center'>
                       <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                      <span className='hidden sm:block'>Remove</span>
-                    </button>
-                  </div>
+                      Remove
+                      <span className='sr-only'>{info.row.original.name}</span>
+                    </div>
+                  </RemoveButton>
                 )
               )
             },
           },
         ]}
-      />
-      <DeleteModal
-        open={openSelectedDeleteModal}
-        setOpen={setOpenSelectedDeleteModal}
-        onSubmit={async () => {
-          await fetch(`/api/destinations/${selectedDeleteId}`, {
-            method: 'DELETE',
-          })
-
-          mutate()
-          setSelectedDeleteId(null)
-          setOpenSelectedDeleteModal(false)
-        }}
-        title={'Remove destination'}
-        message={<>Are you sure you want to remove the selected destination?</>}
       />
     </div>
   )

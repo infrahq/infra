@@ -96,9 +96,10 @@ export default function GroupDetails() {
   const router = useRouter()
   const id = router.query.id
   const page = Math.max(parseInt(router.query.p) || 1, 1)
+
   const limit = 10
   const { user, isAdmin } = useUser()
-  const { data: group, mutate } = useSWR(`/api/groups/${id}`)
+  const { data: group } = useSWR(`/api/groups/${id}`)
   const {
     data: { items: users, totalCount, totalPages } = {},
     mutate: mutateUsers,
@@ -155,7 +156,6 @@ export default function GroupDetails() {
                     method: 'DELETE',
                   })
 
-                  mutate()
                   router.replace('/groups')
                 }}
                 modalTitle='Remove group'
