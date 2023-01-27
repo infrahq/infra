@@ -186,6 +186,9 @@ func requireAccessKey(c *gin.Context, db data.WriteTxn, srv *Server) (access.Aut
 
 	accessKey, err := data.ValidateRequestAccessKey(db, bearer)
 	if err != nil {
+		if errors.Is(err, data.ErrAccessInactivityTimeout) {
+			return u, AuthenticationError{Message: "access key has expired due to inactivity"}
+		}
 		if errors.Is(err, data.ErrAccessKeyExpired) {
 			return u, AuthenticationError{Message: "access key has expired"}
 		}
