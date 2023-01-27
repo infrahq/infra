@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
@@ -23,6 +24,7 @@ type grantsCmdOptions struct {
 	Role        string
 	Force       bool
 	Inherited   bool
+	DryRun      bool
 }
 
 func newGrantsCmd(cli *CLI) *cobra.Command {
@@ -141,8 +143,9 @@ func userGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]api
 
 	type row struct {
 		User        string `header:"USER"`
-		Role        string `header:"ROLE"`
 		Destination string `header:"DESTINATION"`
+		Resource    string `header:"RESOURCE"`
+		Role        string `header:"ROLE"`
 	}
 
 	rows := make([]row, 0, len(items))
@@ -152,7 +155,8 @@ func userGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]api
 			rows = append(rows, row{
 				User:        user.Name,
 				Role:        item.Privilege,
-				Destination: api.FormatResourceURN(item.DestinationName, item.DestinationResource),
+				Destination: item.DestinationName,
+				Resource:    item.DestinationResource,
 			})
 		}
 	}
@@ -184,8 +188,9 @@ func groupGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]ap
 
 	type row struct {
 		Group       string `header:"GROUP"`
-		Role        string `header:"ROLE"`
 		Destination string `header:"DESTINATION"`
+		Resource    string `header:"RESOURCE"`
+		Role        string `header:"ROLE"`
 	}
 
 	rows := make([]row, 0, len(items))
@@ -195,7 +200,8 @@ func groupGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]ap
 			rows = append(rows, row{
 				Group:       group.Name,
 				Role:        item.Privilege,
-				Destination: api.FormatResourceURN(item.DestinationName, item.DestinationResource),
+				Destination: item.DestinationName,
+				Resource:    item.DestinationResource,
 			})
 		}
 	}
@@ -234,14 +240,16 @@ $ infra grants remove janedoe@example.com infra --role admin
 			} else {
 				options.UserName = args[0]
 			}
-			options.Resource = args[1]
+			options.Destination = args[1]
 			return removeGrant(cli, options)
 		},
 	}
 
-	cmd.Flags().BoolVarP(&isGroup, "group", "g", false, "Group to revoke access from")
+	cmd.Flags().StringVar(&options.Resource, "resource", "", "Destination specific resource. For Kubernetes, this is the namespace. Default \"\".")
 	cmd.Flags().StringVar(&options.Role, "role", "", "Role to revoke")
+	cmd.Flags().BoolVarP(&isGroup, "group", "g", false, "Group to revoke access from")
 	cmd.Flags().BoolVar(&options.Force, "force", false, "Exit successfully even if grant does not exist")
+	cmd.Flags().BoolVarP(&options.DryRun, "dryrun", "n", false, "Dry run")
 
 	return cmd
 }
@@ -265,13 +273,12 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	destinationName, destinationResource := api.ParseResourceURN(cmdOptions.Resource)
 	listGrantsReq := api.ListGrantsRequest{
 		User:                user,
 		Group:               group,
 		Privilege:           cmdOptions.Role,
-		DestinationName:     destinationName,
-		DestinationResource: destinationResource,
+		DestinationName:     cmdOptions.Destination,
+		DestinationResource: cmdOptions.Resource,
 	}
 
 	logging.Debugf("call server: list grants %#v", listGrantsReq)
@@ -286,35 +293,78 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	if grants.Count == 0 && !cmdOptions.Force {
+	switch {
+	case cmdOptions.Force:
+		// noop
+	case grants.Count == 0:
 		return Error{Message: "Grant not found"}
+	case grants.Count > 1:
+		var sb strings.Builder
+		sb.WriteString("Multiple grants found for")
+
+		switch {
+		case user != 0:
+			fmt.Fprintf(&sb, " %q", cmdOptions.UserName)
+		case group != 0:
+			fmt.Fprintf(&sb, " %q", cmdOptions.GroupName)
+		}
+
+		fmt.Fprintf(&sb, " %q", cmdOptions.Destination)
+		if cmdOptions.Resource != "" {
+			fmt.Fprintf(&sb, " resource %q", cmdOptions.Resource)
+		}
+
+		if cmdOptions.Role != "" {
+			fmt.Fprintf(&sb, " role %q", cmdOptions.Role)
+		}
+
+		sb.WriteString(". Continue?")
+
+		var confirmRemove bool
+		if err := survey.AskOne(&survey.Confirm{Message: sb.String()}, &confirmRemove, cli.surveyIO); err != nil {
+			return err
+		}
+
+		if !confirmRemove {
+			return Error{Message: "operation aborted"}
+		}
 	}
 
 	for _, g := range grants.Items {
 		logging.Debugf("call server: delete grant %s", g.ID)
-		err := client.DeleteGrant(ctx, g.ID)
-		if err != nil {
-			if api.ErrorStatusCode(err) == 403 {
-				logging.Debugf("%s", err.Error())
-				return Error{
-					Message: "Cannot revoke grants: missing privileges for DeleteGrant",
+		if !cmdOptions.DryRun {
+			if err := client.DeleteGrant(ctx, g.ID); err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					logging.Debugf("%s", err.Error())
+					return Error{
+						Message: "Cannot revoke grants: missing privileges for DeleteGrant",
+					}
 				}
-			}
-			if api.ErrorStatusCode(err) == 400 && strings.Contains(err.Error(), "cannot remove the last infra admin") {
-				logging.Debugf("%s", err.Error())
-				return Error{
-					Message: "Cannot revoke grant: at least one Infra admin grant must exist",
+				if api.ErrorStatusCode(err) == 400 && strings.Contains(err.Error(), "cannot remove the last infra admin") {
+					logging.Debugf("%s", err.Error())
+					return Error{
+						Message: "Cannot revoke grant: at least one Infra admin grant must exist",
+					}
 				}
+				return err
 			}
-			return err
 		}
 
-		resource := api.FormatResourceURN(g.DestinationName, g.DestinationResource)
-		if g.Group > 0 {
-			cli.Output("Revoked %q access from group %q for resource %q", g.Privilege, cmdOptions.GroupName, resource)
-		} else if g.User > 0 {
-			cli.Output("Revoked %q access from user %q for resource %q", g.Privilege, cmdOptions.UserName, resource)
+		var sb strings.Builder
+		fmt.Fprintf(&sb, "Revoked %q access from", g.Privilege)
+		switch {
+		case g.User != 0:
+			fmt.Fprintf(&sb, " user %q", cmdOptions.UserName)
+		case g.Group != 0:
+			fmt.Fprintf(&sb, " group %q", cmdOptions.GroupName)
 		}
+
+		fmt.Fprintf(&sb, " for destination %q", g.DestinationName)
+		if g.DestinationResource != "" {
+			fmt.Fprintf(&sb, ", resource %q", g.DestinationResource)
+		}
+
+		cli.Output(sb.String())
 	}
 
 	return nil
@@ -346,11 +396,12 @@ $ infra grants add johndoe@example.com infra --role admin
 			} else {
 				options.UserName = args[0]
 			}
-			options.Resource = args[1]
+			options.Destination = args[1]
 			return addGrant(cli, options)
 		},
 	}
 
+	cmd.Flags().StringVar(&options.Resource, "resource", "", "Destination specific resource. For Kubernetes, this is the namespace. Default \"\".")
 	cmd.Flags().BoolVarP(&isGroup, "group", "g", false, "When set, creates a grant for a group instead of a user")
 	cmd.Flags().StringVar(&options.Role, "role", BasePermissionConnect, "Type of access that the user or group will be given")
 	cmd.Flags().BoolVar(&options.Force, "force", false, "Create grant even if requested user, destination, or role are unknown")
@@ -409,19 +460,18 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		groupID = group.ID
 	}
 
-	if err := checkResourcesPrivileges(ctx, client, cmdOptions.Resource, cmdOptions.Role); err != nil {
+	if err := checkResourcesPrivileges(ctx, client, cmdOptions.Destination, cmdOptions.Resource, cmdOptions.Role); err != nil {
 		if !cmdOptions.Force {
 			return err
 		}
 	}
 
-	destinationName, destinationResource := api.ParseResourceURN(cmdOptions.Resource)
 	createGrantReq := &api.GrantRequest{
 		User:                userID,
 		Group:               groupID,
 		Privilege:           cmdOptions.Role,
-		DestinationName:     destinationName,
-		DestinationResource: destinationResource,
+		DestinationName:     cmdOptions.Destination,
+		DestinationResource: cmdOptions.Resource,
 	}
 	logging.Debugf("call server: create grant %#v", createGrantReq)
 	response, err := client.CreateGrant(ctx, createGrantReq)
@@ -435,7 +485,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 	if response.WasCreated {
-		cli.Output("Created grant to %q for %q", cmdOptions.Resource, cmdOptions.UserName+cmdOptions.GroupName)
+		cli.Output("Created grant to %q for %q", cmdOptions.Destination, cmdOptions.UserName+cmdOptions.GroupName)
 	} else {
 		cli.Output("%q grant to %q already exists for %q. Nothing changed", cmdOptions.Role, cmdOptions.Resource, cmdOptions.UserName+cmdOptions.GroupName)
 	}
@@ -478,49 +528,43 @@ func checkUserGroup(client *api.Client, user, group string) (userID uid.ID, grou
 // checkResourcesPrivileges checks if the requested destination (e.g. cluster), optional
 // resource (e.g. namespace), and role exist. destination "infra" and role "connect" are
 // reserved values and will always pass checks
-func checkResourcesPrivileges(ctx context.Context, client *api.Client, resource, privilege string) error {
-	parts := strings.SplitN(resource, ".", 2)
-	destination := parts[0]
-	subresource := ""
-
-	if len(parts) > 1 {
-		subresource = parts[1]
+func checkResourcesPrivileges(ctx context.Context, client *api.Client, destination, resource, privilege string) error {
+	if destination == "infra" {
+		return nil
 	}
 
 	supportedResources := make(map[string]struct{})
 	supportedRoles := make(map[string]struct{})
 
-	if destination != "infra" {
-		logging.Debugf("call server: list destinations named %q", destination)
-		destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{Name: destination})
-		if err != nil {
-			return err
+	logging.Debugf("call server: list destinations named %q", destination)
+	destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{Name: destination})
+	if err != nil {
+		return err
+	}
+
+	if destinations.Count == 0 {
+		return Error{Message: fmt.Sprintf("Destination %q not connected; to ignore, run with '--force'", destination)}
+	}
+
+	for _, d := range destinations.Items {
+		for _, r := range d.Resources {
+			supportedResources[r] = struct{}{}
 		}
 
-		if destinations.Count == 0 {
-			return Error{Message: fmt.Sprintf("Destination %q not connected; to ignore, run with '--force'", destination)}
+		for _, r := range d.Roles {
+			supportedRoles[r] = struct{}{}
 		}
+	}
 
-		for _, d := range destinations.Items {
-			for _, r := range d.Resources {
-				supportedResources[r] = struct{}{}
-			}
-
-			for _, r := range d.Roles {
-				supportedRoles[r] = struct{}{}
-			}
+	if resource != "" {
+		if _, ok := supportedResources[resource]; !ok {
+			return Error{Message: fmt.Sprintf("Namespace %q not detected in destination %q; to ignore, run with '--force'", resource, destination)}
 		}
+	}
 
-		if subresource != "" {
-			if _, ok := supportedResources[subresource]; !ok {
-				return Error{Message: fmt.Sprintf("Namespace %q not detected in destination %q; to ignore, run with '--force'", subresource, destination)}
-			}
-		}
-
-		if privilege != "connect" {
-			if _, ok := supportedRoles[privilege]; !ok {
-				return Error{Message: fmt.Sprintf("Role %q is not a known role for destination %q; to ignore, run with '--force'", privilege, destination)}
-			}
+	if privilege != "connect" {
+		if _, ok := supportedRoles[privilege]; !ok {
+			return Error{Message: fmt.Sprintf("Role %q is not a known role for destination %q; to ignore, run with '--force'", privilege, destination)}
 		}
 	}
 

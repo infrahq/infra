@@ -106,7 +106,7 @@ func TestGrantsAddCmd(t *testing.T) {
 	t.Run("add default role to existing identity for namespace", func(t *testing.T) {
 		ch := setup(t)
 		ctx := context.Background()
-		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination.default")
+		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination", "--resource", "default")
 		assert.NilError(t, err)
 
 		createReq := <-ch
@@ -201,7 +201,7 @@ func TestGrantsAddCmd(t *testing.T) {
 	t.Run("add role to non-existent namespace", func(t *testing.T) {
 		_ = setup(t)
 		ctx := context.Background()
-		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination.nonexistent")
+		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination", "--resource", "nonexistent")
 		assert.ErrorContains(t, err, "not detected in destination")
 	})
 
@@ -229,7 +229,7 @@ func TestGrantsAddCmd(t *testing.T) {
 
 	t.Run("force add grant for nonexistent namespace", func(t *testing.T) {
 		ch := setup(t)
-		err := Run(context.Background(), "grants", "add", "existing@example.com", "the-destination.nonexistent", "--force")
+		err := Run(context.Background(), "grants", "add", "existing@example.com", "the-destination", "--resource", "nonexistent", "--force")
 		assert.NilError(t, err)
 
 		actual := <-ch

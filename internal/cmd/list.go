@@ -35,8 +35,13 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	grantsByResource := make(map[string]map[string]struct{})
-	resources := []string{}
+	type row struct {
+		Name     string `header:"NAME"`
+		Resource string `header:"RESOURCE"`
+		Access   string `header:"ROLE"`
+	}
+
+	rows := make([]row, 0, len(grants))
 	for _, g := range grants {
 		if g.DestinationName == "infra" {
 			continue
@@ -46,39 +51,24 @@ func list(cli *CLI) error {
 			continue
 		}
 
-		resource := api.FormatResourceURN(g.DestinationName, g.DestinationResource)
-		if grantsByResource[resource] == nil {
-			grantsByResource[resource] = make(map[string]struct{})
-			resources = append(resources, resource)
-		}
-
-		grantsByResource[resource][g.Privilege] = struct{}{}
-	}
-	sort.Strings(resources)
-
-	type row struct {
-		Name   string `header:"NAME"`
-		Access string `header:"ACCESS"`
-	}
-
-	var rows []row
-	for _, k := range resources {
-		v, ok := grantsByResource[k]
-		if !ok {
-			// should not be possible
-			return fmt.Errorf("unexpected value in grants: %s", k)
-		}
-
-		access := make([]string, 0, len(v))
-		for vk := range v {
-			access = append(access, vk)
-		}
-
 		rows = append(rows, row{
-			Name:   k,
-			Access: strings.Join(access, ", "),
+			Name:     g.DestinationName,
+			Resource: g.DestinationResource,
+			Access:   g.Privilege,
 		})
 	}
+
+	sort.SliceStable(rows, func(i, j int) bool {
+		if rows[i].Name != rows[j].Name {
+			return rows[i].Name < rows[j].Name
+		}
+
+		if rows[i].Resource != rows[j].Resource {
+			return rows[i].Resource < rows[j].Resource
+		}
+
+		return rows[i].Access < rows[j].Access
+	})
 
 	if len(rows) > 0 {
 		printTable(rows, cli.Stdout)

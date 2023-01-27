@@ -1,4 +1,4 @@
-  NAME               ACCESS      
-  infra-this-is-not  view        
-  moon               inhabitant  
-  space              explorer    
+  NAME               RESOURCE  ROLE        
+  infra-this-is-not            view        
+  moon                         inhabitant  
+  space                        explorer    

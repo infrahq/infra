@@ -164,17 +164,3 @@ type UpdateGrantsRequest struct {
 	GrantsToAdd    []GrantRequest `json:"grantsToAdd" note:"List of grant objects. See POST api/grants for more"`
 	GrantsToRemove []GrantRequest `json:"grantsToRemove" note:"List of grant objects. See POST api/grants for more"`
 }
-
-func ParseResourceURN(urn string) (name, resource string) {
-	name, resource, _ = strings.Cut(urn, ".")
-	return name, resource
-}
-
-func FormatResourceURN(name, resource string) string {
-	urn := name
-	if resource != "" {
-		urn = fmt.Sprintf("%s.%s", name, resource)
-	}
-
-	return urn
-}

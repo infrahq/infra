@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -234,7 +235,7 @@ func (a *API) addPreviousVersionHandlersGrants() {
 			User:      latest.User,
 			Group:     latest.Group,
 			Privilege: latest.Privilege,
-			Resource:  api.FormatResourceURN(latest.DestinationName, latest.DestinationResource),
+			Resource:  formatResourceURN(latest.DestinationName, latest.DestinationResource),
 		}
 	}
 
@@ -253,7 +254,7 @@ func (a *API) addPreviousVersionHandlersGrants() {
 			User:      latest.User,
 			Group:     latest.Group,
 			Privilege: latest.Privilege,
-			Resource:  api.FormatResourceURN(latest.DestinationName, latest.DestinationResource),
+			Resource:  formatResourceURN(latest.DestinationName, latest.DestinationResource),
 		}
 	}
 
@@ -275,7 +276,7 @@ func (a *API) addPreviousVersionHandlersGrants() {
 		case req.Destination != "":
 			destinationName = req.Destination
 		case req.Resource != "":
-			destinationName, destinationResource = api.ParseResourceURN(req.Resource)
+			destinationName, destinationResource = parseResourceURN(req.Resource)
 		}
 
 		return &api.ListGrantsRequest{
@@ -362,7 +363,7 @@ func (a *API) addPreviousVersionHandlersGrants() {
 	}
 
 	newGrantRequestFromV0_21_0 := func(req *grantRequestV0_21_0) *api.GrantRequest {
-		destinationName, destinationResource := api.ParseResourceURN(req.Resource)
+		destinationName, destinationResource := parseResourceURN(req.Resource)
 		return &api.GrantRequest{
 			User:                req.User,
 			Group:               req.Group,
@@ -437,4 +438,18 @@ func (a *API) addPreviousVersionHandlersGrants() {
 			},
 		},
 	)
+}
+
+func parseResourceURN(urn string) (name, resource string) {
+	name, resource, _ = strings.Cut(urn, ".")
+	return name, resource
+}
+
+func formatResourceURN(name, resource string) string {
+	urn := name
+	if resource != "" {
+		urn = fmt.Sprintf("%s.%s", name, resource)
+	}
+
+	return urn
 }
