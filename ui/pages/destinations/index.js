@@ -131,6 +131,7 @@ export default function Destinations() {
           },
           {
             id: 'delete',
+            maxSize: 60,
             cell: function Cell(info) {
               return (
                 info.row.original.kind === 'ssh' && (

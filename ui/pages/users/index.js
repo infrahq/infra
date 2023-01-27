@@ -325,6 +325,7 @@ export default function Users() {
           },
           {
             id: 'delete',
+            maxSize: 80,
             cell: function Cell(info) {
               // cannot delete the currently logged in user
               if (info.row.original.id === user?.id) {
@@ -332,35 +333,33 @@ export default function Users() {
               }
 
               return (
-                <div className='flex justify-end'>
-                  <RemoveButton
-                    onRemove={async () => {
-                      await fetch(`/api/users/${info.row.original.id}`, {
-                        method: 'DELETE',
-                      })
-                      setOpen(false)
+                <RemoveButton
+                  onRemove={async () => {
+                    await fetch(`/api/users/${info.row.original.id}`, {
+                      method: 'DELETE',
+                    })
+                    setOpen(false)
 
-                      mutate()
-                    }}
-                    type={RemoveButtonType.Link}
-                    modalTitle='Remove user'
-                    modalMessage={
-                      <div>
-                        Are you sure you want to remove{' '}
-                        <span className='break-all font-bold'>
-                          {info.row.original.name}
-                        </span>
-                        ?
-                      </div>
-                    }
-                  >
-                    <div className='flex flex-row items-center'>
-                      <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
-                      Remove
+                    mutate()
+                  }}
+                  type={RemoveButtonType.Link}
+                  modalTitle='Remove user'
+                  modalMessage={
+                    <div>
+                      Are you sure you want to remove{' '}
+                      <span className='break-all font-bold'>
+                        {info.row.original.name}
+                      </span>
+                      ?
                     </div>
-                    <span className='sr-only'>{info.row.original.name}</span>
-                  </RemoveButton>
-                </div>
+                  }
+                >
+                  <div className='flex flex-row items-center'>
+                    <TrashIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                    Remove
+                  </div>
+                  <span className='sr-only'>{info.row.original.name}</span>
+                </RemoveButton>
               )
             },
           },

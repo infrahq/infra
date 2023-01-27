@@ -16,10 +16,12 @@ import { Dialog, Transition, Combobox, Listbox } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
 import { descriptions, sortByRole } from '../../lib/grants'
+import { RemoveButtonType } from '../../lib/type'
 
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
 import DeleteModal from '../../components/delete-modal'
+import RemoveButton from '../../components/remove-button'
 
 const OPTION_SELECT_ALL = 'select all'
 
@@ -730,22 +732,42 @@ export default function AccessControl() {
           },
           {
             id: 'delete',
+            maxSize: 100,
             cell: function Cell(info) {
+              const name =
+                users?.find(u => u.id === info.row.original.identityId)?.name ||
+                groups?.find(g => g.id === info.row.original.identityId)?.name
+
               return (
                 isAdmin && (
-                  <div className='group invisible rounded-md bg-transparent group-hover:visible'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setSelectedDeleteIds([info.row.original.id])
-                        setOpenSelectedDeleteModal(true)
-                      }}
-                      className='flex items-center text-xs font-medium text-red-500 hover:text-red-500/50'
-                    >
+                  <RemoveButton
+                    onRemove={async () => {
+                      await fetch(`/api/grants/${info.row.original.id}`, {
+                        method: 'DELETE',
+                      })
+
+                      mutate()
+                    }}
+                    type={RemoveButtonType.Link}
+                    modalTitle='Remove access'
+                    modalMessage={
+                      <div>
+                        Are you sure you want to remove{' '}
+                        <span className='break-all font-bold'>{name}</span>
+                        's {info.row.original.privilege} role from{' '}
+                        {info.row.original.resource}?
+                      </div>
+                    }
+                  >
+                    <div className='flex flex-row items-center'>
                       <TrashIcon className='mr-2 h-3.5 w-3.5' />
-                      <span>Remove</span>
-                    </button>
-                  </div>
+                      Remove
+                      <span className='sr-only'>
+                        {name}'s {info.row.original.privilege} role from{' '}
+                        {info.row.original.resource}
+                      </span>
+                    </div>
+                  </RemoveButton>
                 )
               )
             },

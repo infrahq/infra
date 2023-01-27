@@ -179,6 +179,7 @@ export default function Table({
                         key={cell.id}
                         {...{
                           style: {
+                            maxWidth: cell.column.getSize(),
                             minWidth: cell.column.getSize(),
                           },
                         }}
