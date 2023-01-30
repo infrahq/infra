@@ -25,7 +25,7 @@
     "react-popper": "^2.3.0",
     "react-router-dom": "^6.7.0",
     "react-table": "^7.7.0",
-    "swr": "^2.0.1",
+    "swr": "^2.0.3",
     "universal-cookie": "^4.0.4"
   },
   "devDependencies": {
