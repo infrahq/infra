@@ -62,6 +62,17 @@ type Options struct {
 	// Kubernetes specific options below here
 	CACert types.StringOrFile
 	CAKey  types.StringOrFile
+
+	// Addrs holds the addresses that HTTP servers use to listen for requests.
+	// When the caller sets Addrs to a non-nil pointer, the Available chan
+	// must be set as well. The addresses will be set by Run, and the
+	// Available channel will be closed to indicate the values were set.
+	Addrs *Addrs `json:"-"`
+}
+
+type Addrs struct {
+	Available chan struct{}
+	HTTPS     net.Addr
 }
 
 type ServerOptions struct {
@@ -311,13 +322,25 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 
 	logging.Infof("starting infra connector (%s) - http:%s https:%s metrics:%s", internal.FullVersion(), plaintextServer.Addr, tlsServer.Addr, metricsServer.Addr)
 
+	l, err := net.Listen("tcp", options.Addr.HTTPS)
+	if err != nil {
+		return err
+	}
+	if options.Addrs != nil {
+		options.Addrs.HTTPS = l.Addr()
+	}
+
 	group.Go(func() error {
-		err = tlsServer.ListenAndServeTLS("", "")
+		err = tlsServer.ServeTLS(l, "", "")
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
 		return err
 	})
+
+	if options.Addrs != nil {
+		close(options.Addrs.Available)
+	}
 
 	// wait for shutdown signal
 	<-ctx.Done()
