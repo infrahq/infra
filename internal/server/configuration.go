@@ -3,13 +3,12 @@ package server
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/email"
 )
 
-func (a *API) GetServerConfiguration(c *gin.Context, _ *api.EmptyRequest) (*api.ServerConfiguration, error) {
+func (a *API) GetServerConfiguration(_ access.RequestContext, _ *api.EmptyRequest) (*api.ServerConfiguration, error) {
 	config := &api.ServerConfiguration{
 		IsEmailConfigured: email.IsConfigured(),
 		BaseDomain:        a.server.options.BaseDomain,

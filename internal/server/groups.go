@@ -1,16 +1,13 @@
 package server
 
 import (
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
-	rCtx := getRequestContext(c)
+func (a *API) ListGroups(rCtx access.RequestContext, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
 	p := PaginationFromRequest(r.PaginationRequest)
 	groups, err := access.ListGroups(rCtx, r.Name, r.UserID, &p)
 	if err != nil {
@@ -24,8 +21,7 @@ func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListRes
 	return result, nil
 }
 
-func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
-	rCtx := getRequestContext(c)
+func (a *API) GetGroup(rCtx access.RequestContext, r *api.Resource) (*api.Group, error) {
 	group, err := access.GetGroup(rCtx, data.GetGroupOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
@@ -34,11 +30,10 @@ func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
 	return group.ToAPI(), nil
 }
 
-func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group, error) {
-	rCtx := getRequestContext(c)
+func (a *API) CreateGroup(rCtx access.RequestContext, r *api.CreateGroupRequest) (*api.Group, error) {
 	group := &models.Group{Name: r.Name}
 
-	authIdent := getRequestContext(c).Authenticated.User
+	authIdent := rCtx.Authenticated.User
 	if authIdent != nil {
 		group.CreatedBy = authIdent.ID
 	}
@@ -51,12 +46,10 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 	return group.ToAPI(), nil
 }
 
-func (a *API) DeleteGroup(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) DeleteGroup(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
 	return nil, access.DeleteGroup(rCtx, r.ID)
 }
 
-func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupRequest) (*api.EmptyResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) UpdateUsersInGroup(rCtx access.RequestContext, r *api.UpdateUsersInGroupRequest) (*api.EmptyResponse, error) {
 	return nil, access.UpdateUsersInGroup(rCtx, r.GroupID, r.UserIDsToAdd, r.UserIDsToRemove)
 }

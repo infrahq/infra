@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
 	"github.com/scim2/filter-parser/v2"
 
 	"github.com/infrahq/infra/api"
@@ -67,16 +66,15 @@ var deleteProviderUserRoute = route[api.Resource, *api.EmptyResponse]{
 	},
 }
 
-func GetProviderUser(c *gin.Context, r *api.Resource) (*api.SCIMUser, error) {
-	user, err := access.GetProviderUser(getRequestContext(c), r.ID)
+func GetProviderUser(rCtx access.RequestContext, r *api.Resource) (*api.SCIMUser, error) {
+	user, err := access.GetProviderUser(rCtx, r.ID)
 	if err != nil {
 		return nil, err
 	}
 	return user.ToAPI(), nil
 }
 
-func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListProviderUsersResponse, error) {
-	rCtx := getRequestContext(c)
+func ListProviderUsers(rCtx access.RequestContext, r *api.SCIMParametersRequest) (*api.ListProviderUsersResponse, error) {
 	p := data.SCIMParameters{
 		StartIndex: r.StartIndex,
 		Count:      r.Count,
@@ -104,8 +102,7 @@ func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListP
 	return result, nil
 }
 
-func CreateProviderUser(c *gin.Context, r *api.SCIMUserCreateRequest) (*api.SCIMUser, error) {
-	rCtx := getRequestContext(c)
+func CreateProviderUser(rCtx access.RequestContext, r *api.SCIMUserCreateRequest) (*api.SCIMUser, error) {
 	user := &models.ProviderUser{
 		GivenName:  r.Name.GivenName,
 		FamilyName: r.Name.FamilyName,
@@ -126,8 +123,7 @@ func CreateProviderUser(c *gin.Context, r *api.SCIMUserCreateRequest) (*api.SCIM
 	return user.ToAPI(), nil
 }
 
-func UpdateProviderUser(c *gin.Context, r *api.SCIMUserUpdateRequest) (*api.SCIMUser, error) {
-	rCtx := getRequestContext(c)
+func UpdateProviderUser(rCtx access.RequestContext, r *api.SCIMUserUpdateRequest) (*api.SCIMUser, error) {
 	user := &models.ProviderUser{
 		IdentityID: r.ID,
 		GivenName:  r.Name.GivenName,
@@ -149,8 +145,7 @@ func UpdateProviderUser(c *gin.Context, r *api.SCIMUserUpdateRequest) (*api.SCIM
 	return user.ToAPI(), nil
 }
 
-func PatchProviderUser(c *gin.Context, r *api.SCIMUserPatchRequest) (*api.SCIMUser, error) {
-	rCtx := getRequestContext(c)
+func PatchProviderUser(rCtx access.RequestContext, r *api.SCIMUserPatchRequest) (*api.SCIMUser, error) {
 	// we only support active status patching, so there can only be one operation
 	if len(r.Operations) != 1 || r.Operations[0].Op != "replace" {
 		return nil, internal.ErrBadRequest
@@ -167,6 +162,6 @@ func PatchProviderUser(c *gin.Context, r *api.SCIMUserPatchRequest) (*api.SCIMUs
 	return result.ToAPI(), nil
 }
 
-func DeleteProviderUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteProviderUser(getRequestContext(c), r.ID)
+func DeleteProviderUser(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteProviderUser(rCtx, r.ID)
 }

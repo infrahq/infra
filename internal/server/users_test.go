@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	gocmp "github.com/google/go-cmp/cmp"
 	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
@@ -207,13 +206,11 @@ func TestAPI_GetUser(t *testing.T) {
 func addUserPublicKey(t *testing.T, db *data.DB, userID uid.ID, key string) *api.UserPublicKey {
 	t.Helper()
 	tx := txnForTestCase(t, db, db.DefaultOrg.ID)
-	c, _ := gin.CreateTestContext(nil)
 	rCtx := access.RequestContext{}
 	rCtx.DBTxn = tx
 	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: userID}}
-	c.Set(access.RequestContextKey, rCtx)
 
-	resp, err := AddUserPublicKey(c, &api.AddUserPublicKeyRequest{PublicKey: key})
+	resp, err := AddUserPublicKey(rCtx, &api.AddUserPublicKeyRequest{PublicKey: key})
 	assert.NilError(t, err)
 	assert.NilError(t, tx.Commit())
 	return resp
@@ -640,13 +637,11 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 	a := &API{server: srv}
 	admin := createAdmin(t, db)
 
-	loginAs := func(tx *data.Transaction, user *models.Identity) *gin.Context {
-		ctx, _ := gin.CreateTestContext(nil)
-		ctx.Set(access.RequestContextKey, access.RequestContext{
+	loginAs := func(tx *data.Transaction, user *models.Identity) access.RequestContext {
+		return access.RequestContext{
 			DBTxn:         tx,
 			Authenticated: access.Authenticated{User: user},
-		})
-		return ctx
+		}
 	}
 
 	t.Run("with an IDP user existing", func(t *testing.T) {

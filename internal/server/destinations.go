@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
-	rCtx := getRequestContext(c)
+func (a *API) ListDestinations(rCtx access.RequestContext, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
 	p := PaginationFromRequest(r.PaginationRequest)
 
 	opts := data.ListDestinationsOptions{
@@ -34,9 +31,8 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 	return result, nil
 }
 
-func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {
+func (a *API) GetDestination(rCtx access.RequestContext, r *api.Resource) (*api.Destination, error) {
 	// No authorization required to view a destination
-	rCtx := getRequestContext(c)
 	destination, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
@@ -45,8 +41,7 @@ func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination,
 	return destination.ToAPI(), nil
 }
 
-func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest) (*api.Destination, error) {
-	rCtx := getRequestContext(c)
+func (a *API) CreateDestination(rCtx access.RequestContext, r *api.CreateDestinationRequest) (*api.Destination, error) {
 	destination := &models.Destination{
 		Name:          r.Name,
 		UniqueID:      r.UniqueID,
@@ -79,9 +74,7 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 	return destination.ToAPI(), nil
 }
 
-func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest) (*api.Destination, error) {
-	rCtx := getRequestContext(c)
-
+func (a *API) UpdateDestination(rCtx access.RequestContext, r *api.UpdateDestinationRequest) (*api.Destination, error) {
 	// Start with the existing value, so that non-update fields are not set to zero.
 	destination, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByID: r.ID})
 	if err != nil {
@@ -103,6 +96,6 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 	return destination.ToAPI(), nil
 }
 
-func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteDestination(getRequestContext(c), r.ID)
+func (a *API) DeleteDestination(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteDestination(rCtx, r.ID)
 }

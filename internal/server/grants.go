@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
 	"github.com/infrahq/infra/api"
@@ -16,9 +15,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
-	rCtx := getRequestContext(c)
-
+func (a *API) ListGrants(rCtx access.RequestContext, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
 	rCtx.Response.AddLogFields(func(event *zerolog.Event) {
 		event.Int64("lastUpdateIndex", r.LastUpdateIndex)
 	})
@@ -64,8 +61,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 	return result, nil
 }
 
-func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
-	rCtx := getRequestContext(c)
+func (a *API) GetGrant(rCtx access.RequestContext, r *api.Resource) (*api.Grant, error) {
 	grant, err := access.GetGrant(rCtx, r.ID)
 	if err != nil {
 		return nil, err
@@ -74,8 +70,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	return grant.ToAPI(), nil
 }
 
-func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) CreateGrant(rCtx access.RequestContext, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
 	grant, err := getGrantFromGrantRequest(rCtx, *r)
 	if err != nil {
 		return nil, err
@@ -111,8 +106,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrant
 
 }
 
-func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) DeleteGrant(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
 	grant, err := access.GetGrant(rCtx, r.ID)
 	if err != nil {
 		return nil, err
@@ -136,8 +130,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	return nil, access.DeleteGrant(rCtx, r.ID)
 }
 
-func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) UpdateGrants(rCtx access.RequestContext, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
 	iden := rCtx.Authenticated.User
 	var addGrants []*models.Grant
 	for _, g := range r.GrantsToAdd {
@@ -238,8 +231,8 @@ func (a *API) addPreviousVersionHandlersGrants() {
 	addVersionHandler(a, http.MethodGet, "/api/grants", "0.18.1",
 		route[api.ListGrantsRequest, *api.ListResponse[grantV0_18_1]]{
 			routeSettings: defaultRouteSettingsGet,
-			handler: func(c *gin.Context, req *api.ListGrantsRequest) (*api.ListResponse[grantV0_18_1], error) {
-				resp, err := a.ListGrants(c, req)
+			handler: func(rCtx access.RequestContext, req *api.ListGrantsRequest) (*api.ListResponse[grantV0_18_1], error) {
+				resp, err := a.ListGrants(rCtx, req)
 				return api.CopyListResponse(resp, func(item api.Grant) grantV0_18_1 {
 					return *newGrantsV0_18_1FromLatest(&item)
 				}), err
@@ -249,8 +242,8 @@ func (a *API) addPreviousVersionHandlersGrants() {
 	addVersionHandler(a, http.MethodGet, "/api/grants/:id", "0.18.1",
 		route[api.Resource, *grantV0_18_1]{
 			routeSettings: defaultRouteSettingsGet,
-			handler: func(c *gin.Context, req *api.Resource) (*grantV0_18_1, error) {
-				resp, err := a.GetGrant(c, req)
+			handler: func(rCtx access.RequestContext, req *api.Resource) (*grantV0_18_1, error) {
+				resp, err := a.GetGrant(rCtx, req)
 				return newGrantsV0_18_1FromLatest(resp), err
 			},
 		})
@@ -261,8 +254,8 @@ func (a *API) addPreviousVersionHandlersGrants() {
 	}
 	addVersionHandler(a, http.MethodPost, "/api/grants", "0.18.1",
 		route[api.GrantRequest, *createGrantResponseV0_18_1]{
-			handler: func(c *gin.Context, req *api.GrantRequest) (*createGrantResponseV0_18_1, error) {
-				resp, err := a.CreateGrant(c, req)
+			handler: func(rCtx access.RequestContext, req *api.GrantRequest) (*createGrantResponseV0_18_1, error) {
+				resp, err := a.CreateGrant(rCtx, req)
 				if err != nil {
 					return nil, err
 				}

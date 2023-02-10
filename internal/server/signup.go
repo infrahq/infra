@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -31,8 +29,7 @@ func (a *API) SignupRoute() route[api.SignupRequest, *api.SignupResponse] {
 	}
 }
 
-func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) Signup(rCtx access.RequestContext, r *api.SignupRequest) (*api.SignupResponse, error) {
 	if !a.server.options.EnableSignup {
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
@@ -57,7 +54,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 			RedirectURL: r.Social.RedirectURL,
 			Code:        r.Social.Code,
 		}
-		idpAuth, err := a.socialSignupUserAuth(c, provider, auth)
+		idpAuth, err := a.socialSignupUserAuth(rCtx, provider, auth)
 		if err != nil {
 			return nil, err // make sure to return this error directly for an unauthorized response
 		}
@@ -70,7 +67,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 			Org:       &models.Organization{Name: r.OrgName},
 			SubDomain: r.Subdomain,
 		}
-		created, err = createOrgAndUserForSignup(c, keyExpires, a.server.options.BaseDomain, details)
+		created, err = createOrgAndUserForSignup(rCtx, keyExpires, a.server.options.BaseDomain, details)
 		if err != nil {
 			return nil, handleSignupError(err)
 		}
@@ -84,7 +81,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 			SubDomain: r.Subdomain,
 		}
 		var err error
-		created, err = createOrgAndUserForSignup(c, keyExpires, a.server.options.BaseDomain, details)
+		created, err = createOrgAndUserForSignup(rCtx, keyExpires, a.server.options.BaseDomain, details)
 		if err != nil {
 			return nil, handleSignupError(err)
 		}
@@ -106,7 +103,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		Domain:  a.server.options.BaseDomain,
 		Expires: time.Now().Add(1 * time.Minute),
 	}
-	setCookie(c.Request, rCtx.Response.HTTPWriter, cookie)
+	setCookie(rCtx.Request, rCtx.Response.HTTPWriter, cookie)
 
 	a.t.User(created.Identity.ID.String(), created.Identity.Name)
 	a.t.Org(created.Organization.ID.String(), created.Identity.ID.String(), created.Organization.Name, created.Organization.Domain)
@@ -144,15 +141,15 @@ func handleSignupError(err error) error {
 	return err
 }
 
-func (a *API) socialSignupUserAuth(c *gin.Context, provider *models.Provider, auth *authn.OIDCAuthn) (*providers.IdentityProviderAuth, error) {
-	providerClient, err := a.server.providerClient(c.Request.Context(), provider, auth.RedirectURL)
+func (a *API) socialSignupUserAuth(rCtx access.RequestContext, provider *models.Provider, auth *authn.OIDCAuthn) (*providers.IdentityProviderAuth, error) {
+	providerClient, err := a.server.providerClient(rCtx.Request.Context(), provider, auth.RedirectURL)
 	if err != nil {
 		return nil, fmt.Errorf("sign-up provider client: %w", err)
 	}
 	auth.OIDCProviderClient = providerClient
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
-	result, err := auth.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(c, auth.Code)
+	result, err := auth.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(rCtx.Request.Context(), auth.Code)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
@@ -194,12 +191,11 @@ type SignupDetails struct {
 
 // createOrgAndUserForSignup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func createOrgAndUserForSignup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details SignupDetails) (*NewOrgDetails, error) {
+func createOrgAndUserForSignup(rCtx access.RequestContext, keyExpiresAt time.Time, baseDomain string, details SignupDetails) (*NewOrgDetails, error) {
 	if details.Social == nil && details.User == nil {
 		return nil, fmt.Errorf("sign-up requires social login details or user details")
 	}
 
-	rCtx := getRequestContext(c)
 	db := rCtx.DBTxn
 
 	details.Org.Domain = sanitizedDomain(details.SubDomain, baseDomain)
@@ -360,7 +356,7 @@ func (a *API) addPreviousVersionHandlersSignup() {
 
 	addVersionHandler(a, http.MethodPost, "/api/signup", "0.19.0",
 		route[signupRequestV0_19_0, *api.SignupResponse]{
-			handler: func(c *gin.Context, reqOld *signupRequestV0_19_0) (*api.SignupResponse, error) {
+			handler: func(rCtx access.RequestContext, reqOld *signupRequestV0_19_0) (*api.SignupResponse, error) {
 				req := &api.SignupRequest{
 					User: &api.SignupUser{
 						UserName: reqOld.Name,
@@ -369,10 +365,12 @@ func (a *API) addPreviousVersionHandlersSignup() {
 					OrgName:   reqOld.Org.Name,
 					Subdomain: reqOld.Org.Subdomain,
 				}
+
 				if err := validate.Validate(req); err != nil {
 					return nil, err
 				}
-				return a.Signup(c, req)
+
+				return a.Signup(rCtx, req)
 			},
 		},
 	)

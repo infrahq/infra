@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/infrahq/infra/api"
@@ -20,8 +19,7 @@ import (
 	"github.com/infrahq/infra/internal/validate"
 )
 
-func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
-	rCtx := getRequestContext(c)
+func (a *API) ListUsers(rCtx access.RequestContext, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
 	p := PaginationFromRequest(r.PaginationRequest)
 
 	opts := data.ListIdentityOptions{
@@ -59,8 +57,7 @@ var getUserRoute = route[api.GetUserRequest, *api.User]{
 	handler: GetUser,
 }
 
-func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
-	rCtx := getRequestContext(c)
+func GetUser(rCtx access.RequestContext, r *api.GetUserRequest) (*api.User, error) {
 	if r.ID.IsSelf {
 		iden := rCtx.Authenticated.User
 		if iden == nil {
@@ -81,9 +78,7 @@ func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
 }
 
 // CreateUser creates a user with the Infra provider
-func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
-	rCtx := getRequestContext(c)
-
+func (a *API) CreateUser(rCtx access.RequestContext, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	user, err := access.GetIdentity(rCtx, data.GetIdentityOptions{ByName: r.Name, LoadProviders: true})
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
@@ -140,9 +135,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	return resp, nil
 }
 
-func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.UpdateUserResponse, error) {
-	rCtx := getRequestContext(c)
-
+func (a *API) UpdateUser(rCtx access.RequestContext, r *api.UpdateUserRequest) (*api.UpdateUserResponse, error) {
 	if rCtx.Authenticated.User.ID == r.ID {
 		if err := access.UpdateCredential(rCtx, rCtx.Authenticated.User, r.OldPassword, r.Password); err != nil {
 			return nil, err
@@ -169,8 +162,7 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.UpdateU
 	}, nil
 }
 
-func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	rCtx := getRequestContext(c)
+func (a *API) DeleteUser(rCtx access.RequestContext, r *api.Resource) (*api.EmptyResponse, error) {
 	if rCtx.Authenticated.User.ID == r.ID {
 		return nil, fmt.Errorf("%w: cannot delete own user", internal.ErrBadRequest)
 	}
@@ -182,9 +174,7 @@ func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, e
 	return nil, access.DeleteIdentity(rCtx, r.ID)
 }
 
-func AddUserPublicKey(c *gin.Context, r *api.AddUserPublicKeyRequest) (*api.UserPublicKey, error) {
-	rCtx := getRequestContext(c)
-
+func AddUserPublicKey(rCtx access.RequestContext, r *api.AddUserPublicKeyRequest) (*api.UserPublicKey, error) {
 	// no authz required, because the userID comes from authenticated User.ID
 	if rCtx.Authenticated.User == nil {
 		return nil, fmt.Errorf("missing authentication")
