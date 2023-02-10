@@ -8,8 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
-
+	"github.com/infrahq/infra/internal/openapi3"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )

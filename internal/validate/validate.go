@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/infrahq/infra/internal/openapi3"
 )
 
 // Validate that the values in the Request struct are valid according to the
@@ -211,7 +211,7 @@ func (m requireAnyOf) Validate() *Failure {
 func (m requireAnyOf) DescribeSchema(schema *openapi3.Schema) {
 	for _, f := range m {
 		schema.AnyOf = append(schema.AnyOf, &openapi3.SchemaRef{
-			Value: &openapi3.Schema{Required: []string{f.Name}},
+			Schema: &openapi3.Schema{Required: []string{f.Name}},
 		})
 	}
 }
@@ -247,19 +247,19 @@ func (m requireOneOf) Validate() *Failure {
 func (m requireOneOf) DescribeSchema(schema *openapi3.Schema) {
 	for _, f := range m {
 		schema.OneOf = append(schema.OneOf, &openapi3.SchemaRef{
-			Value: &openapi3.Schema{Required: []string{f.Name}},
+			Schema: &openapi3.Schema{Required: []string{f.Name}},
 		})
 	}
 }
 
 func schemaForProperty(parent *openapi3.Schema, prop string) *openapi3.Schema {
 	if parent.Properties == nil {
-		parent.Properties = make(openapi3.Schemas)
+		parent.Properties = make(map[string]*openapi3.SchemaRef)
 	}
 	if parent.Properties[prop] == nil {
-		parent.Properties[prop] = &openapi3.SchemaRef{Value: &openapi3.Schema{}}
+		parent.Properties[prop] = &openapi3.SchemaRef{Schema: &openapi3.Schema{}}
 	}
-	return parent.Properties[prop].Value
+	return parent.Properties[prop].Schema
 }
 
 func fieldName(f reflect.StructField) string {

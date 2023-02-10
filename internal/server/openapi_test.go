@@ -22,7 +22,7 @@ func TestWriteOpenAPIDocToFile(t *testing.T) {
 	routes := s.GenerateRoutes()
 
 	filename := filepath.Join(t.TempDir(), "openapi3.json")
-	err := WriteOpenAPIDocToFile(routes.OpenAPIDocument, "0.0.0", filename)
+	err := WriteOpenAPIDocToFile(routes.OpenAPIDocument, filename)
 	assert.NilError(t, err)
 
 	actual, err := os.ReadFile(filename)
@@ -38,5 +38,4 @@ func patchProductVersion(t *testing.T, version string) {
 	t.Cleanup(func() {
 		productVersion = orig
 	})
-
 }

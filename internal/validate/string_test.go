@@ -4,9 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/openapi3"
 )
 
 type StringExample struct {
@@ -118,9 +119,9 @@ func TestStringRule_DescribeSchema(t *testing.T) {
 
 	var max uint64 = 10
 	expected := openapi3.Schema{
-		Properties: openapi3.Schemas{
-			"street": &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
+		Properties: map[string]*openapi3.SchemaRef{
+			"street": {
+				Schema: &openapi3.Schema{
 					MinLength: 2,
 					MaxLength: &max,
 					Format:    `[A-Z.\-]`,
@@ -178,9 +179,9 @@ func TestEnum_DescribeSchema(t *testing.T) {
 	e.DescribeSchema(&schema)
 
 	expected := openapi3.Schema{
-		Properties: openapi3.Schemas{
-			"kind": &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
+		Properties: map[string]*openapi3.SchemaRef{
+			"kind": {
+				Schema: &openapi3.Schema{
 					Enum: []interface{}{"car", "truck", "bus"},
 				},
 			},

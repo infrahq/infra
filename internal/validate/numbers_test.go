@@ -4,8 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/openapi3"
 )
 
 type IntExample struct {
@@ -67,9 +68,9 @@ func TestIntRule_DescribeSchema(t *testing.T) {
 	i.DescribeSchema(&schema)
 
 	expected := openapi3.Schema{
-		Properties: openapi3.Schemas{
-			"count": &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
+		Properties: map[string]*openapi3.SchemaRef{
+			"count": {
+				Schema: &openapi3.Schema{
 					Min: float64Ptr(3),
 					Max: float64Ptr(5),
 				},

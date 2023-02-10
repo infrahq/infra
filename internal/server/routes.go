@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/openapi3"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
@@ -26,7 +26,7 @@ import (
 // Routes is the return value of GenerateRoutes.
 type Routes struct {
 	http.Handler
-	OpenAPIDocument openapi3.T
+	OpenAPIDocument openapi3.Doc
 	api             *API
 }
 
@@ -40,7 +40,7 @@ type Routes struct {
 // with all the middleware that will apply to the route when the
 // Router.{GET,POST,etc} method is called.
 func (s *Server) GenerateRoutes() Routes {
-	a := &API{t: s.tel, server: s}
+	a := &API{t: s.tel, server: s, openAPIDoc: newOpenAPIDoc(productVersion())}
 
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)

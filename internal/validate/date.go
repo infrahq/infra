@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/infrahq/infra/internal/openapi3"
 )
 
 type DateRule struct {

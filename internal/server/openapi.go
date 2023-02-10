@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/openapi3"
 	"github.com/infrahq/infra/internal/validate"
 )
 
-func GenerateOpenAPIDoc() openapi3.T {
+func GenerateOpenAPIDoc() openapi3.Doc {
 	srv := newServer(Options{})
 	srv.metricsRegistry = prometheus.NewRegistry()
 	return srv.GenerateRoutes().OpenAPIDocument
@@ -75,11 +75,11 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type, req
 	})
 
 	if a.openAPIDoc.Components.Schemas == nil {
-		a.openAPIDoc.Components.Schemas = openapi3.Schemas{}
+		a.openAPIDoc.Components.Schemas = map[string]*openapi3.SchemaRef{}
 	}
 
 	if a.openAPIDoc.Paths == nil {
-		a.openAPIDoc.Paths = openapi3.Paths{}
+		a.openAPIDoc.Paths = map[string]*openapi3.PathItem{}
 	}
 
 	p, ok := a.openAPIDoc.Paths[path]
@@ -87,7 +87,7 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type, req
 		p = &openapi3.PathItem{}
 	}
 
-	op := openapi3.NewOperation()
+	op := &openapi3.Operation{}
 	op.OperationID = funcName
 	op.Description = funcName
 	op.Summary = funcName
@@ -130,7 +130,7 @@ func getFuncName(i interface{}) string {
 }
 
 // createComponent creates and returns the SchemaRef for a response type.
-func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.SchemaRef {
+func createComponent(schemas map[string]*openapi3.SchemaRef, rst reflect.Type) *openapi3.SchemaRef {
 	if rst.Kind() == reflect.Pointer {
 		rst = rst.Elem()
 	}
@@ -139,7 +139,7 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 	}
 
 	schema := &openapi3.Schema{
-		Properties: openapi3.Schemas{},
+		Properties: map[string]*openapi3.SchemaRef{},
 	}
 
 	// Reformat the name of generic types
@@ -177,7 +177,7 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 		}
 	}
 
-	schemas[name] = &openapi3.SchemaRef{Value: schema}
+	schemas[name] = &openapi3.SchemaRef{Schema: schema}
 	return &openapi3.SchemaRef{
 		Ref: "#/components/schemas/" + name,
 	}
@@ -197,7 +197,7 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 
 	if s.Type == "object" {
-		s.Properties = openapi3.Schemas{}
+		s.Properties = map[string]*openapi3.SchemaRef{}
 
 		for i := 0; i < t.NumField(); i++ {
 			f2 := t.Field(i)
@@ -211,20 +211,28 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 		}
 	}
 
-	return &openapi3.SchemaRef{Value: s}
+	return &openapi3.SchemaRef{Schema: s}
 }
 
-func writeOpenAPISpec(spec openapi3.T, version string, out io.Writer) error {
-	spec.OpenAPI = "3.0.0"
-	spec.Info = &openapi3.Info{
+func newOpenAPIDoc(version string) openapi3.Doc {
+	doc := openapi3.Doc{}
+	doc.OpenAPI = "3.0.0"
+	doc.Info = &openapi3.Info{
 		Title:       "Infra API",
 		Version:     version,
 		Description: "Infra API",
-		License:     &openapi3.License{Name: "Elastic License v2.0", URL: "https://www.elastic.co/licensing/elastic-license"},
+		License: &openapi3.License{
+			Name: "Elastic License v2.0",
+			URL:  "https://www.elastic.co/licensing/elastic-license",
+		},
 	}
-	spec.Servers = []*openapi3.Server{
+	doc.Servers = []openapi3.Server{
 		{URL: "https://api.infrahq.com"},
 	}
+	return doc
+}
+
+func writeOpenAPIDoc(spec openapi3.Doc, out io.Writer) error {
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
 
@@ -234,16 +242,13 @@ func writeOpenAPISpec(spec openapi3.T, version string, out io.Writer) error {
 	return nil
 }
 
-func WriteOpenAPIDocToFile(openAPIDoc openapi3.T, version string, filename string) error {
+func WriteOpenAPIDocToFile(openAPIDoc openapi3.Doc, filename string) error {
 	fh, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer fh.Close()
-	if err := writeOpenAPISpec(openAPIDoc, version, fh); err != nil {
-		return err
-	}
-	return nil
+	return writeOpenAPIDoc(openAPIDoc, fh)
 }
 
 func updateSchemaFromStructTags(field reflect.StructField, schema *openapi3.Schema) {
@@ -310,70 +315,49 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 	}
 }
 
-func pstr(s string) *string {
-	return &s
-}
-
-func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Responses {
+func buildResponse(schemas map[string]*openapi3.SchemaRef, rst reflect.Type) map[string]openapi3.Response {
 	schema := &openapi3.SchemaRef{
-		Value: &openapi3.Schema{Type: "object"},
+		Schema: &openapi3.Schema{Type: "object"},
 	}
 
 	if rst != nil {
 		schema = createComponent(schemas, rst)
 	}
 
-	resp := openapi3.NewResponses()
-	resp["default"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Success"),
-			Content: openapi3.Content{
-				"application/json": &openapi3.MediaType{
-					Schema: schema,
-				},
+	content := map[string]*openapi3.MediaType{
+		"application/json": {
+			Schema: createComponent(schemas, reflect.TypeOf(api.Error{})),
+		},
+	}
+
+	resp := map[string]openapi3.Response{
+		"default": {
+			Description: "Success",
+			Content: map[string]*openapi3.MediaType{
+				"application/json": {Schema: schema},
 			},
 		},
-	}
-
-	content := openapi3.Content{"application/json": &openapi3.MediaType{
-		Schema: createComponent(schemas, reflect.TypeOf(api.Error{})),
-	}}
-
-	resp["400"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Bad Request"),
+		"400": {
+			Description: "Bad Request",
+			Content:     content,
+		},
+		"401": {
+			Description: "Unauthorized: Requestor is not authenticated",
+			Content:     content,
+		},
+		"403": {
+			Description: "Forbidden: Requestor does not have the right permissions",
+			Content:     content,
+		},
+		"409": {
+			Description: "Duplicate Record",
+			Content:     content,
+		},
+		"404": {
+			Description: "Not Found",
 			Content:     content,
 		},
 	}
-
-	resp["401"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Unauthorized: Requestor is not authenticated"),
-			Content:     content,
-		},
-	}
-
-	resp["403"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Forbidden: Requestor does not have the right permissions"),
-			Content:     content,
-		},
-	}
-
-	resp["409"] = &openapi3.ResponseRef{ // also used for Conflict
-		Value: &openapi3.Response{
-			Description: pstr("Duplicate Record"),
-			Content:     content,
-		},
-	}
-
-	resp["404"] = &openapi3.ResponseRef{
-		Value: &openapi3.Response{
-			Description: pstr("Not Found"),
-			Content:     content,
-		},
-	}
-
 	return resp
 }
 
@@ -390,14 +374,14 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 		panic(fmt.Sprintf("openapi: unexpected kind %v (%v) for %v request struct", r.Kind(), r, op.OperationID))
 	}
 
-	op.Parameters = openapi3.NewParameters()
+	op.Parameters = []*openapi3.Parameter{}
 
 	op.AddParameter(&openapi3.Parameter{
 		Name:     "Infra-Version",
 		In:       "header",
 		Required: true,
 		Schema: &openapi3.SchemaRef{
-			Value: &openapi3.Schema{
+			Schema: &openapi3.Schema{
 				Example:     productVersion(),
 				Format:      `\d+\.\d+\(.\d+)?(-.\w(+\w)?)?`,
 				Type:        "string",
@@ -412,7 +396,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 			In:       "header",
 			Required: true,
 			Schema: &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
+				Schema: &openapi3.Schema{
 					Example:     "Bearer ACCESSKEY",
 					Format:      `Bearer [\da-zA-Z]{10}\.[\da-zA-Z]{24}`,
 					Type:        "string",
@@ -424,18 +408,18 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 
 	schema := &openapi3.Schema{
 		Type:       "object",
-		Properties: openapi3.Schemas{},
+		Properties: map[string]*openapi3.SchemaRef{},
 	}
 
 	for i := 0; i < r.NumField(); i++ {
 		f := r.Field(i)
 		if f.Type.Kind() == reflect.Struct && f.Anonymous {
-			tmpOp := openapi3.NewOperation()
+			tmpOp := &openapi3.Operation{}
 
 			buildRequest(f.Type, tmpOp, method, false)
 			for _, param := range tmpOp.Parameters {
-				if param.Value.Name != "Infra-Version" && param.Value.Name != "Authorization" {
-					op.AddParameter(param.Value)
+				if param.Name != "Infra-Version" && param.Name != "Authorization" {
+					op.AddParameter(param)
 				}
 			}
 
@@ -497,23 +481,19 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string, require
 	// Remove any non-body parameter from the parent schema now that the validation
 	// rules have had a chance to update them.
 	for _, param := range op.Parameters {
-		if param.Value.In != "" {
-			delete(schema.Properties, param.Value.Name)
-			schema.Required = removeString(schema.Required, param.Value.Name)
+		if param.In != "" {
+			delete(schema.Properties, param.Name)
+			schema.Required = removeString(schema.Required, param.Name)
 		}
 	}
 
 	switch method {
 	// These methods accept arguments from a request body
 	case http.MethodPut, http.MethodPost, http.MethodPatch:
-		op.RequestBody = &openapi3.RequestBodyRef{
-			Value: &openapi3.RequestBody{
-				Content: openapi3.Content{
-					"application/json": &openapi3.MediaType{
-						Schema: &openapi3.SchemaRef{
-							Value: schema,
-						},
-					},
+		op.RequestBody = &openapi3.RequestBody{
+			Content: map[string]*openapi3.MediaType{
+				"application/json": {
+					Schema: &openapi3.SchemaRef{Schema: schema},
 				},
 			},
 		}
