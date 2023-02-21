@@ -40,6 +40,10 @@ func setupDB(t *testing.T) *data.DB {
 }
 
 func issueToken(t *testing.T, db data.WriteTxn, identityName string, sessionDuration time.Duration) string {
+	return issueTokenWithTimeout(t, db, identityName, sessionDuration, sessionDuration)
+}
+
+func issueTokenWithTimeout(t *testing.T, db data.WriteTxn, identityName string, sessionDuration, timeout time.Duration) string {
 	user := &models.Identity{Name: identityName}
 
 	err := data.CreateIdentity(db, user)
@@ -48,9 +52,10 @@ func issueToken(t *testing.T, db data.WriteTxn, identityName string, sessionDura
 	provider := data.InfraProvider(db)
 
 	token := &models.AccessKey{
-		IssuedForID: user.ID,
-		ProviderID:  provider.ID,
-		ExpiresAt:   time.Now().Add(sessionDuration).UTC(),
+		IssuedForID:       user.ID,
+		ProviderID:        provider.ID,
+		ExpiresAt:         time.Now().Add(sessionDuration).UTC(),
+		InactivityTimeout: time.Now().Add(timeout).UTC(),
 	}
 	body, err := data.CreateAccessKey(db, token)
 	assert.NilError(t, err)
@@ -188,6 +193,17 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.Error(t, err, "access key has expired")
+			},
+		},
+		"AccessKeyInactivityTimeout": {
+			setup: func(t *testing.T, db data.WriteTxn) *http.Request {
+				authentication := issueTokenWithTimeout(t, db, "existing@infrahq.com", time.Minute*1, time.Minute*-1)
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+				r.Header.Add("Authorization", "Bearer "+authentication)
+				return r
+			},
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
+				assert.Error(t, err, "access key has expired due to inactivity")
 			},
 		},
 		"AccessKeyInvalidKey": {

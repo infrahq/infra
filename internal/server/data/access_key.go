@@ -297,7 +297,7 @@ func ValidateRequestAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, 
 		t.InactivityTimeout = now.Add(t.InactivityExtension)
 	}
 
-	err = updateAccessKeyLastSeenAt(tx, t)
+	err = updateAccessKeyOnUse(tx, t)
 	return t, err
 }
 
@@ -307,14 +307,14 @@ func ValidateRequestAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, 
 // in a short period of time.
 const lastSeenUpdateThreshold = 2 * time.Second
 
-// updateAccessKeyLastSeenAt sets key.UpdatedAt to now and then updates the
-// user row in the database. Updates are throttled to once every 2 seconds.
+// updateAccessKeyOnUse sets key.UpdatedAt to now and then updates the
+// user row in the database to match the specified key. Updates are throttled to once every 2 seconds.
 // If the access key was updated recently, or the database row is already locked, the
 // update will be skipped.
 //
 // Unlike most functions in this package, this function uses key.OrganizationID
 // not tx.OrganizationID.
-func updateAccessKeyLastSeenAt(tx WriteTxn, key *models.AccessKey) error {
+func updateAccessKeyOnUse(tx WriteTxn, key *models.AccessKey) error {
 	if time.Since(key.UpdatedAt) < lastSeenUpdateThreshold {
 		return nil
 	}
