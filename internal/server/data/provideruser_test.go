@@ -108,7 +108,7 @@ func TestSyncProviderUser(t *testing.T) {
 
 					expected := models.ProviderUser{
 						Email:        "hello@example.com",
-						Groups:       models.CommaSeparatedStrings{"Developers", "Everyone"},
+						Groups:       []string{"Developers", "Everyone"},
 						ProviderID:   user.ProviderID,
 						IdentityID:   user.IdentityID,
 						RedirectURL:  "http://example.com",
@@ -170,7 +170,7 @@ func TestSyncProviderUser(t *testing.T) {
 
 					expected := models.ProviderUser{
 						Email:        "sync@example.com",
-						Groups:       models.CommaSeparatedStrings{"Developers", "Everyone"},
+						Groups:       []string{"Developers", "Everyone"},
 						ProviderID:   user.ProviderID,
 						IdentityID:   user.IdentityID,
 						RedirectURL:  "http://example.com",
@@ -276,7 +276,7 @@ func TestProvisionProviderUser(t *testing.T) {
 				GivenName:  "david",
 				FamilyName: "martinez",
 				ProviderID: InfraProvider(db).ID,
-				Groups:     models.CommaSeparatedStrings{},
+				Groups:     []string{},
 				Active:     true,
 			}
 
@@ -305,7 +305,7 @@ func TestProvisionProviderUser(t *testing.T) {
 				GivenName:  "lucy",
 				FamilyName: "",
 				ProviderID: InfraProvider(db).ID,
-				Groups:     models.CommaSeparatedStrings{},
+				Groups:     []string{},
 				Active:     true,
 			}
 
@@ -371,7 +371,7 @@ func TestUpdateProviderUser(t *testing.T) {
 				FamilyName: "martinez",
 				ProviderID: InfraProvider(db).ID,
 				Active:     true,
-				Groups:     models.CommaSeparatedStrings{},
+				Groups:     []string{},
 			}
 
 			err := ProvisionProviderUser(db, user)
@@ -407,7 +407,7 @@ func TestUpdateProviderUser(t *testing.T) {
 				GivenName:  "Lucy",
 				ProviderID: provider.ID,
 				Active:     true,
-				Groups:     models.CommaSeparatedStrings{},
+				Groups:     []string{},
 			}
 
 			err = ProvisionProviderUser(db, existing)
@@ -419,7 +419,7 @@ func TestUpdateProviderUser(t *testing.T) {
 				FamilyName: "",
 				ProviderID: InfraProvider(db).ID,
 				Active:     true,
-				Groups:     models.CommaSeparatedStrings{},
+				Groups:     []string{},
 			}
 
 			err = ProvisionProviderUser(db, user)
@@ -441,7 +441,7 @@ func TestGetProviderUser(t *testing.T) {
 				GivenName:  "david",
 				FamilyName: "martinez",
 				ProviderID: InfraProvider(db).ID,
-				Groups:     models.CommaSeparatedStrings{},
+				Groups:     []string{},
 				Active:     true,
 			}
 
@@ -467,7 +467,7 @@ func TestGetProviderUser(t *testing.T) {
 				GivenName:  "lucy",
 				FamilyName: "",
 				ProviderID: InfraProvider(db).ID,
-				Groups:     models.CommaSeparatedStrings{},
+				Groups:     []string{},
 				Active:     true,
 			}
 
@@ -742,8 +742,6 @@ func createTestProviderUser(t *testing.T, tx *Transaction, provider *models.Prov
 
 	pu, err := CreateProviderUser(tx, provider, user)
 	assert.NilError(t, err)
-
-	pu.Groups = models.CommaSeparatedStrings{}
 
 	return *pu
 }

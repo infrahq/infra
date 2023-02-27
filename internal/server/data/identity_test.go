@@ -768,6 +768,26 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:           "test where the group has a comma in its name",
+			StartingGroups: []string{"foo"},
+			ExistingGroups: []string{},
+			IncomingGroups: []string{"foo", "foo,2"},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "foo",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+				{
+					Name: "foo,2",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
+		},
 	}
 
 	runDBTests(t, func(t *testing.T, db *DB) {

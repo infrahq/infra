@@ -259,7 +259,6 @@ CREATE TABLE provider_users (
     identity_id bigint NOT NULL,
     provider_id bigint NOT NULL,
     email text,
-    groups text,
     last_update timestamp with time zone,
     redirect_url text,
     access_token text,
@@ -267,7 +266,8 @@ CREATE TABLE provider_users (
     expires_at timestamp with time zone,
     given_name text DEFAULT ''::text,
     family_name text DEFAULT ''::text,
-    active boolean DEFAULT true
+    active boolean DEFAULT true,
+    groups jsonb
 );
 
 CREATE TABLE providers (

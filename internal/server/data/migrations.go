@@ -89,6 +89,7 @@ func migrations() []*migrator.Migration {
 		removeSettingsPasswordPolicy(),
 		moveSettingsJWKOrganizations(),
 		addAccessKeyIssuedForKind(),
+		storeProviderUserGroupsArray(),
 		// next one here, then run `go test -run TestMigrations ./internal/server/data -update`
 	}
 }
@@ -1324,6 +1325,51 @@ func addAccessKeyIssuedForKind() *migrator.Migration {
 			}
 			if _, err := tx.Exec(`CREATE UNIQUE INDEX idx_access_keys_issued_for ON access_keys USING btree (organization_id, issued_for_id, name) WHERE (deleted_at IS NULL);`); err != nil {
 				return fmt.Errorf("create access key issued_for index: %w", err)
+			}
+			return nil
+		},
+	}
+}
+
+func storeProviderUserGroupsArray() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2023-01-26T13:37",
+		Migrate: func(tx migrator.DB) error {
+			var groupType string
+			if err := tx.QueryRow(`SELECT pg_typeof(groups) FROM provider_users LIMIT 1;`).Scan(&groupType); err != nil {
+				return err
+			}
+			if groupType == "jsonb" {
+				// this migration has already been performed
+				return nil
+			}
+			// copy the groups string to the new groupsArray column, this could be a large operation if there are a lot of users
+			type userGroups struct {
+				IdentityID uid.ID
+				ProviderID uid.ID
+				Groups     models.CommaSeparatedStrings
+			}
+			rows, err := tx.Query(`SELECT identity_id, provider_id, groups FROM provider_users`)
+			if err != nil {
+				return err
+			}
+			users, err := scanRows(rows, func(u *userGroups) []any {
+				return []any{&u.IdentityID, &u.ProviderID, &u.Groups}
+			})
+			if err != nil {
+				return err
+			}
+			if _, err := tx.Exec(`ALTER TABLE provider_users DROP COLUMN IF EXISTS groups;`); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(`ALTER TABLE provider_users ADD COLUMN IF NOT EXISTS groups jsonb;`); err != nil {
+				return err
+			}
+			for _, u := range users {
+				groups := models.JSONB(u.Groups)
+				if _, err := tx.Exec(`UPDATE provider_users SET groups = ? WHERE identity_id = ? AND provider_id = ?`, groups, u.IdentityID, u.ProviderID); err != nil {
+					return err
+				}
 			}
 			return nil
 		},

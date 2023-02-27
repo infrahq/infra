@@ -15,7 +15,7 @@ type ProviderUser struct {
 	Email      string
 	GivenName  string
 	FamilyName string
-	Groups     CommaSeparatedStrings
+	Groups     JSONB
 	LastUpdate time.Time
 
 	RedirectURL string // needs to match the redirect URL specified when the token was issued for refreshing
