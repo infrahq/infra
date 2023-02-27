@@ -129,7 +129,7 @@ jobs:
       - name: Filter goreleaser config to linux only
         run: go run ./test/bin/goreleaser-filter.go > .goreleaser.linux.yml
 
-      - uses: goreleaser/goreleaser-action@v3
+      - uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
           version: latest
