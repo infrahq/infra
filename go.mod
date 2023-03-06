@@ -18,8 +18,8 @@ require (
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/spf13/cobra v1.6.1
 	golang.org/x/crypto v0.6.0
-	golang.org/x/oauth2 v0.5.0
-	golang.org/x/term v0.5.0
+	golang.org/x/oauth2 v0.6.0
+	golang.org/x/term v0.6.0
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -47,7 +47,7 @@ require (
 	github.com/scim2/filter-parser/v2 v2.2.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/sync v0.1.0
-	golang.org/x/text v0.7.0
+	golang.org/x/text v0.8.0
 	golang.org/x/tools v0.6.0
 	google.golang.org/api v0.110.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -133,8 +133,8 @@ require (
 	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95
-	golang.org/x/net v0.7.0
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/net v0.8.0
+	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230209215440-0dfe4f8abfcc // indirect
