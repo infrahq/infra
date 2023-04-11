@@ -19,7 +19,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	golang.org/x/crypto v0.7.0
 	golang.org/x/oauth2 v0.6.0
-	golang.org/x/term v0.6.0
+	golang.org/x/term v0.7.0
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -135,7 +135,7 @@ require (
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95
 	golang.org/x/net v0.8.0
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
