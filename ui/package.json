@@ -23,7 +23,7 @@
     "react-dom": "^18.2.0",
     "react-dom-confetti": "^0.2.0",
     "react-popper": "^2.3.0",
-    "react-router-dom": "^6.9.0",
+    "react-router-dom": "^6.10.0",
     "react-table": "^7.7.0",
     "swr": "^2.1.1",
     "universal-cookie": "^4.0.4"
