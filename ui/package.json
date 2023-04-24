@@ -12,7 +12,7 @@
   "dependencies": {
     "@headlessui/react": "^1.7.7",
     "@heroicons/react": "^2.0.17",
-    "@tanstack/react-table": "^8.7.9",
+    "@tanstack/react-table": "^8.8.5",
     "@tippyjs/react": "^4.2.6",
     "copy-to-clipboard": "^3.3.3",
     "dayjs": "^1.11.7",
