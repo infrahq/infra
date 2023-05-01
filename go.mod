@@ -29,7 +29,7 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.0
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/alicebob/miniredis/v2 v2.30.2
 	github.com/cenkalti/backoff/v4 v4.2.1
