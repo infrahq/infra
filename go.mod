@@ -49,7 +49,7 @@ require (
 	golang.org/x/sync v0.2.0
 	golang.org/x/text v0.9.0
 	golang.org/x/tools v0.9.1
-	google.golang.org/api v0.120.0
+	google.golang.org/api v0.123.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gotest.tools/v3 v3.4.0
 )
@@ -67,7 +67,7 @@ require (
 	github.com/go-openapi/jsonreference v0.20.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/gnostic v0.6.9 // indirect
-	github.com/google/s2a-go v0.1.2 // indirect
+	github.com/google/s2a-go v0.1.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.8.0 // indirect
