@@ -48,7 +48,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/sync v0.2.0
 	golang.org/x/text v0.9.0
-	golang.org/x/tools v0.9.1
+	golang.org/x/tools v0.9.3
 	google.golang.org/api v0.124.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gotest.tools/v3 v3.4.0
