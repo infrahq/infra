@@ -36,7 +36,7 @@
     "@types/node": "^20.2.5",
     "@types/react": "18.2.8",
     "autoprefixer": "^10.4.14",
-    "concurrently": "^8.1.0",
+    "concurrently": "^8.2.0",
     "eslint": "^8.40.0",
     "eslint-config-next": "^13.4.4",
     "eslint-config-prettier": "^8.8.0",
