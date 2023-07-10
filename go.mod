@@ -17,9 +17,9 @@ require (
 	github.com/prometheus/client_golang v1.16.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/spf13/cobra v1.7.0
-	golang.org/x/crypto v0.10.0
-	golang.org/x/oauth2 v0.8.0
-	golang.org/x/term v0.9.0
+	golang.org/x/crypto v0.11.0
+	golang.org/x/oauth2 v0.9.0
+	golang.org/x/term v0.10.0
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -47,9 +47,9 @@ require (
 	github.com/scim2/filter-parser/v2 v2.2.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/sync v0.3.0
-	golang.org/x/text v0.10.0
+	golang.org/x/text v0.11.0
 	golang.org/x/tools v0.10.0
-	google.golang.org/api v0.126.0
+	google.golang.org/api v0.130.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gotest.tools/v3 v3.4.0
 )
@@ -69,8 +69,8 @@ require (
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
-	github.com/googleapis/gax-go/v2 v2.10.0 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
+	github.com/googleapis/gax-go/v2 v2.11.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -82,7 +82,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/mod v0.11.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230629202037-9506855d4529 // indirect
 )
 
 require (
@@ -136,12 +136,12 @@ require (
 	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95
-	golang.org/x/net v0.11.0
-	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/net v0.12.0
+	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/grpc v1.55.0 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/grpc v1.56.1 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/klog/v2 v2.90.1 // indirect
