@@ -39,7 +39,7 @@ require (
 	github.com/go-redis/redis_rate/v9 v9.1.2
 	github.com/google/go-cmp v0.5.9
 	github.com/hinshun/vt10x v0.0.0-20220119200601-820417d04eec
-	github.com/iancoleman/strcase v0.2.0
+	github.com/iancoleman/strcase v0.3.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/pdevine/go-asciisprite v0.1.6
