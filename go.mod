@@ -47,7 +47,7 @@ require (
 	github.com/scim2/filter-parser/v2 v2.2.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/sync v0.3.0
-	golang.org/x/text v0.10.0
+	golang.org/x/text v0.11.0
 	golang.org/x/tools v0.10.0
 	google.golang.org/api v0.126.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
