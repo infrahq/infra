@@ -15,7 +15,7 @@
     "@tanstack/react-table": "^8.9.3",
     "@tippyjs/react": "^4.2.6",
     "copy-to-clipboard": "^3.3.3",
-    "dayjs": "^1.11.8",
+    "dayjs": "^1.11.9",
     "js-yaml": "^4.1.0",
     "next": "^13.4.7",
     "moment": "^2.29.4",
