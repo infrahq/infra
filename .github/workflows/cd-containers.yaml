@@ -27,7 +27,7 @@ jobs:
       components: ${{ steps.components.outputs.components }}
       release-name: ${{ steps.release-name.outputs.release-name }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: components
@@ -56,7 +56,7 @@ jobs:
       IMAGE: ${{ matrix.component.container-image-name }}
       CONTEXT: ${{ matrix.component.container-image-context }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -100,7 +100,7 @@ jobs:
       group: ${{ github.workflow }}-synchronize-${{ matrix.environment.name }}-${{ matrix.component.name }}
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-infra
         with:
           infra-server: ${{ secrets.INFRA_SERVER }}

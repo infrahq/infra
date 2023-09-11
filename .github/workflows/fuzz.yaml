@@ -13,7 +13,7 @@ jobs:
     outputs:
       fuzz-names: ${{ steps.list-fuzz.outputs.list }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19'
@@ -45,7 +45,7 @@ jobs:
         ports: ["127.0.0.1:5432:5432"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19'

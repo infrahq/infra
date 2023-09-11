@@ -20,7 +20,7 @@ jobs:
     outputs:
       release-name: ${{ steps.release-name.outputs.release-name }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: release-name
@@ -33,7 +33,7 @@ jobs:
     needs: [prepare]
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version: "1.19"
