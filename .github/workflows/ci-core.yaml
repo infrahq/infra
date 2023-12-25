@@ -101,7 +101,7 @@ jobs:
           cache: true
       - run: go mod download -x
       - run: go build -debug-actiongraph=compile.json .
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: compile.json

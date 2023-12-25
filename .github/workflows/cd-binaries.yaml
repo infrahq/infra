@@ -48,7 +48,7 @@ jobs:
           RELEASE_NAME: ${{ needs.prepare.outputs.release-name }}
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
           GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: dist/
