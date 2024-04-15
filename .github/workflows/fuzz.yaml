@@ -51,7 +51,7 @@ jobs:
           go-version: '1.19'
           cache: true
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: go-fuzz-corpus-${{ matrix.name }}-${{ github.run_number }}
           restore-keys: go-fuzz-corpus-${{ matrix.name }}-
