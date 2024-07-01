@@ -34,7 +34,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.30.3
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/coreos/go-oidc/v3 v3.6.0
-	github.com/creack/pty v1.1.18
+	github.com/creack/pty v1.1.21
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-redis/redis_rate/v9 v9.1.2
 	github.com/google/go-cmp v0.5.9
