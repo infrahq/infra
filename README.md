@@ -11,6 +11,10 @@
 
 See the [quickstart guide](./docs/quickstart.md)
 
+## Documentation
+
+For documentation, see the [docs](./docs)
+
 ## Next steps
 
 Congratulations. You've successfully connected your first cluster.
