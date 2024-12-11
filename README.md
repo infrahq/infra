@@ -15,12 +15,6 @@ See the [quickstart guide](./docs/quickstart.md)
 
 For documentation, see the [docs](./docs)
 
-## Next steps
-
-Congratulations. You've successfully connected your first cluster.
-
-Infra works best when used with a team. Next, configure how users authenticate by connecting an [identity provider](https://infrahq.com/docs/manage/authentication#identity-providers), or add users directly by [inviting them](https://infrahq.com/docs/manage/users-groups#adding-a-user).
-
 ## Community
 
 - [Community Forum](https://github.com/infrahq/infra/discussions) Best for: help with building, discussion about infrastructure access best practices.
