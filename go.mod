@@ -1,6 +1,6 @@
 module github.com/infrahq/infra
 
-go 1.18
+go 1.23.0
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
@@ -46,7 +46,7 @@ require (
 	github.com/rs/zerolog v1.27.0
 	github.com/scim2/filter-parser/v2 v2.2.0
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/sync v0.3.0
+	golang.org/x/sync v0.15.0
 	golang.org/x/text v0.10.0
 	golang.org/x/tools v0.10.0
 	google.golang.org/api v0.126.0
