@@ -1,9 +1,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +19,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -34,15 +38,19 @@ func TestAPI_Login(t *testing.T) {
 	assert.NilError(t, err)
 
 	type testCase struct {
-		name     string
-		setup    func(t *testing.T) api.LoginRequest
-		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+		name          string
+		setup         func(t *testing.T) api.LoginRequest
+		setupRequest  func(t *testing.T, req *http.Request)
+		expected      func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.setup(t))
 		req := httptest.NewRequest(http.MethodPost, "/api/login", body)
 		req.Header.Add("Infra-Version", apiVersionLatest)
+		if tc.setupRequest != nil {
+			tc.setupRequest(t, req)
+		}
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -268,6 +276,44 @@ func TestAPI_Login(t *testing.T) {
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
+		{
+			name: "oidc login failure hint",
+			setup: func(t *testing.T) api.LoginRequest {
+				provider := &models.Provider{
+					Name:         "oidc-" + t.Name(),
+					URL:          "example.com",
+					ClientID:     "client-id",
+					ClientSecret: models.EncryptedAtRest("client-secret"),
+					CreatedBy:    models.CreatedBySystem,
+					Kind:         models.ProviderKindOIDC,
+				}
+				err := data.CreateProvider(srv.DB(), provider)
+				assert.NilError(t, err)
+
+				return api.LoginRequest{
+					OIDC: &api.LoginRequestOIDC{
+						ProviderID:  provider.ID,
+						Code:        "code",
+						RedirectURL: "https://example.com/callback",
+					},
+				}
+			},
+			setupRequest: func(t *testing.T, req *http.Request) {
+				client := &oidcTestClient{exchangeErr: errors.New("invalid auth code")}
+				ctx := providers.WithOIDCClient(req.Context(), client)
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, resp.Code, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				assert.Assert(t, strings.HasPrefix(respBody.Message, "oidc login failed:"), respBody.Message)
+				assert.Assert(t, strings.Contains(respBody.Message, "invalid auth code"), respBody.Message)
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -296,6 +342,28 @@ var cmpLoginResponse = cmp.Options{
 	cmp.FilterPath(opt.PathField(api.LoginResponse{}, "AccessKey"), cmpAnyString),
 	cmp.FilterPath(opt.PathField(api.LoginResponse{}, "Expires"),
 		cmpApiTimeWithThreshold(10*time.Second)),
+}
+
+type oidcTestClient struct {
+	exchangeErr error
+}
+
+func (o *oidcTestClient) Validate(context.Context) error { return nil }
+
+func (o *oidcTestClient) AuthServerInfo(context.Context) (*providers.AuthServerInfo, error) {
+	return nil, nil
+}
+
+func (o *oidcTestClient) ExchangeAuthCodeForProviderTokens(context.Context, string) (*providers.IdentityProviderAuth, error) {
+	return nil, o.exchangeErr
+}
+
+func (o *oidcTestClient) RefreshAccessToken(context.Context, *models.ProviderUser) (string, *time.Time, error) {
+	return "", nil, nil
+}
+
+func (o *oidcTestClient) GetUserInfo(context.Context, *models.ProviderUser) (*providers.UserInfoClaims, error) {
+	return &providers.UserInfoClaims{}, nil
 }
 
 func cmpApiTimeWithThreshold(threshold time.Duration) cmp.Option {

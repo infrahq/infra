@@ -186,6 +186,12 @@ func (a *API) Login(rCtx access.RequestContext, r *api.LoginRequest) (*api.Login
 			// this means an external request failed, probably to an IDP
 			return nil, err
 		}
+
+		if loginMethod != nil && loginMethod.Name() == "oidc" {
+			return nil, AuthenticationError{
+				Message: fmt.Sprintf("oidc login failed: %s", trimmedLoginError(err)),
+			}
+		}
 		// all other failures from login should result in an unauthorized response
 		return nil, fmt.Errorf("%w: login failed: %v", internal.ErrUnauthorized, err)
 	}
@@ -222,6 +228,14 @@ func (a *API) Login(rCtx access.RequestContext, r *api.LoginRequest) (*api.Login
 		PasswordUpdateRequired: result.CredentialUpdateRequired,
 		OrganizationName:       result.OrganizationName,
 	}, nil
+}
+
+func trimmedLoginError(err error) string {
+	unwrapped := errors.Unwrap(err)
+	if unwrapped == nil {
+		return err.Error()
+	}
+	return unwrapped.Error()
 }
 
 func (a *API) Logout(rCtx access.RequestContext, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
